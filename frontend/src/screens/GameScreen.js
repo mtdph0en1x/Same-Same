@@ -1,68 +1,148 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, SafeAreaView } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  StyleSheet, Text, View, TextInput, TouchableOpacity,
+  SafeAreaView, ScrollView, Animated
+} from 'react-native';
 import { socket } from '../socket';
 import { theme } from '../styles/theme';
 
-export default function GameScreen({ roomCode, gameData }) {
-  const [answer, setAnswer] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(60);
+function WordChip({ word }) {
+  const scaleAnim = useRef(new Animated.Value(0.6)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Basic local timer for UI (Server should really manage this accurately but this is fine for now)
+    Animated.parallel([
+      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 100, friction: 8 }),
+      Animated.timing(opacityAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View style={[styles.chip, { transform: [{ scale: scaleAnim }], opacity: opacityAnim }]}>
+      <Text style={styles.chipText}>{word}</Text>
+    </Animated.View>
+  );
+}
+
+export default function GameScreen({ roomCode, gameData }) {
+  const [currentWord, setCurrentWord]       = useState('');
+  const [submittedWords, setSubmittedWords] = useState([]);
+  const [isDone, setIsDone]                 = useState(false);
+  const [timeLeft, setTimeLeft]             = useState(60);
+  const [finishedPlayers, setFinishedPlayers] = useState(new Set());
+
+  const wordsPerRound = gameData.wordsPerRound || 5;
+  const inputRef = useRef(null);
+
+  useEffect(() => {
     setTimeLeft(gameData.timeLimit || 60);
-    setAnswer('');
-    setSubmitted(false);
+    setCurrentWord('');
+    setSubmittedWords([]);
+    setIsDone(false);
+    setFinishedPlayers(new Set());
 
     const interval = setInterval(() => {
-      setTimeLeft((t) => (t > 0 ? t - 1 : 0));
+      setTimeLeft(t => (t > 0 ? t - 1 : 0));
     }, 1000);
 
-    return () => clearInterval(interval);
+    socket.on('player_finished', ({ playerId }) => {
+      setFinishedPlayers(prev => new Set([...prev, playerId]));
+    });
+
+    return () => {
+      clearInterval(interval);
+      socket.off('player_finished');
+    };
   }, [gameData]);
 
   const handleSubmit = () => {
-    if (!answer.trim()) return;
-    setSubmitted(true);
-    socket.emit('submit_answer', { roomId: roomCode, answer });
+    const trimmed = currentWord.trim();
+    if (!trimmed || isDone) return;
+
+    const next = [...submittedWords, trimmed];
+    setSubmittedWords(next);
+    setCurrentWord('');
+    socket.emit('submit_word', { roomId: roomCode, word: trimmed });
+
+    if (next.length >= wordsPerRound) {
+      setIsDone(true);
+    } else {
+      // Keep focus on input for fast typing
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
   };
 
-  const isWarning = timeLeft <= 5;
+  const isWarning = timeLeft <= 10;
+  const progress = submittedWords.length;
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <Text style={styles.headerText}>Round {gameData.roundNumber} - {gameData.roundType}</Text>
-        
-        <View style={[styles.timerCircle, isWarning && styles.timerCircleWarning]}>
-          <Text style={[styles.timerText, isWarning && styles.timerTextWarning]}>{timeLeft}</Text>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+
+        {/* Header: Round info */}
+        <Text style={styles.headerText}>
+          Round {gameData.roundNumber}/{gameData.totalRounds} · {gameData.roundType}
+        </Text>
+
+        {/* Timer + progress row */}
+        <View style={styles.metaRow}>
+          <View style={[styles.timerCircle, isWarning && styles.timerCircleWarning]}>
+            <Text style={[styles.timerText, isWarning && styles.timerTextWarning]}>{timeLeft}</Text>
+          </View>
+          <View style={styles.progressContainer}>
+            <Text style={styles.progressLabel}>WORDS</Text>
+            <Text style={styles.progressValue}>{progress} / {wordsPerRound}</Text>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: `${(progress / wordsPerRound) * 100}%` }]} />
+            </View>
+          </View>
         </View>
-        
+
+        {/* Category */}
         <View style={styles.categoryCard}>
           <Text style={styles.categoryTitle}>{gameData.category}</Text>
         </View>
 
-        {!submitted ? (
+        {/* Submitted words */}
+        {submittedWords.length > 0 && (
+          <View style={styles.chipsContainer}>
+            {submittedWords.map((w, i) => (
+              <WordChip key={i} word={w} />
+            ))}
+          </View>
+        )}
+
+        {/* Input or done state */}
+        {!isDone ? (
           <View style={styles.inputContainer}>
             <TextInput
+              ref={inputRef}
               style={styles.input}
-              placeholder="Type your answer..."
+              placeholder={`Name something... (${wordsPerRound - progress} left)`}
               placeholderTextColor={theme.colors.muted}
-              value={answer}
-              onChangeText={setAnswer}
+              value={currentWord}
+              onChangeText={setCurrentWord}
               onSubmitEditing={handleSubmit}
+              returnKeyType="done"
               autoFocus
+              autoCorrect={false}
+              autoCapitalize="none"
             />
             <TouchableOpacity style={styles.button} activeOpacity={0.8} onPress={handleSubmit}>
-              <Text style={styles.buttonText}>Submit</Text>
+              <Text style={styles.buttonText}>Submit ↵</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.waitingContainer}>
-            <Text style={styles.waitingText}>Waiting for others...</Text>
+            <Text style={styles.waitingEmoji}>✅</Text>
+            <Text style={styles.waitingText}>All done!</Text>
+            <Text style={styles.waitingSubtext}>
+              Waiting for others{finishedPlayers.size > 0 ? ` · ${finishedPlayers.size} finished` : ''}...
+            </Text>
           </View>
         )}
-      </View>
+
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -73,30 +153,35 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   container: {
-    flex: 1,
     padding: theme.spacing.xl,
     backgroundColor: theme.colors.background,
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingBottom: 40,
   },
   headerText: {
-    fontSize: 20,
+    fontSize: 16,
     color: theme.colors.secondary,
     fontFamily: theme.fonts.headingBold,
-    position: 'absolute',
-    top: 50,
     textTransform: 'uppercase',
     letterSpacing: 1,
+    marginBottom: theme.spacing.xl,
+    alignSelf: 'flex-start',
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: theme.spacing.xl,
+    gap: theme.spacing.xl,
   },
   timerCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 6,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 5,
     borderColor: theme.colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: theme.spacing.xxl,
     backgroundColor: '#FFFFFF',
     shadowColor: theme.colors.accent,
     shadowOffset: { width: 0, height: 4 },
@@ -109,12 +194,39 @@ const styles = StyleSheet.create({
     shadowColor: theme.colors.destructive,
   },
   timerText: {
-    fontSize: 48,
+    fontSize: 36,
     color: theme.colors.foreground,
     fontFamily: theme.fonts.headingBold,
   },
   timerTextWarning: {
     color: theme.colors.destructive,
+  },
+  progressContainer: {
+    flex: 1,
+  },
+  progressLabel: {
+    fontFamily: theme.fonts.bodyBold,
+    fontSize: 12,
+    color: theme.colors.muted,
+    letterSpacing: 1.5,
+    marginBottom: 2,
+  },
+  progressValue: {
+    fontFamily: theme.fonts.headingBold,
+    fontSize: 28,
+    color: theme.colors.foreground,
+    marginBottom: 6,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: theme.colors.border,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: theme.colors.accent,
+    borderRadius: 4,
   },
   categoryCard: {
     backgroundColor: theme.colors.primary,
@@ -127,13 +239,33 @@ const styles = StyleSheet.create({
     borderBottomColor: '#BE123C',
   },
   categoryTitle: {
-    fontSize: 32,
+    fontSize: 28,
     color: theme.colors.onPrimary,
     textAlign: 'center',
     fontFamily: theme.fonts.headingBold,
     textShadowColor: 'rgba(0, 0, 0, 0.2)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
+  },
+  chipsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    width: '100%',
+    marginBottom: theme.spacing.xl,
+  },
+  chip: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 2,
+    borderColor: '#6EE7B7',
+    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+  },
+  chipText: {
+    fontFamily: theme.fonts.bodyBold,
+    fontSize: 16,
+    color: '#065F46',
   },
   inputContainer: {
     width: '100%',
@@ -143,7 +275,7 @@ const styles = StyleSheet.create({
     color: theme.colors.foreground,
     padding: theme.spacing.xl,
     borderRadius: theme.borderRadius.lg,
-    fontSize: 24,
+    fontSize: 22,
     marginBottom: theme.spacing.lg,
     textAlign: 'center',
     fontFamily: theme.fonts.bodyBold,
@@ -165,23 +297,32 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: theme.colors.onPrimary,
-    fontSize: 24,
+    fontSize: 22,
     fontFamily: theme.fonts.headingBold,
     letterSpacing: 1,
   },
   waitingContainer: {
     padding: theme.spacing.xl,
-    backgroundColor: theme.colors.muted,
+    backgroundColor: '#F0FDF4',
     borderRadius: theme.borderRadius.lg,
     width: '100%',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: theme.colors.border,
-    borderStyle: 'dashed',
+    borderColor: '#86EFAC',
+  },
+  waitingEmoji: {
+    fontSize: 40,
+    marginBottom: theme.spacing.sm,
   },
   waitingText: {
     fontSize: 24,
-    color: theme.colors.secondary,
+    color: '#15803D',
+    fontFamily: theme.fonts.headingBold,
+    marginBottom: 4,
+  },
+  waitingSubtext: {
+    fontSize: 16,
+    color: '#4ADE80',
     fontFamily: theme.fonts.bodyBold,
-  }
+  },
 });

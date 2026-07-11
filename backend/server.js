@@ -42,13 +42,17 @@ io.on('connection', (socket) => {
         roomManager.leaveRoom(io, socket, roomCode);
     });
 
+    socket.on('update_config', ({ roomCode, config }) => {
+        roomManager.updateConfig(io, socket, roomCode, config);
+    });
+
     socket.on('start_game', ({ roomCode }) => {
         roomManager.startGame(io, socket, roomCode);
     });
 
     // Gameplay actions
-    socket.on('submit_answer', ({ roomId, answer }) => {
-        roomManager.submitAnswer(roomId, socket.id, answer);
+    socket.on('submit_word', ({ roomId, word }) => {
+        roomManager.submitWord(roomId, socket.id, word);
     });
 
     socket.on('disconnect', () => {

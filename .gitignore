@@ -6,3 +6,6 @@ build/
 .claude
 *.md
 !README.md
+.agents/
+__pycache__/
+*.pyc

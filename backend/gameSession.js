@@ -1,87 +1,127 @@
 const { getRandomCategory, calculateScores } = require('./gameLogic');
-const { v4: uuidv4 } = require('uuid'); // Add this to package.json later if needed, or use a simple random string generator
-// Actually we can just generate a random string for roomId if we need to.
+
+const VALID_ROUND_TYPES = ['Same Same', 'But Different', 'Rush'];
 
 class GameSession {
-    constructor(io, roomId, players) {
+    constructor(io, roomId, players, config = {}) {
         this.io = io;
         this.roomId = roomId;
         this.players = players; // Array of { id, name }
         this.scores = {};
         this.players.forEach(p => this.scores[p.id] = 0);
         this.currentRound = 0;
-        this.maxRounds = 6;
-        this.answers = [];
+        this.playerWords = {}; // { [playerId]: { name, words: [], done: false } }
+
+        const roundTypes = Array.isArray(config.roundTypes) && config.roundTypes.length > 0
+            ? config.roundTypes.filter(t => VALID_ROUND_TYPES.includes(t))
+            : ['Same Same', 'But Different', 'Rush'];
+
+        this.config = {
+            maxRounds:     [3, 6, 9].includes(config.maxRounds)       ? config.maxRounds     : 6,
+            timeLimit:     [30, 60, 90].includes(config.timeLimit)     ? config.timeLimit     : 60,
+            wordsPerRound: [3, 5, 7].includes(config.wordsPerRound)   ? config.wordsPerRound : 5,
+            roundTypes:    roundTypes.length > 0 ? roundTypes : ['Same Same', 'But Different', 'Rush'],
+            categoryPack:  config.categoryPack || 'classic',
+        };
     }
 
     start() {
         this.io.to(this.roomId).emit('game_started', { players: this.players });
-        
+
         // Short delay before first round
         setTimeout(() => {
             this.nextRound();
         }, 3000);
     }
 
+    currentRoundType() {
+        // Cycle through configured round types, repeating if needed
+        const types = this.config.roundTypes;
+        return types[(this.currentRound - 1) % types.length];
+    }
+
     nextRound() {
-        if (this.currentRound >= this.maxRounds) {
+        if (this.currentRound >= this.config.maxRounds) {
             this.io.to(this.roomId).emit('game_over', { scores: this.scores });
             return;
         }
 
         this.currentRound++;
-        this.answers = [];
-        
-        let roundType = 'Same Same';
-        if (this.currentRound === 2 || this.currentRound === 5) roundType = 'But Different';
-        if (this.currentRound === 3 || this.currentRound === 6) roundType = 'Rush';
 
-        const category = getRandomCategory();
+        // Reset per-player word tracking for this round
+        this.playerWords = {};
+        this.players.forEach(p => {
+            this.playerWords[p.id] = { name: p.name, words: [], done: false };
+        });
+
+        const roundType = this.currentRoundType();
+        const category = getRandomCategory(this.config.categoryPack);
 
         this.io.to(this.roomId).emit('round_started', {
-            roundNumber: this.currentRound,
-            roundType: roundType,
-            category: category,
-            timeLimit: 60
+            roundNumber:   this.currentRound,
+            totalRounds:   this.config.maxRounds,
+            roundType:     roundType,
+            category:      category,
+            timeLimit:     this.config.timeLimit,
+            wordsPerRound: this.config.wordsPerRound,
         });
 
         this.timer = setTimeout(() => {
             this.endRound(roundType);
-        }, 60000);
+        }, this.config.timeLimit * 1000);
     }
 
-    submitAnswer(playerId, answer) {
-        if (this.answers.find(a => a.playerId === playerId)) return; // prevent duplicate
-        
-        const player = this.players.find(p => p.id === playerId);
-        const playerName = player ? player.name : "Unknown";
+    submitWord(playerId, word) {
+        const pw = this.playerWords[playerId];
+        if (!pw || pw.done) return;
 
-        this.answers.push({ playerId, playerName, answer });
-        this.io.to(this.roomId).emit('player_answered', { playerId });
+        const trimmed = word.trim();
+        if (!trimmed) return;
 
-        if (this.answers.length === this.players.length) {
-            clearTimeout(this.timer);
-            this.endRound(this.currentRoundType());
+        pw.words.push(trimmed);
+
+        // Notify everyone this player submitted a word
+        this.io.to(this.roomId).emit('word_submitted', {
+            playerId,
+            wordCount: pw.words.length,
+        });
+
+        // Check if this player hit their word limit
+        if (pw.words.length >= this.config.wordsPerRound) {
+            pw.done = true;
+            this.io.to(this.roomId).emit('player_finished', { playerId });
+
+            // End round early if everyone is done
+            const allDone = Object.values(this.playerWords).every(p => p.done);
+            if (allDone) {
+                clearTimeout(this.timer);
+                this.endRound(this.currentRoundType());
+            }
         }
     }
 
-    currentRoundType() {
-        if (this.currentRound === 2 || this.currentRound === 5) return 'But Different';
-        if (this.currentRound === 3 || this.currentRound === 6) return 'Rush';
-        return 'Same Same';
-    }
-
     endRound(roundType) {
-        const { groups, scoreUpdates } = calculateScores(this.answers, roundType);
-        
+        // Build playerWords snapshot for scoring (words only, no socket refs)
+        const wordSnapshot = {};
+        for (const [id, data] of Object.entries(this.playerWords)) {
+            wordSnapshot[id] = { name: data.name, words: data.words };
+        }
+
+        const { groups, scoreUpdates } = calculateScores(wordSnapshot, roundType);
+
         for (let pid in scoreUpdates) {
             this.scores[pid] += scoreUpdates[pid];
         }
 
+        // Build a playerNames map so the client can display names in scores
+        const playerNames = {};
+        this.players.forEach(p => { playerNames[p.id] = p.name; });
+
         this.io.to(this.roomId).emit('round_ended', {
-            groups: groups,
+            groups:       groups,
             scoreUpdates: scoreUpdates,
-            newScores: this.scores
+            newScores:    this.scores,
+            playerNames:  playerNames,
         });
 
         // 10 seconds to show results before next round

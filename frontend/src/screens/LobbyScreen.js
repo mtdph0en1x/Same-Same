@@ -1,47 +1,73 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
   StyleSheet, Text, View, TouchableOpacity,
-  SafeAreaView, Animated, Alert
+  SafeAreaView, Animated, Alert, ScrollView
 } from 'react-native';
 import { socket } from '../socket';
 import { theme } from '../styles/theme';
 
 const MIN_PLAYERS = 2;
 
-// Individual animated player card
+const PACK_LABELS = {
+  all:         '🌍 All',
+  classic:     '⭐ Classic',
+  food:        '🍕 Food',
+  nature:      '🌿 Nature',
+  pop_culture: '🎬 Pop Culture',
+  challenge:   '🔥 Challenge',
+};
+
+// Segmented control (row of option buttons)
+function SegmentedControl({ options, value, onChange, labelMap }) {
+  return (
+    <View style={styles.segmented}>
+      {options.map(opt => (
+        <TouchableOpacity
+          key={opt}
+          style={[styles.segmentBtn, value === opt && styles.segmentBtnActive]}
+          onPress={() => onChange(opt)}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.segmentText, value === opt && styles.segmentTextActive]}>
+            {labelMap ? labelMap[opt] ?? opt : opt}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+}
+
+// Toggle chip for round types
+function RoundTypeToggle({ type, active, onChange }) {
+  return (
+    <TouchableOpacity
+      style={[styles.chip, active && styles.chipActive]}
+      onPress={() => onChange(type)}
+      activeOpacity={0.7}
+    >
+      <Text style={[styles.chipText, active && styles.chipTextActive]}>{type}</Text>
+    </TouchableOpacity>
+  );
+}
+
+// Animated player card
 function PlayerCard({ player, isHost, isSelf, onKick }) {
   const slideAnim = useRef(new Animated.Value(60)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.parallel([
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 80,
-        friction: 10,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
+      Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 80, friction: 10 }),
+      Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
     ]).start();
   }, []);
 
   return (
-    <Animated.View
-      style={[
-        styles.playerCard,
-        { transform: [{ translateX: slideAnim }], opacity: opacityAnim },
-      ]}
-    >
+    <Animated.View style={[styles.playerCard, { transform: [{ translateX: slideAnim }], opacity: opacityAnim }]}>
       <View style={[styles.avatar, isSelf && styles.avatarSelf]}>
         <Text style={styles.avatarText}>{player.name.charAt(0).toUpperCase()}</Text>
       </View>
-      <Text style={styles.playerText}>
-        {player.name}{isSelf ? ' (You)' : ''}
-      </Text>
+      <Text style={styles.playerText}>{player.name}{isSelf ? ' (You)' : ''}</Text>
       {isHost && !isSelf && (
         <TouchableOpacity style={styles.kickButton} onPress={() => onKick(player.id)}>
           <Text style={styles.kickButtonText}>✕</Text>
@@ -51,7 +77,7 @@ function PlayerCard({ player, isHost, isSelf, onKick }) {
   );
 }
 
-// Fullscreen countdown overlay
+// Countdown overlay
 function CountdownOverlay({ count }) {
   const scaleAnim = useRef(new Animated.Value(0.4)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -60,28 +86,14 @@ function CountdownOverlay({ count }) {
     scaleAnim.setValue(0.4);
     opacityAnim.setValue(0);
     Animated.parallel([
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        useNativeDriver: true,
-        tension: 120,
-        friction: 6,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: true,
-      }),
+      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 120, friction: 6 }),
+      Animated.timing(opacityAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
     ]).start();
   }, [count]);
 
   return (
     <View style={styles.countdownOverlay}>
-      <Animated.Text
-        style={[
-          styles.countdownNumber,
-          { transform: [{ scale: scaleAnim }], opacity: opacityAnim },
-        ]}
-      >
+      <Animated.Text style={[styles.countdownNumber, { transform: [{ scale: scaleAnim }], opacity: opacityAnim }]}>
         {count}
       </Animated.Text>
       <Text style={styles.countdownLabel}>Get ready!</Text>
@@ -89,12 +101,41 @@ function CountdownOverlay({ count }) {
   );
 }
 
+const DEFAULT_CONFIG = {
+  maxRounds:     6,
+  timeLimit:     60,
+  wordsPerRound: 5,
+  roundTypes:    ['Same Same', 'But Different', 'Rush'],
+  categoryPack:  'classic',
+};
+
 export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, lobbyIntent, playerData, setScreen }) {
-  const [players, setPlayers] = useState([]);
-  const [status, setStatus] = useState('Connecting...');
-  const [countdown, setCountdown] = useState(null);
+  const [players, setPlayers]       = useState([]);
+  const [status, setStatus]         = useState('Connecting...');
+  const [countdown, setCountdown]   = useState(null);
   const [hostBanner, setHostBanner] = useState(false);
-  const hostBannerTimer = useRef(null);
+  const [config, setConfig]         = useState(DEFAULT_CONFIG);
+  const hostBannerTimer             = useRef(null);
+
+  // Emit config update and update local state
+  const handleConfigChange = (patch) => {
+    const updated = { ...config, ...patch };
+    setConfig(updated);
+    socket.emit('update_config', { roomCode, config: updated });
+  };
+
+  const toggleRoundType = (type) => {
+    const current = config.roundTypes;
+    let next;
+    if (current.includes(type)) {
+      // Don't allow removing the last one
+      if (current.length === 1) return;
+      next = current.filter(t => t !== type);
+    } else {
+      next = [...current, type];
+    }
+    handleConfigChange({ roundTypes: next });
+  };
 
   useEffect(() => {
     socket.connect();
@@ -107,23 +148,25 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
       socket.emit('join_matchmaking', { name: playerData.name });
     }
 
-    socket.on('matchmaking_joined', () => {
-      setStatus('Finding a match...');
-    });
+    socket.on('matchmaking_joined', () => setStatus('Finding a match...'));
 
     socket.on('room_created', (data) => {
       setRoomCode(data.roomCode);
       if (data.players) setPlayers(data.players);
+      if (data.config)  setConfig(data.config);
       setStatus('Waiting for players...');
     });
 
     socket.on('joined_room', (data) => {
       setPlayers(data.players);
+      if (data.config) setConfig(data.config);
       setStatus('Waiting for host to start...');
     });
 
-    socket.on('player_joined', (data) => {
-      setPlayers(data.players);
+    socket.on('player_joined', (data) => setPlayers(data.players));
+
+    socket.on('config_updated', (data) => {
+      if (data.config) setConfig(data.config);
     });
 
     socket.on('room_error', (data) => {
@@ -145,19 +188,15 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
       }
     });
 
-    socket.on('countdown_started', ({ count }) => {
-      setCountdown(count);
-    });
-
-    socket.on('countdown_tick', ({ count }) => {
-      setCountdown(count);
-    });
+    socket.on('countdown_started', ({ count }) => setCountdown(count));
+    socket.on('countdown_tick',    ({ count }) => setCountdown(count));
 
     return () => {
       socket.off('matchmaking_joined');
       socket.off('room_created');
       socket.off('joined_room');
       socket.off('player_joined');
+      socket.off('config_updated');
       socket.off('room_error');
       socket.off('kicked');
       socket.off('host_changed');
@@ -167,14 +206,8 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
     };
   }, []);
 
-  const handleStartGame = () => {
-    socket.emit('start_game', { roomCode });
-  };
-
-  const handleKick = (targetId) => {
-    socket.emit('kick_player', { roomCode, targetId });
-  };
-
+  const handleStartGame = () => socket.emit('start_game', { roomCode });
+  const handleKick = (targetId) => socket.emit('kick_player', { roomCode, targetId });
   const handleLeave = () => {
     socket.emit('leave_room', { roomCode });
     socket.disconnect();
@@ -187,9 +220,9 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
     <SafeAreaView style={styles.safeArea}>
       {countdown !== null && <CountdownOverlay count={countdown} />}
 
-      <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
 
-        {/* Header row: Leave button + title */}
+        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.leaveButton} onPress={handleLeave}>
             <Text style={styles.leaveButtonText}>← Leave</Text>
@@ -203,23 +236,22 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
           </View>
         )}
 
-        {/* Room code or title */}
+        {/* Room code */}
         {roomCode ? (
           <View style={styles.codeContainer}>
             <Text style={styles.codeLabel}>ROOM CODE</Text>
             <Text style={styles.roomCode}>{roomCode}</Text>
           </View>
-        ) : isHost ? (
-          <Text style={styles.title}>Creating Room...</Text>
         ) : (
-          <Text style={styles.title}>Matchmaking</Text>
+          <Text style={styles.title}>{isHost ? 'Creating Room...' : 'Matchmaking'}</Text>
         )}
 
         <Text style={styles.status}>{status}</Text>
 
         {/* Player list */}
         {players.length > 0 && (
-          <View style={styles.playerList}>
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>PLAYERS  {players.length}/{8}</Text>
             {players.map((p) => (
               <PlayerCard
                 key={p.id}
@@ -229,6 +261,77 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
                 onKick={handleKick}
               />
             ))}
+          </View>
+        )}
+
+        {/* Settings panel — editable for host, read-only for guests */}
+        {roomCode && (
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>GAME SETTINGS{!isHost ? '  (set by host)' : ''}</Text>
+
+            <Text style={styles.settingLabel}>Words per round</Text>
+            {isHost ? (
+              <SegmentedControl
+                options={[3, 5, 7]}
+                value={config.wordsPerRound}
+                onChange={(v) => handleConfigChange({ wordsPerRound: v })}
+                labelMap={{ 3: '3', 5: '5', 7: '7' }}
+              />
+            ) : (
+              <Text style={styles.readOnlyValue}>{config.wordsPerRound} words per round</Text>
+            )}
+
+            <Text style={styles.settingLabel}>Rounds</Text>
+            {isHost ? (
+              <SegmentedControl
+                options={[3, 6, 9]}
+                value={config.maxRounds}
+                onChange={(v) => handleConfigChange({ maxRounds: v })}
+                labelMap={{ 3: '3', 6: '6', 9: '9' }}
+              />
+            ) : (
+              <Text style={styles.readOnlyValue}>{config.maxRounds} rounds</Text>
+            )}
+
+            <Text style={styles.settingLabel}>Time per round</Text>
+            {isHost ? (
+              <SegmentedControl
+                options={[30, 60, 90]}
+                value={config.timeLimit}
+                onChange={(v) => handleConfigChange({ timeLimit: v })}
+                labelMap={{ 30: '30s', 60: '60s', 90: '90s' }}
+              />
+            ) : (
+              <Text style={styles.readOnlyValue}>{config.timeLimit}s per round</Text>
+            )}
+
+            <Text style={styles.settingLabel}>Round types</Text>
+            {isHost ? (
+              <View style={styles.chipRow}>
+                {['Same Same', 'But Different', 'Rush'].map(type => (
+                  <RoundTypeToggle
+                    key={type}
+                    type={type}
+                    active={config.roundTypes.includes(type)}
+                    onChange={toggleRoundType}
+                  />
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.readOnlyValue}>{config.roundTypes.join(', ')}</Text>
+            )}
+
+            <Text style={styles.settingLabel}>Category pack</Text>
+            {isHost ? (
+              <SegmentedControl
+                options={['classic', 'food', 'nature', 'pop_culture', 'challenge', 'all']}
+                value={config.categoryPack}
+                onChange={(v) => handleConfigChange({ categoryPack: v })}
+                labelMap={PACK_LABELS}
+              />
+            ) : (
+              <Text style={styles.readOnlyValue}>{PACK_LABELS[config.categoryPack] ?? config.categoryPack}</Text>
+            )}
           </View>
         )}
 
@@ -247,7 +350,9 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
             </TouchableOpacity>
           </View>
         )}
-      </View>
+
+        <View style={{ height: 32 }} />
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -258,9 +363,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   container: {
-    flex: 1,
     padding: theme.spacing.xl,
-    backgroundColor: theme.colors.background,
     alignItems: 'center',
   },
   header: {
@@ -294,7 +397,7 @@ const styles = StyleSheet.create({
   },
   codeContainer: {
     alignItems: 'center',
-    marginBottom: theme.spacing.lg,
+    marginBottom: theme.spacing.sm,
   },
   codeLabel: {
     fontFamily: theme.fonts.bodyBold,
@@ -319,24 +422,31 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.lg,
   },
   status: {
-    fontSize: 20,
+    fontSize: 18,
     fontFamily: theme.fonts.bodyBold,
     color: theme.colors.accent,
-    marginBottom: theme.spacing.xl,
+    marginBottom: theme.spacing.lg,
   },
-  playerList: {
+  card: {
     width: '100%',
     backgroundColor: '#FFFFFF',
     padding: theme.spacing.lg,
     borderRadius: theme.borderRadius.lg,
-    marginBottom: theme.spacing.xl,
+    marginBottom: theme.spacing.lg,
     borderWidth: 2,
     borderColor: theme.colors.border,
     shadowColor: theme.colors.border,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.15,
     shadowRadius: 0,
     elevation: 2,
+  },
+  cardLabel: {
+    fontFamily: theme.fonts.bodyBold,
+    color: theme.colors.muted,
+    fontSize: 12,
+    letterSpacing: 1.5,
+    marginBottom: theme.spacing.md,
   },
   playerCard: {
     flexDirection: 'row',
@@ -366,7 +476,7 @@ const styles = StyleSheet.create({
     flex: 1,
     color: theme.colors.foreground,
     fontFamily: theme.fonts.bodyBold,
-    fontSize: 20,
+    fontSize: 18,
   },
   kickButton: {
     width: 32,
@@ -383,9 +493,79 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: theme.fonts.bodyBold,
   },
+  settingLabel: {
+    fontFamily: theme.fonts.bodyBold,
+    color: theme.colors.foreground,
+    fontSize: 15,
+    marginTop: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+  },
+  readOnlyValue: {
+    fontFamily: theme.fonts.body,
+    color: theme.colors.secondary,
+    fontSize: 15,
+    marginBottom: theme.spacing.sm,
+  },
+  // Segmented control
+  segmented: {
+    flexDirection: 'row',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  segmentBtn: {
+    flex: 1,
+    minWidth: 48,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
+  },
+  segmentBtnActive: {
+    backgroundColor: theme.colors.accent,
+    borderColor: theme.colors.accent,
+  },
+  segmentText: {
+    fontFamily: theme.fonts.bodyBold,
+    fontSize: 14,
+    color: theme.colors.foreground,
+  },
+  segmentTextActive: {
+    color: '#FFFFFF',
+  },
+  // Round type chip toggles
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  chip: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    backgroundColor: '#F9FAFB',
+  },
+  chipActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  chipText: {
+    fontFamily: theme.fonts.bodyBold,
+    fontSize: 14,
+    color: theme.colors.foreground,
+  },
+  chipTextActive: {
+    color: '#FFFFFF',
+  },
+  // START button
   startSection: {
     width: '100%',
     alignItems: 'center',
+    marginTop: theme.spacing.sm,
   },
   startHint: {
     fontFamily: theme.fonts.bodyBold,
