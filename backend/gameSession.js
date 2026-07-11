@@ -32,9 +32,9 @@ class GameSession {
         this.currentRound++;
         this.answers = [];
         
-        let roundType = 'Owls';
-        if (this.currentRound === 2 || this.currentRound === 5) roundType = 'Larks';
-        if (this.currentRound === 3 || this.currentRound === 6) roundType = 'Blitz';
+        let roundType = 'Same Same';
+        if (this.currentRound === 2 || this.currentRound === 5) roundType = 'But Different';
+        if (this.currentRound === 3 || this.currentRound === 6) roundType = 'Rush';
 
         const category = getRandomCategory();
 
@@ -66,9 +66,9 @@ class GameSession {
     }
 
     currentRoundType() {
-        if (this.currentRound === 2 || this.currentRound === 5) return 'Larks';
-        if (this.currentRound === 3 || this.currentRound === 6) return 'Blitz';
-        return 'Owls';
+        if (this.currentRound === 2 || this.currentRound === 5) return 'But Different';
+        if (this.currentRound === 3 || this.currentRound === 6) return 'Rush';
+        return 'Same Same';
     }
 
     endRound(roundType) {

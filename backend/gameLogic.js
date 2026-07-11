@@ -48,17 +48,17 @@ function calculateScores(answers, roundType) {
 
     const scoreUpdates = {};
     
-    // Owls: most popular answer wins (1 point per matching person)
-    // Larks: least popular answer wins (3 points for unique answer)
-    // Blitz: simple matching (1 point per matching person, speed could be a factor but keeping it simple)
+    // Same Same: most popular answer wins (1 point per matching person)
+    // But Different: least popular answer wins (3 points for unique answer)
+    // Rush: simple matching (1 point per matching person, speed could be a factor but keeping it simple)
     groups.forEach(g => {
-        if (roundType === 'Owls' || roundType === 'Blitz') {
+        if (roundType === 'Same Same' || roundType === 'Rush') {
             if (g.players.length > 1) {
                 g.players.forEach(p => {
                     scoreUpdates[p.id] = (scoreUpdates[p.id] || 0) + g.players.length;
                 });
             }
-        } else if (roundType === 'Larks') {
+        } else if (roundType === 'But Different') {
             if (g.players.length === 1) {
                 scoreUpdates[g.players[0].id] = (scoreUpdates[g.players[0].id] || 0) + 3;
             }

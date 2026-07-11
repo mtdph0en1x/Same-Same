@@ -34,6 +34,14 @@ io.on('connection', (socket) => {
         roomManager.joinRoom(io, socket, roomCode, playerData);
     });
 
+    socket.on('kick_player', ({ roomCode, targetId }) => {
+        roomManager.kickPlayer(io, socket, roomCode, targetId);
+    });
+
+    socket.on('leave_room', ({ roomCode }) => {
+        roomManager.leaveRoom(io, socket, roomCode);
+    });
+
     socket.on('start_game', ({ roomCode }) => {
         roomManager.startGame(io, socket, roomCode);
     });
@@ -50,7 +58,7 @@ io.on('connection', (socket) => {
     });
 });
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Backend server running on port ${PORT}`);
 });

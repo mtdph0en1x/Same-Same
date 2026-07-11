@@ -92,8 +92,10 @@ export default function App() {
           roomCode={roomCode}
           setRoomCode={setRoomCode}
           isHost={isHost}
+          setIsHost={setIsHost}
           lobbyIntent={lobbyIntent}
           playerData={playerData}
+          setScreen={setCurrentScreen}
         />
       )}
       {currentScreen === 'Game' && (
