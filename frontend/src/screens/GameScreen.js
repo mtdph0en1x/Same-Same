@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, SafeAreaView } from 'react-native';
 import { socket } from '../socket';
+import { theme } from '../styles/theme';
 
 export default function GameScreen({ roomCode, gameData }) {
   const [answer, setAnswer] = useState('');
@@ -26,100 +27,161 @@ export default function GameScreen({ roomCode, gameData }) {
     socket.emit('submit_answer', { roomId: roomCode, answer });
   };
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.headerText}>Round {gameData.roundNumber} - {gameData.roundType}</Text>
-      
-      <View style={styles.timerCircle}>
-        <Text style={styles.timerText}>{timeLeft}</Text>
-      </View>
-      
-      <Text style={styles.categoryTitle}>{gameData.category}</Text>
+  const isWarning = timeLeft <= 5;
 
-      {!submitted ? (
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Type your answer..."
-            value={answer}
-            onChangeText={setAnswer}
-            onSubmitEditing={handleSubmit}
-            autoFocus
-          />
-          <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-            <Text style={styles.buttonText}>Submit</Text>
-          </TouchableOpacity>
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <Text style={styles.headerText}>Round {gameData.roundNumber} - {gameData.roundType}</Text>
+        
+        <View style={[styles.timerCircle, isWarning && styles.timerCircleWarning]}>
+          <Text style={[styles.timerText, isWarning && styles.timerTextWarning]}>{timeLeft}</Text>
         </View>
-      ) : (
-        <Text style={styles.waitingText}>Waiting for others...</Text>
-      )}
-    </View>
+        
+        <View style={styles.categoryCard}>
+          <Text style={styles.categoryTitle}>{gameData.category}</Text>
+        </View>
+
+        {!submitted ? (
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Type your answer..."
+              placeholderTextColor={theme.colors.muted}
+              value={answer}
+              onChangeText={setAnswer}
+              onSubmitEditing={handleSubmit}
+              autoFocus
+            />
+            <TouchableOpacity style={styles.button} activeOpacity={0.8} onPress={handleSubmit}>
+              <Text style={styles.buttonText}>Submit</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.waitingContainer}>
+            <Text style={styles.waitingText}>Waiting for others...</Text>
+          </View>
+        )}
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#1E1E2C',
+    padding: theme.spacing.xl,
+    backgroundColor: theme.colors.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerText: {
-    fontSize: 24,
-    color: '#FF6B6B',
-    fontWeight: 'bold',
+    fontSize: 20,
+    color: theme.colors.secondary,
+    fontFamily: theme.fonts.headingBold,
     position: 'absolute',
     top: 50,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   timerCircle: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    borderWidth: 5,
-    borderColor: '#4ECDC4',
+    borderWidth: 6,
+    borderColor: theme.colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 40,
+    marginBottom: theme.spacing.xxl,
+    backgroundColor: '#FFFFFF',
+    shadowColor: theme.colors.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  timerCircleWarning: {
+    borderColor: theme.colors.destructive,
+    shadowColor: theme.colors.destructive,
   },
   timerText: {
-    fontSize: 40,
-    color: '#FFF',
-    fontWeight: 'bold',
+    fontSize: 48,
+    color: theme.colors.foreground,
+    fontFamily: theme.fonts.headingBold,
+  },
+  timerTextWarning: {
+    color: theme.colors.destructive,
+  },
+  categoryCard: {
+    backgroundColor: theme.colors.primary,
+    padding: theme.spacing.xl,
+    borderRadius: theme.borderRadius.lg,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: theme.spacing.xl,
+    borderBottomWidth: 6,
+    borderBottomColor: '#BE123C',
   },
   categoryTitle: {
     fontSize: 32,
-    color: '#FFF',
+    color: theme.colors.onPrimary,
     textAlign: 'center',
-    marginBottom: 40,
-    fontWeight: '600',
+    fontFamily: theme.fonts.headingBold,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   inputContainer: {
     width: '100%',
   },
   input: {
-    backgroundColor: '#2D2D44',
-    color: '#FFF',
-    padding: 20,
-    borderRadius: 15,
-    fontSize: 22,
-    marginBottom: 20,
+    backgroundColor: '#FFFFFF',
+    color: theme.colors.foreground,
+    padding: theme.spacing.xl,
+    borderRadius: theme.borderRadius.lg,
+    fontSize: 24,
+    marginBottom: theme.spacing.lg,
     textAlign: 'center',
+    fontFamily: theme.fonts.bodyBold,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    shadowColor: theme.colors.border,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 0,
+    elevation: 2,
   },
   button: {
-    backgroundColor: '#4ECDC4',
-    padding: 20,
-    borderRadius: 15,
+    backgroundColor: theme.colors.accent,
+    padding: theme.spacing.xl,
+    borderRadius: theme.borderRadius.lg,
     alignItems: 'center',
+    borderBottomWidth: 6,
+    borderBottomColor: '#1D4ED8',
   },
   buttonText: {
-    color: '#FFF',
-    fontSize: 20,
-    fontWeight: 'bold',
+    color: theme.colors.onPrimary,
+    fontSize: 24,
+    fontFamily: theme.fonts.headingBold,
+    letterSpacing: 1,
+  },
+  waitingContainer: {
+    padding: theme.spacing.xl,
+    backgroundColor: theme.colors.muted,
+    borderRadius: theme.borderRadius.lg,
+    width: '100%',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    borderStyle: 'dashed',
   },
   waitingText: {
     fontSize: 24,
-    color: '#666',
-    fontStyle: 'italic',
+    color: theme.colors.secondary,
+    fontFamily: theme.fonts.bodyBold,
   }
 });

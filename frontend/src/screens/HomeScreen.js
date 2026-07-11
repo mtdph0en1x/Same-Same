@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, SafeAreaView } from 'react-native';
 import { socket } from '../socket';
+import { theme } from '../styles/theme';
 
-export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setIsHost }) {
+export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setIsHost, setLobbyIntent }) {
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
 
   const handleFindMatch = () => {
     if (!name) return alert('Enter a name!');
     setPlayerData({ name });
-    socket.connect();
-    socket.emit('join_matchmaking', { name });
+    setLobbyIntent('matchmaking');
     setScreen('Lobby');
   };
 
@@ -18,8 +18,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
     if (!name) return alert('Enter a name!');
     setPlayerData({ name });
     setIsHost(true);
-    socket.connect();
-    socket.emit('create_room', { name });
+    setLobbyIntent('host_couch');
     setScreen('Lobby');
   };
 
@@ -28,102 +27,143 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
     setPlayerData({ name });
     setRoomCode(code.toUpperCase());
     setIsHost(false);
-    socket.connect();
-    socket.emit('join_room', { roomCode: code.toUpperCase(), playerData: { name } });
+    setLobbyIntent('join_couch');
     setScreen('Lobby');
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Same Same?</Text>
-      
-      <TextInput
-        style={styles.input}
-        placeholder="Enter your name"
-        value={name}
-        onChangeText={setName}
-      />
-
-      <TouchableOpacity style={styles.buttonPrimary} onPress={handleFindMatch}>
-        <Text style={styles.buttonText}>Find Online Match</Text>
-      </TouchableOpacity>
-
-      <View style={styles.divider} />
-
-      <TouchableOpacity style={styles.buttonSecondary} onPress={handleHostCouch}>
-        <Text style={styles.buttonText}>Host Couch Game</Text>
-      </TouchableOpacity>
-
-      <View style={styles.joinRow}>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <Text style={styles.title}>Same Same?</Text>
+        
         <TextInput
-          style={[styles.input, styles.codeInput]}
-          placeholder="CODE"
-          value={code}
-          onChangeText={setCode}
-          maxLength={4}
-          autoCapitalize="characters"
+          style={styles.input}
+          placeholder="Enter your name"
+          placeholderTextColor={theme.colors.muted}
+          value={name}
+          onChangeText={setName}
         />
-        <TouchableOpacity style={styles.buttonSecondary} onPress={handleJoinCouch}>
-          <Text style={styles.buttonText}>Join</Text>
+
+        <TouchableOpacity style={styles.buttonPrimary} activeOpacity={0.8} onPress={handleFindMatch}>
+          <Text style={styles.buttonText}>Find Online Match</Text>
         </TouchableOpacity>
+
+        <View style={styles.dividerContainer}>
+          <View style={styles.divider} />
+          <Text style={styles.dividerText}>OR</Text>
+          <View style={styles.divider} />
+        </View>
+
+        <TouchableOpacity style={styles.buttonSecondary} activeOpacity={0.8} onPress={handleHostCouch}>
+          <Text style={styles.buttonText}>Host Couch Game</Text>
+        </TouchableOpacity>
+
+        <View style={styles.joinRow}>
+          <TextInput
+            style={[styles.input, styles.codeInput]}
+            placeholder="CODE"
+            placeholderTextColor={theme.colors.muted}
+            value={code}
+            onChangeText={setCode}
+            maxLength={4}
+            autoCapitalize="characters"
+          />
+          <TouchableOpacity style={[styles.buttonSecondary, styles.joinButton]} activeOpacity={0.8} onPress={handleJoinCouch}>
+            <Text style={styles.buttonText}>Join</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
   container: {
     flex: 1,
     justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#1E1E2C',
+    padding: theme.spacing.xl,
+    backgroundColor: theme.colors.background,
   },
   title: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#FF6B6B',
+    fontSize: 56,
+    fontFamily: theme.fonts.headingBold,
+    color: theme.colors.primary,
     textAlign: 'center',
-    marginBottom: 40,
+    marginBottom: theme.spacing.xxl,
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 10,
   },
   input: {
-    backgroundColor: '#2D2D44',
-    color: '#FFF',
-    padding: 15,
-    borderRadius: 10,
-    fontSize: 18,
-    marginBottom: 20,
+    backgroundColor: '#FFFFFF',
+    color: theme.colors.foreground,
+    fontFamily: theme.fonts.bodyBold,
+    padding: theme.spacing.lg,
+    borderRadius: theme.borderRadius.lg,
+    fontSize: 20,
+    marginBottom: theme.spacing.lg,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    shadowColor: theme.colors.border,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 0,
+    elevation: 2,
   },
   buttonPrimary: {
-    backgroundColor: '#4ECDC4',
-    padding: 15,
-    borderRadius: 10,
+    backgroundColor: theme.colors.primary,
+    padding: theme.spacing.lg,
+    borderRadius: theme.borderRadius.lg,
     alignItems: 'center',
+    borderBottomWidth: 6,
+    borderBottomColor: '#BE123C', // Darker shade of primary for tactile 3D effect
   },
   buttonSecondary: {
-    backgroundColor: '#FF6B6B',
-    padding: 15,
-    borderRadius: 10,
+    backgroundColor: theme.colors.accent,
+    padding: theme.spacing.lg,
+    borderRadius: theme.borderRadius.lg,
     alignItems: 'center',
+    borderBottomWidth: 6,
+    borderBottomColor: '#1D4ED8', // Darker shade of accent
+  },
+  joinButton: {
     flex: 1,
   },
   buttonText: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: 'bold',
+    color: theme.colors.onPrimary,
+    fontFamily: theme.fonts.heading,
+    fontSize: 22,
+    letterSpacing: 1,
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: theme.spacing.xl,
   },
   divider: {
-    height: 1,
-    backgroundColor: '#444',
-    marginVertical: 30,
+    flex: 1,
+    height: 2,
+    backgroundColor: theme.colors.border,
+  },
+  dividerText: {
+    fontFamily: theme.fonts.bodyBold,
+    color: theme.colors.foreground,
+    marginHorizontal: theme.spacing.md,
+    fontSize: 16,
   },
   joinRow: {
     flexDirection: 'row',
-    gap: 10,
-    marginTop: 10,
+    gap: theme.spacing.md,
+    marginTop: theme.spacing.lg,
   },
   codeInput: {
     flex: 1,
     marginBottom: 0,
     textAlign: 'center',
+    textTransform: 'uppercase',
   }
 });
