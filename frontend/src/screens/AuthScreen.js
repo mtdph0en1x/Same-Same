@@ -50,7 +50,11 @@ export default function AuthScreen({ setScreen }) {
   async function handleGoogleLogin() {
     setLoading(true);
     try {
-      const redirectUrl = Platform.OS === 'web' ? window.location.origin : Linking.createURL('/');
+      // Supabase does strict string matching for Redirect URLs. 
+      // The Supabase dashboard has "https://same-same-one.vercel.app/" (with trailing slash)
+      // window.location.origin is "https://same-same-one.vercel.app" (no trailing slash)
+      // So we must append '/' to exactly match the configured Redirect URL.
+      const redirectUrl = Platform.OS === 'web' ? window.location.origin + '/' : Linking.createURL('/');
       
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
