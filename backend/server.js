@@ -25,6 +25,18 @@ io.on('connection', (socket) => {
         matchmaker.addPlayer(io, socket, playerData);
     });
 
+    socket.on('leave_matchmaking', () => {
+        matchmaker.removePlayer(socket.id);
+    });
+
+    socket.on('accept_match', ({ matchId }) => {
+        matchmaker.acceptMatch(socket.id, matchId);
+    });
+
+    socket.on('decline_match', ({ matchId }) => {
+        matchmaker.declineMatch(socket.id, matchId);
+    });
+
     // Mode 2: Couch Multiplayer
     socket.on('create_room', (playerData) => {
         roomManager.createRoom(io, socket, playerData);

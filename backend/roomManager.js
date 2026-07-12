@@ -89,6 +89,74 @@ function createRoom(io, socket, playerData) {
     });
 }
 
+function createPublicRoom(io, players) {
+    const roomCode = generateRoomCode();
+    const hostId = players[0].id;
+    const teams = {};
+
+    players.forEach(p => {
+        p.socket.join(roomCode);
+        teams[p.id] = assignTeam(teams); // Auto-assign to A/B
+    });
+
+    rooms[roomCode] = {
+        host:        hostId,
+        players:     players,
+        teams:       teams,
+        gameSession: null,
+        countdown:   null,
+        config:      { ...DEFAULT_CONFIG },
+        isPublic:    true,
+    };
+
+    const safePlayers = safePlayerList(players);
+    
+    players.forEach(p => {
+        p.socket.emit('joined_room', {
+            roomCode,
+            players: safePlayers,
+            host:    p.id === hostId,
+            config:  rooms[roomCode].config,
+            teams:   teams,
+            isPublic: true
+        });
+    });
+
+    // Start 10-second countdown immediately
+    startPublicCountdown(io, roomCode);
+}
+
+function startPublicCountdown(io, roomCode) {
+    const room = rooms[roomCode];
+    if (!room) return;
+
+    let count = 10;
+    io.to(roomCode).emit('countdown_started', { count });
+
+    room.countdown = setInterval(() => {
+        if (!rooms[roomCode]) {
+            clearInterval(room.countdown);
+            return;
+        }
+        
+        count--;
+        if (count > 0) {
+            io.to(roomCode).emit('countdown_tick', { count });
+        } else {
+            clearInterval(room.countdown);
+            room.countdown = null;
+
+            const gamePlayers = safePlayerList(room.players);
+            const sessionConfig = {
+                ...room.config,
+                teams: room.config.teamMode ? { ...room.teams } : null,
+            };
+            room.gameSession = new GameSession(io, roomCode, gamePlayers, sessionConfig);
+            room.gameSession.start();
+        }
+    }, 1000);
+}
+
 function joinRoom(io, socket, roomCode, playerData) {
     const room = rooms[roomCode];
     if (!room) {
@@ -125,7 +193,7 @@ function joinRoom(io, socket, roomCode, playerData) {
 
 function updateConfig(io, socket, roomCode, incomingConfig) {
     const room = rooms[roomCode];
-    if (!room || room.host !== socket.id || room.gameSession || room.countdown) return;
+    if (!room || room.host !== socket.id || room.gameSession || room.countdown || room.isPublic) return;
 
     room.config = validateConfig(incomingConfig);
     io.to(roomCode).emit('config_updated', { config: room.config });
@@ -133,7 +201,7 @@ function updateConfig(io, socket, roomCode, incomingConfig) {
 
 function updateTeams(io, socket, roomCode, incomingTeams) {
     const room = rooms[roomCode];
-    if (!room || room.host !== socket.id || room.gameSession || room.countdown) return;
+    if (!room || room.host !== socket.id || room.gameSession || room.countdown || room.isPublic) return;
 
     // Validate: every key must be a current player, every value must be 'A' or 'B'
     const playerIds = new Set(room.players.map(p => p.id));
@@ -147,7 +215,7 @@ function updateTeams(io, socket, roomCode, incomingTeams) {
 
 function kickPlayer(io, socket, roomCode, targetId) {
     const room = rooms[roomCode];
-    if (!room || room.host !== socket.id) return;
+    if (!room || room.host !== socket.id || room.isPublic) return;
     if (targetId === socket.id) return;
 
     const target = room.players.find(p => p.id === targetId);
@@ -188,7 +256,7 @@ function leaveRoom(io, socket, roomCode) {
 
 function startGame(io, socket, roomCode) {
     const room = rooms[roomCode];
-    if (!room || room.host !== socket.id || room.gameSession || room.countdown) return;
+    if (!room || room.host !== socket.id || room.gameSession || room.countdown || room.isPublic) return;
 
     const minPlayers = room.config.teamMode ? MIN_TEAM_PLAYERS : MIN_PLAYERS;
     if (room.players.length < minPlayers) {
@@ -264,6 +332,7 @@ function handleDisconnect(io, socket) {
 
 module.exports = {
     createRoom,
+    createPublicRoom,
     joinRoom,
     updateConfig,
     updateTeams,

@@ -63,9 +63,33 @@ function DraggablePlayerCard({ player, isSelf, myTeam, onDropToTeam, isHost }) {
   const shadowAnim = useRef(new Animated.Value(0)).current;
   const [dragging, setDragging] = useState(false);
 
+  // Force reset position when the team changes (so it doesn't stay translated if React reuses the element)
+  useEffect(() => {
+    pan.setValue({ x: 0, y: 0 });
+    scaleAnim.setValue(1);
+    shadowAnim.setValue(0);
+    setDragging(false);
+  }, [myTeam]);
+
+  const handleRelease = (e, gestureState) => {
+    setDragging(false);
+    Animated.parallel([
+      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true }),
+      Animated.timing(shadowAnim, { toValue: 0, duration: 150, useNativeDriver: false }),
+      Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: false })
+    ]).start();
+
+    if (myTeam === 'A' && gestureState.dx > 60) {
+      onDropToTeam(player.id, 'B');
+    } else if (myTeam === 'B' && gestureState.dx < -60) {
+      onDropToTeam(player.id, 'A');
+    }
+  };
+
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponder: () => isHost, // Only host can drag
+      onMoveShouldSetPanResponder: () => isHost,
       onPanResponderGrant: () => {
         setDragging(true);
         Animated.parallel([
@@ -77,20 +101,8 @@ function DraggablePlayerCard({ player, isSelf, myTeam, onDropToTeam, isHost }) {
         [null, { dx: pan.x, dy: pan.y }],
         { useNativeDriver: false }
       ),
-      onPanResponderRelease: (e, gestureState) => {
-        setDragging(false);
-        Animated.parallel([
-          Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true }),
-          Animated.timing(shadowAnim, { toValue: 0, duration: 150, useNativeDriver: false }),
-          Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: false })
-        ]).start();
-
-        if (myTeam === 'A' && gestureState.dx > 60) {
-          onDropToTeam(player.id, 'B');
-        } else if (myTeam === 'B' && gestureState.dx < -60) {
-          onDropToTeam(player.id, 'A');
-        }
-      }
+      onPanResponderRelease: handleRelease,
+      onPanResponderTerminate: handleRelease, // Catch browser native drag interruptions
     })
   ).current;
 
@@ -98,6 +110,7 @@ function DraggablePlayerCard({ player, isSelf, myTeam, onDropToTeam, isHost }) {
 
   return (
     <Animated.View
+      {...(isHost ? panResponder.panHandlers : {})}
       style={[
         styles.teamPlayerCard,
         { 
@@ -108,6 +121,8 @@ function DraggablePlayerCard({ player, isSelf, myTeam, onDropToTeam, isHost }) {
             { translateY: pan.y }
           ],
           zIndex: dragging ? 10 : 1,
+          userSelect: 'none', // Prevent text selection on web while dragging
+          touchAction: 'none' // Prevent browser scrolling
         },
         dragging && styles.teamPlayerCardLifted,
       ]}
@@ -118,20 +133,17 @@ function DraggablePlayerCard({ player, isSelf, myTeam, onDropToTeam, isHost }) {
       <Text style={styles.teamPlayerText} numberOfLines={1}>
         {player.name}{isSelf ? ' (You)' : ''}
       </Text>
-      {isHost && !isSelf && (
-        <Animated.View
-          {...panResponder.panHandlers}
-          style={[styles.dragHandle, { backgroundColor: color + '22' }]}
-        >
+      {isHost && (
+        <View style={[styles.dragHandle, { backgroundColor: color + '22' }]}>
           <Text style={{ color, fontSize: 16 }}>⠿</Text>
-        </Animated.View>
+        </View>
       )}
     </Animated.View>
   );
 }
 
 // Animated player card (solo mode)
-function PlayerCard({ player, isHost, isSelf, onKick }) {
+function PlayerCard({ player, isHost, isSelf, onKick, isPublic }) {
   const slideAnim   = useRef(new Animated.Value(60)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -148,7 +160,7 @@ function PlayerCard({ player, isHost, isSelf, onKick }) {
         <Text style={styles.avatarText}>{player.name.charAt(0).toUpperCase()}</Text>
       </View>
       <Text style={styles.playerText}>{player.name}{isSelf ? ' (You)' : ''}</Text>
-      {isHost && !isSelf && (
+      {isHost && !isSelf && !isPublic && (
         <TouchableOpacity style={styles.kickButton} onPress={() => onKick(player.id)}>
           <Text style={styles.kickButtonText}>✕</Text>
         </TouchableOpacity>
@@ -197,6 +209,9 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
   const [hostBanner, setHostBanner] = useState(false);
   const [config, setConfig]         = useState(DEFAULT_CONFIG);
   const [teams, setTeams]           = useState({});      // { [playerId]: 'A' | 'B' }
+  const [pendingMatch, setPendingMatch] = useState(null); // { matchId, timeoutMs }
+  const [matchStatus, setMatchStatus] = useState(null); // 'accepting' | 'accepted' | 'declined' | null
+  const [isPublic, setIsPublic]     = useState(false);
   const hostBannerTimer             = useRef(null);
 
   // Emit config update and update local state
@@ -225,6 +240,23 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
     setTeams(updated);
     socket.emit('update_teams', { roomCode, teams: updated });
   };
+  // Matchmaking Handlers
+  const handleAcceptMatch = () => {
+    socket.emit('accept_match', { matchId: pendingMatch.matchId });
+    setMatchStatus('accepted');
+  };
+
+  const handleDeclineMatch = () => {
+    socket.emit('decline_match', { matchId: pendingMatch.matchId });
+    setMatchStatus('declined');
+    setScreen('Home');
+  };
+
+  const handleLeaveMatchmaking = () => {
+    socket.emit('leave_matchmaking');
+    socket.disconnect();
+    setScreen('Home');
+  };
 
   useEffect(() => {
     socket.connect();
@@ -239,11 +271,24 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
 
     socket.on('matchmaking_joined', () => setStatus('Finding a match...'));
 
+    socket.on('match_found', (data) => {
+      setPendingMatch(data);
+      setMatchStatus('accepting');
+    });
+
+    socket.on('match_cancelled', (data) => {
+      setPendingMatch(null);
+      setMatchStatus(null);
+      Alert.alert('Match Cancelled', data.reason);
+      setStatus('Finding a match...');
+    });
+
     socket.on('room_created', (data) => {
       setRoomCode(data.roomCode);
       if (data.players) setPlayers(data.players);
       if (data.config)  setConfig(data.config);
       if (data.teams)   setTeams(data.teams);
+      if (data.isPublic) setIsPublic(true);
       setStatus('Waiting for players...');
     });
 
@@ -251,7 +296,8 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
       setPlayers(data.players);
       if (data.config) setConfig(data.config);
       if (data.teams)  setTeams(data.teams);
-      setStatus('Waiting for host to start...');
+      if (data.isPublic) setIsPublic(true);
+      setStatus(data.isPublic ? 'Match starting soon...' : 'Waiting for host to start...');
     });
 
     socket.on('player_joined', (data) => {
@@ -301,6 +347,8 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
       socket.off('host_changed');
       socket.off('countdown_started');
       socket.off('countdown_tick');
+      socket.off('match_found');
+      socket.off('match_cancelled');
       clearTimeout(hostBannerTimer.current);
     };
   }, []);
@@ -320,6 +368,46 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
   const teamA = players.filter(p => teams[p.id] === 'A');
   const teamB = players.filter(p => teams[p.id] === 'B');
 
+  // Matchmaking UI Branch
+  if (lobbyIntent === 'matchmaking' && !isPublic) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.matchmakingContainer}>
+          {pendingMatch ? (
+            <View style={styles.matchFoundCard}>
+              <Text style={styles.matchFoundTitle}>MATCH FOUND!</Text>
+              {matchStatus === 'accepting' ? (
+                <>
+                  <Text style={styles.matchFoundSubtitle}>Are you ready?</Text>
+                  <View style={styles.matchActionRow}>
+                    <TouchableOpacity style={[styles.matchBtn, styles.matchBtnDecline]} onPress={handleDeclineMatch}>
+                      <Text style={styles.matchBtnText}>DECLINE</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.matchBtn, styles.matchBtnAccept]} onPress={handleAcceptMatch}>
+                      <Text style={styles.matchBtnText}>ACCEPT</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              ) : (
+                <Text style={styles.matchFoundSubtitle}>Waiting for other players...</Text>
+              )}
+            </View>
+          ) : (
+            <>
+              <Text style={styles.title}>Same Same?</Text>
+              <Text style={styles.searchingStatus}>{status}</Text>
+              {/* Pulsing indicator can go here */}
+              <TouchableOpacity style={styles.cancelMatchBtn} onPress={handleLeaveMatchmaking}>
+                <Text style={styles.cancelMatchBtnText}>Cancel Search</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Couch Lobby UI
   return (
     <SafeAreaView style={styles.safeArea}>
       {countdown !== null && <CountdownOverlay count={countdown} />}
@@ -405,6 +493,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
                     isHost={isHost}
                     isSelf={p.id === socket.id}
                     onKick={handleKick}
+                    isPublic={isPublic}
                   />
                 ))}
               </>
@@ -413,7 +502,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
         )}
 
         {/* ── Settings panel ─────────────────────────────────────────── */}
-        {roomCode && (
+        {roomCode && !isPublic && (
           <View style={styles.card}>
             <Text style={styles.cardLabel}>GAME SETTINGS{!isHost ? '  (set by host)' : ''}</Text>
 
@@ -505,7 +594,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
         )}
 
         {/* START button — host only */}
-        {isHost && (
+        {isHost && !isPublic && (
           <View style={styles.startSection}>
             {!canStart && (
               <Text style={styles.startHint}>
@@ -554,6 +643,85 @@ const styles = StyleSheet.create({
     color: theme.colors.accent,
     fontSize: 16,
   },
+  // ── Matchmaking UI ───────────────────────────────────────────────────────
+  matchmakingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: theme.spacing.xl,
+    backgroundColor: theme.colors.background,
+  },
+  searchingStatus: {
+    fontSize: 24,
+    fontFamily: theme.fonts.headingBold,
+    color: theme.colors.accent,
+    marginBottom: theme.spacing.xxl,
+  },
+  cancelMatchBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 2,
+    borderColor: theme.colors.muted,
+  },
+  cancelMatchBtnText: {
+    fontFamily: theme.fonts.bodyBold,
+    color: theme.colors.muted,
+    fontSize: 16,
+  },
+  matchFoundCard: {
+    backgroundColor: '#FFFFFF',
+    padding: theme.spacing.xl,
+    borderRadius: theme.borderRadius.xl,
+    alignItems: 'center',
+    borderWidth: 4,
+    borderColor: theme.colors.primary,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+    width: '100%',
+  },
+  matchFoundTitle: {
+    fontFamily: theme.fonts.headingBold,
+    fontSize: 32,
+    color: theme.colors.primary,
+    marginBottom: theme.spacing.sm,
+  },
+  matchFoundSubtitle: {
+    fontFamily: theme.fonts.bodyBold,
+    fontSize: 18,
+    color: theme.colors.foreground,
+    marginBottom: theme.spacing.xl,
+  },
+  matchActionRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
+    width: '100%',
+  },
+  matchBtn: {
+    flex: 1,
+    paddingVertical: 16,
+    borderRadius: theme.borderRadius.md,
+    alignItems: 'center',
+  },
+  matchBtnDecline: {
+    backgroundColor: '#F3F4F6',
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+  },
+  matchBtnAccept: {
+    backgroundColor: '#10B981', // Emerald green
+    borderWidth: 2,
+    borderColor: '#059669',
+  },
+  matchBtnText: {
+    fontFamily: theme.fonts.headingBold,
+    fontSize: 18,
+    color: theme.colors.foreground,
+  },
+  // ── Couch UI ─────────────────────────────────────────────────────────────
   hostBanner: {
     backgroundColor: '#FEF9C3',
     borderWidth: 2,
