@@ -57,30 +57,42 @@ function RoundTypeToggle({ type, active, onChange }) {
 }
 
 // Draggable player card (team mode)
-function DraggablePlayerCard({ player, isSelf, myTeam, dragTarget, setDragTarget, onDropToTeam, isHost }) {
+function DraggablePlayerCard({ player, isSelf, myTeam, onDropToTeam, isHost }) {
+  const pan = useRef(new Animated.ValueXY()).current;
   const scaleAnim  = useRef(new Animated.Value(1)).current;
   const shadowAnim = useRef(new Animated.Value(0)).current;
   const [dragging, setDragging] = useState(false);
 
-  const lift = () => {
-    setDragging(true);
-    Animated.parallel([
-      Animated.spring(scaleAnim,  { toValue: 1.06, useNativeDriver: true }),
-      Animated.timing(shadowAnim, { toValue: 1, duration: 150, useNativeDriver: false }),
-    ]).start();
-  };
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        setDragging(true);
+        Animated.parallel([
+          Animated.spring(scaleAnim, { toValue: 1.06, useNativeDriver: true }),
+          Animated.timing(shadowAnim, { toValue: 1, duration: 150, useNativeDriver: false }),
+        ]).start();
+      },
+      onPanResponderMove: Animated.event(
+        [null, { dx: pan.x, dy: pan.y }],
+        { useNativeDriver: false }
+      ),
+      onPanResponderRelease: (e, gestureState) => {
+        setDragging(false);
+        Animated.parallel([
+          Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true }),
+          Animated.timing(shadowAnim, { toValue: 0, duration: 150, useNativeDriver: false }),
+          Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: false })
+        ]).start();
 
-  const drop = () => {
-    setDragging(false);
-    Animated.parallel([
-      Animated.spring(scaleAnim,  { toValue: 1, useNativeDriver: true }),
-      Animated.timing(shadowAnim, { toValue: 0, duration: 150, useNativeDriver: false }),
-    ]).start();
-    if (dragTarget && dragTarget !== myTeam) {
-      onDropToTeam(player.id, dragTarget);
-    }
-    setDragTarget(null);
-  };
+        if (myTeam === 'A' && gestureState.dx > 60) {
+          onDropToTeam(player.id, 'B');
+        } else if (myTeam === 'B' && gestureState.dx < -60) {
+          onDropToTeam(player.id, 'A');
+        }
+      }
+    })
+  ).current;
 
   const color = TEAM_COLORS[myTeam];
 
@@ -88,7 +100,15 @@ function DraggablePlayerCard({ player, isSelf, myTeam, dragTarget, setDragTarget
     <Animated.View
       style={[
         styles.teamPlayerCard,
-        { borderColor: color, transform: [{ scale: scaleAnim }] },
+        { 
+          borderColor: color, 
+          transform: [
+            { scale: scaleAnim },
+            { translateX: pan.x },
+            { translateY: pan.y }
+          ],
+          zIndex: dragging ? 10 : 1,
+        },
         dragging && styles.teamPlayerCardLifted,
       ]}
     >
@@ -99,14 +119,12 @@ function DraggablePlayerCard({ player, isSelf, myTeam, dragTarget, setDragTarget
         {player.name}{isSelf ? ' (You)' : ''}
       </Text>
       {isHost && !isSelf && (
-        <TouchableOpacity
+        <Animated.View
+          {...panResponder.panHandlers}
           style={[styles.dragHandle, { backgroundColor: color + '22' }]}
-          onLongPress={lift}
-          onPressOut={drop}
-          delayLongPress={150}
         >
           <Text style={{ color, fontSize: 16 }}>⠿</Text>
-        </TouchableOpacity>
+        </Animated.View>
       )}
     </Animated.View>
   );
@@ -179,7 +197,6 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
   const [hostBanner, setHostBanner] = useState(false);
   const [config, setConfig]         = useState(DEFAULT_CONFIG);
   const [teams, setTeams]           = useState({});      // { [playerId]: 'A' | 'B' }
-  const [dragTarget, setDragTarget] = useState(null);    // 'A' | 'B' | null — column being hovered
   const hostBannerTimer             = useRef(null);
 
   // Emit config update and update local state
@@ -343,25 +360,18 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
               <>
                 <Text style={styles.cardLabel}>TEAMS  {players.length}/{8}</Text>
                 {isHost && (
-                  <Text style={styles.dragHint}>Long-press ⠿ to drag a player to the other team</Text>
+                  <Text style={styles.dragHint}>Drag the ⠿ handle horizontally to swap teams</Text>
                 )}
                 <View style={styles.teamColumns}>
                   {(['A', 'B']).map(team => {
                     const members = team === 'A' ? teamA : teamB;
-                    const isHovered = dragTarget === team;
                     return (
-                      <TouchableOpacity
+                      <View
                         key={team}
-                        activeOpacity={1}
-                        onPress={() => {}} // drop zone — handled by DraggablePlayerCard drop
                         style={[
                           styles.teamColumn,
-                          { backgroundColor: TEAM_BG[team], borderColor: isHovered ? TEAM_COLORS[team] : TEAM_BORDER[team] },
-                          isHovered && styles.teamColumnHovered,
+                          { backgroundColor: TEAM_BG[team], borderColor: TEAM_BORDER[team] },
                         ]}
-                        // Expose this column as the drag target when hovered
-                        onStartShouldSetResponder={() => { setDragTarget(team); return false; }}
-                        onMoveShouldSetResponder={()  => { setDragTarget(team); return false; }}
                       >
                         <Text style={[styles.teamColumnLabel, { color: TEAM_COLORS[team] }]}>
                           {TEAM_LABELS[team]}
@@ -372,8 +382,6 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
                             player={p}
                             isSelf={p.id === socket.id}
                             myTeam={team}
-                            dragTarget={dragTarget}
-                            setDragTarget={setDragTarget}
                             onDropToTeam={handleDropToTeam}
                             isHost={isHost}
                           />
@@ -381,7 +389,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
                         {members.length === 0 && (
                           <Text style={styles.emptyTeam}>Drop here</Text>
                         )}
-                      </TouchableOpacity>
+                      </View>
                     );
                   })}
                 </View>
