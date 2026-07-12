@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet, Text, View, TextInput, TouchableOpacity,
-  SafeAreaView, ScrollView, Animated
+  SafeAreaView, ScrollView, Animated, Image
 } from 'react-native';
 import { socket } from '../socket';
 import { theme } from '../styles/theme';
@@ -27,7 +27,7 @@ function WordChip({ word }) {
   );
 }
 
-export default function GameScreen({ roomCode, gameData, teams }) {
+export default function GameScreen({ roomCode, gameData, players, teams }) {
   const [currentWord, setCurrentWord]       = useState('');
   const [submittedWords, setSubmittedWords] = useState([]);
   const [isDone, setIsDone]                 = useState(false);
@@ -89,6 +89,29 @@ export default function GameScreen({ roomCode, gameData, teams }) {
             <Text style={styles.teamBadgeText}>{TEAM_LABELS[myTeam]}</Text>
           </View>
         )}
+
+        {/* Players Top Bar */}
+        <View style={styles.playersBar}>
+          {players?.map(p => {
+            const isFinished = finishedPlayers.has(p.id);
+            return (
+              <View key={p.id} style={[styles.playerAvatarContainer, isFinished && styles.playerFinished]}>
+                {p.avatar && p.avatar.startsWith('http') ? (
+                  <Image source={{ uri: p.avatar }} style={styles.smallAvatarImage} />
+                ) : (
+                  <View style={styles.smallAvatarFallback}>
+                    <Text style={styles.smallAvatarText}>{p.name.charAt(0).toUpperCase()}</Text>
+                  </View>
+                )}
+                {isFinished && (
+                  <View style={styles.checkmarkBadge}>
+                    <Text style={styles.checkmarkText}>✓</Text>
+                  </View>
+                )}
+              </View>
+            );
+          })}
+        </View>
 
         {/* Header: Round info */}
         <Text style={styles.headerText}>
@@ -348,5 +371,65 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#4ADE80',
     fontFamily: theme.fonts.bodyBold,
+  },
+  playersBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+    width: '100%',
+    marginBottom: theme.spacing.xl,
+  },
+  playerAvatarContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    opacity: 0.5, // Dim until finished
+  },
+  playerFinished: {
+    borderColor: '#10B981',
+    opacity: 1, // Full opacity when finished
+  },
+  smallAvatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
+  },
+  smallAvatarFallback: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  smallAvatarText: {
+    fontFamily: theme.fonts.headingBold,
+    color: theme.colors.muted,
+    fontSize: 16,
+  },
+  checkmarkBadge: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    backgroundColor: '#10B981',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  checkmarkText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 });

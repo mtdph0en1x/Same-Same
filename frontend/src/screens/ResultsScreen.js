@@ -1,13 +1,28 @@
-import React from 'react';
-import { StyleSheet, Text, View, ScrollView, SafeAreaView } from 'react-native';
+import React, { useEffect } from 'react';
+import { StyleSheet, Text, View, ScrollView, SafeAreaView, Alert, Platform } from 'react-native';
 import { theme } from '../styles/theme';
+import { socket } from '../socket';
 
 const TEAM_COLORS  = { A: '#E11D48', B: '#2563EB' };
 const TEAM_LABELS  = { A: '🔴 Team A', B: '🔵 Team B' };
 const TEAM_SHADOWS = { A: '#BE123C',  B: '#1D4ED8' };
 
 export default function ResultsScreen({ roundResults }) {
-  const { groups, newScores, playerNames = {}, teams = null, teamScores = null } = roundResults;
+  const { groups, newScores, playerNames = {}, teams = null, teamScores = null, rejectedWords = [] } = roundResults;
+
+  useEffect(() => {
+    if (rejectedWords && rejectedWords.length > 0) {
+      const myRejection = rejectedWords.find(rw => rw.playerId === socket.id);
+      if (myRejection) {
+        const msg = `🤖 AI Judge says NO!\nYour word "${myRejection.word}" was rejected for being gibberish or off-topic! No points for you!`;
+        if (Platform.OS === 'web') {
+          window.alert(msg);
+        } else {
+          Alert.alert("🤖 AI Judge says NO!", msg, [{ text: "Fair enough" }]);
+        }
+      }
+    }
+  }, [rejectedWords]);
 
   // Sort individual scores descending
   const sortedScores = Object.entries(newScores).sort((a, b) => b[1] - a[1]);

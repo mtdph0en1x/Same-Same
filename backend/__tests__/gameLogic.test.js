@@ -10,7 +10,10 @@ const { calculateScores } = require('../gameLogic');
 function words(map) {
     const result = {};
     for (const [id, ws] of Object.entries(map)) {
-        result[id] = { name: id, words: ws };
+        // If the element is already an object (like { text, time }), leave it as is.
+        // Otherwise, wrap it in an object with time: 0 to simulate the new format.
+        const mappedWords = ws.map(w => typeof w === 'string' ? { text: w, time: 0 } : w);
+        result[id] = { name: id, words: mappedWords };
     }
     return result;
 }
@@ -118,12 +121,14 @@ describe('Solo · But Different', () => {
 // ---------------------------------------------------------------------------
 
 describe('Solo · Rush', () => {
-    test('shared words score just like Same Same', () => {
+    test('shared words score base points just like Same Same', () => {
         const { scoreUpdates } = calculateScores(
             words({ a: ['cat'], b: ['cat'] }),
             'Rush'
         );
-        expect(scoreUpdates.a).toBe(2);
+        // We aren't testing times here, so they default to 0. The first player 'a' will be picked as fastest if times are equal.
+        // Group size is 2, plus 2 for speed bonus for 'a' = 4 points. 'b' gets 2 points.
+        expect(scoreUpdates.a).toBe(4);
         expect(scoreUpdates.b).toBe(2);
     });
 
@@ -134,6 +139,22 @@ describe('Solo · Rush', () => {
         );
         expect(scoreUpdates.a).toBeUndefined();
         expect(scoreUpdates.b).toBeUndefined();
+    });
+
+    test('fastest player gets +2 speed bonus', () => {
+        const { scoreUpdates } = calculateScores(
+            words({
+                slow: [{ text: 'apple', time: 5000 }],
+                fast: [{ text: 'apple', time: 1000 }],
+                medium: [{ text: 'apple', time: 3000 }]
+            }),
+            'Rush'
+        );
+        // Group size is 3. Everyone gets 3 points.
+        // 'fast' gets an extra +2 for being fastest.
+        expect(scoreUpdates.slow).toBe(3);
+        expect(scoreUpdates.fast).toBe(5); // 3 + 2
+        expect(scoreUpdates.medium).toBe(3);
     });
 });
 
@@ -370,14 +391,15 @@ describe('Team mode · But Different', () => {
 // ---------------------------------------------------------------------------
 
 describe('Team mode · Rush', () => {
-    test('behaves identically to team Same Same', () => {
+    test('behaves like team Same Same but with speed bonus', () => {
         const teams = { a1: 'A', a2: 'A', b1: 'B', b2: 'B' };
         const { scoreUpdates } = calculateScores(
             words({ a1: ['cat'], a2: ['cat'], b1: ['dog'], b2: ['fish'] }),
             'Rush',
             teams
         );
-        expect(scoreUpdates.a1).toBe(2);
+        // a1 gets speed bonus (+2) because its time (0) ties with a2, and a1 was processed first.
+        expect(scoreUpdates.a1).toBe(4);
         expect(scoreUpdates.a2).toBe(2);
         expect(scoreUpdates.b1).toBeUndefined();
         expect(scoreUpdates.b2).toBeUndefined();

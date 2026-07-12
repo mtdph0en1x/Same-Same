@@ -8,6 +8,9 @@ import HomeScreen from './src/screens/HomeScreen';
 import LobbyScreen from './src/screens/LobbyScreen';
 import GameScreen from './src/screens/GameScreen';
 import ResultsScreen from './src/screens/ResultsScreen';
+import AuthScreen from './src/screens/AuthScreen';
+import ProfileScreen from './src/screens/ProfileScreen';
+import { AuthProvider } from './src/context/AuthContext';
 import { socket } from './src/socket';
 import { theme } from './src/styles/theme';
 
@@ -22,6 +25,7 @@ export default function App() {
   const [lobbyIntent, setLobbyIntent] = useState(null);
 
   const [gameData, setGameData] = useState(null);
+  const [players, setPlayers] = useState([]);     // Array of player objects
   const [teams, setTeams] = useState(null);       // { [playerId]: 'A' | 'B' } or null
   const [roundResults, setRoundResults] = useState(null);
 
@@ -39,6 +43,7 @@ export default function App() {
 
   useEffect(() => {
     socket.on('game_started', (data) => {
+      setPlayers(data.players || []);
       setTeams(data.teams || null);
     });
 
@@ -77,41 +82,50 @@ export default function App() {
   }
 
   return (
-    <View style={styles.container} onLayout={onLayoutRootView}>
-      <StatusBar style="dark" />
-      {currentScreen === 'Home' && (
-        <HomeScreen
-          setScreen={setCurrentScreen}
-          setRoomCode={setRoomCode}
-          setPlayerData={setPlayerData}
-          setIsHost={setIsHost}
-          setLobbyIntent={setLobbyIntent}
-        />
-      )}
-      {currentScreen === 'Lobby' && (
-        <LobbyScreen
-          roomCode={roomCode}
-          setRoomCode={setRoomCode}
-          isHost={isHost}
-          setIsHost={setIsHost}
-          lobbyIntent={lobbyIntent}
-          playerData={playerData}
-          setScreen={setCurrentScreen}
-        />
-      )}
-      {currentScreen === 'Game' && (
-        <GameScreen
-          roomCode={roomCode}
-          gameData={gameData}
-          teams={teams}
-        />
-      )}
-      {currentScreen === 'Results' && (
-        <ResultsScreen
-          roundResults={roundResults}
-        />
-      )}
-    </View>
+    <AuthProvider>
+      <View style={styles.container} onLayout={onLayoutRootView}>
+        <StatusBar style="dark" />
+        {currentScreen === 'Home' && (
+          <HomeScreen
+            setScreen={setCurrentScreen}
+            setRoomCode={setRoomCode}
+            setPlayerData={setPlayerData}
+            setIsHost={setIsHost}
+            setLobbyIntent={setLobbyIntent}
+          />
+        )}
+        {currentScreen === 'Auth' && (
+          <AuthScreen setScreen={setCurrentScreen} />
+        )}
+        {currentScreen === 'Profile' && (
+          <ProfileScreen setScreen={setCurrentScreen} />
+        )}
+        {currentScreen === 'Lobby' && (
+          <LobbyScreen
+            roomCode={roomCode}
+            setRoomCode={setRoomCode}
+            isHost={isHost}
+            setIsHost={setIsHost}
+            lobbyIntent={lobbyIntent}
+            playerData={playerData}
+            setScreen={setCurrentScreen}
+          />
+        )}
+        {currentScreen === 'Game' && (
+          <GameScreen
+            roomCode={roomCode}
+            gameData={gameData}
+            players={players}
+            teams={teams}
+          />
+        )}
+        {currentScreen === 'Results' && (
+          <ResultsScreen
+            roundResults={roundResults}
+          />
+        )}
+      </View>
+    </AuthProvider>
   );
 }
 

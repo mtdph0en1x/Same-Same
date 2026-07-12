@@ -62,12 +62,12 @@ function pruneTeams(teams, players) {
 }
 
 function safePlayerList(players) {
-    return players.map(p => ({ id: p.id, name: p.name }));
+    return players.map(p => ({ id: p.id, name: p.name, level: p.level || 1, avatar: p.avatar, userId: p.socket?.userId }));
 }
 
 function createRoom(io, socket, playerData) {
     const roomCode = generateRoomCode();
-    const player = { id: socket.id, name: playerData.name || 'Host', socket };
+    const player = { id: socket.id, name: playerData.name || 'Host', level: playerData.level || 1, avatar: playerData.avatar, socket };
     const teams = { [socket.id]: 'A' };
 
     rooms[roomCode] = {
@@ -77,6 +77,7 @@ function createRoom(io, socket, playerData) {
         gameSession: null,
         countdown:   null,
         config:      { ...DEFAULT_CONFIG },
+        votes:       {},
     };
 
     socket.join(roomCode);
@@ -89,15 +90,20 @@ function createRoom(io, socket, playerData) {
     });
 }
 
-function createPublicRoom(io, players) {
+function createPublicRoom(io, players, mmMode = 'solo4') {
     const roomCode = generateRoomCode();
     const hostId = players[0].id;
     const teams = {};
+    const isTeamMode = mmMode === 'team2v2' || mmMode === 'team4v4';
 
     players.forEach(p => {
         p.socket.join(roomCode);
-        teams[p.id] = assignTeam(teams); // Auto-assign to A/B
+        if (isTeamMode) {
+            teams[p.id] = assignTeam(teams); // Auto-assign to A/B
+        }
     });
+
+    const roomConfig = { ...DEFAULT_CONFIG, teamMode: isTeamMode };
 
     rooms[roomCode] = {
         host:        hostId,
@@ -105,8 +111,9 @@ function createPublicRoom(io, players) {
         teams:       teams,
         gameSession: null,
         countdown:   null,
-        config:      { ...DEFAULT_CONFIG },
+        config:      roomConfig,
         isPublic:    true,
+        votes:       {},
     };
 
     const safePlayers = safePlayerList(players);
@@ -146,6 +153,29 @@ function startPublicCountdown(io, roomCode) {
             clearInterval(room.countdown);
             room.countdown = null;
 
+            // Tally votes
+            if (Object.keys(room.votes).length > 0) {
+                const tallies = {};
+                for (const pack of Object.values(room.votes)) {
+                    tallies[pack] = (tallies[pack] || 0) + 1;
+                }
+                
+                let winningPack = 'classic';
+                let maxVotes = 0;
+                
+                // Shuffle keys to handle ties randomly
+                const packs = Object.keys(tallies).sort(() => Math.random() - 0.5);
+                for (const pack of packs) {
+                    if (tallies[pack] > maxVotes) {
+                        maxVotes = tallies[pack];
+                        winningPack = pack;
+                    }
+                }
+                
+                room.config.categoryPack = winningPack;
+                io.to(roomCode).emit('config_updated', { config: room.config });
+            }
+
             const gamePlayers = safePlayerList(room.players);
             const sessionConfig = {
                 ...room.config,
@@ -172,7 +202,7 @@ function joinRoom(io, socket, roomCode, playerData) {
         return;
     }
 
-    const player = { id: socket.id, name: playerData.name || 'Player', socket };
+    const player = { id: socket.id, name: playerData.name || 'Player', level: playerData.level || 1, avatar: playerData.avatar, socket };
     room.players.push(player);
 
     // Auto-assign to the smaller team
@@ -334,6 +364,27 @@ function handleDisconnect(io, socket) {
     }
 }
 
+function submitVote(io, socket, roomCode, packId) {
+    const room = rooms[roomCode];
+    if (!room || !room.isPublic || room.gameSession) return;
+    
+    const validPacks = ['all', ...getPackNames()];
+    if (!validPacks.includes(packId)) return;
+
+    // Check if player is in the room
+    if (!room.players.find(p => p.id === socket.id)) return;
+
+    room.votes[socket.id] = packId;
+    
+    // Broadcast live vote counts
+    const tallies = {};
+    for (const pack of Object.values(room.votes)) {
+        tallies[pack] = (tallies[pack] || 0) + 1;
+    }
+    
+    io.to(roomCode).emit('votes_updated', { votes: tallies });
+}
+
 module.exports = {
     createRoom,
     createPublicRoom,
@@ -345,6 +396,7 @@ module.exports = {
     startGame,
     submitWord,
     handleDisconnect,
+    submitVote,
 };
 
 

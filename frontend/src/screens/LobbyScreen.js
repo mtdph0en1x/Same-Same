@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
   StyleSheet, Text, View, TouchableOpacity,
-  SafeAreaView, Animated, Alert, ScrollView, PanResponder
+  SafeAreaView, Animated, Alert, ScrollView, PanResponder, Image
 } from 'react-native';
 import { socket } from '../socket';
 import { theme } from '../styles/theme';
@@ -22,6 +22,7 @@ const TEAM_COLORS  = { A: '#E11D48', B: '#2563EB' };
 const TEAM_BG      = { A: '#FFF1F2', B: '#EFF6FF' };
 const TEAM_BORDER  = { A: '#FECDD3', B: '#BFDBFE' };
 const TEAM_LABELS  = { A: '🔴 Team A', B: '🔵 Team B' };
+
 
 // Segmented control (row of option buttons)
 function SegmentedControl({ options, value, onChange, labelMap }) {
@@ -128,10 +129,14 @@ function DraggablePlayerCard({ player, isSelf, myTeam, onDropToTeam, isHost }) {
       ]}
     >
       <View style={[styles.teamAvatar, { backgroundColor: color }]}>
-        <Text style={styles.avatarText}>{player.name.charAt(0).toUpperCase()}</Text>
+        {player.avatar && player.avatar.startsWith('http') ? (
+          <Image source={{ uri: player.avatar }} style={styles.avatarImage} />
+        ) : (
+          <Text style={styles.avatarText}>{player.name.charAt(0).toUpperCase()}</Text>
+        )}
       </View>
       <Text style={styles.teamPlayerText} numberOfLines={1}>
-        {player.name}{isSelf ? ' (You)' : ''}
+        ⭐{player.level || 1} {player.name}{isSelf ? ' (You)' : ''}
       </Text>
       {isHost && (
         <View style={[styles.dragHandle, { backgroundColor: color + '22' }]}>
@@ -157,9 +162,13 @@ function PlayerCard({ player, isHost, isSelf, onKick, isPublic }) {
   return (
     <Animated.View style={[styles.playerCard, { transform: [{ translateX: slideAnim }], opacity: opacityAnim }]}>
       <View style={[styles.avatar, isSelf && styles.avatarSelf]}>
-        <Text style={styles.avatarText}>{player.name.charAt(0).toUpperCase()}</Text>
+        {player.avatar && player.avatar.startsWith('http') ? (
+          <Image source={{ uri: player.avatar }} style={styles.avatarImage} />
+        ) : (
+          <Text style={styles.avatarText}>{player.name.charAt(0).toUpperCase()}</Text>
+        )}
       </View>
-      <Text style={styles.playerText}>{player.name}{isSelf ? ' (You)' : ''}</Text>
+      <Text style={styles.playerText}>⭐{player.level || 1} {player.name}{isSelf ? ' (You)' : ''}</Text>
       {isHost && !isSelf && !isPublic && (
         <TouchableOpacity style={styles.kickButton} onPress={() => onKick(player.id)}>
           <Text style={styles.kickButtonText}>✕</Text>
@@ -212,6 +221,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
   const [pendingMatch, setPendingMatch] = useState(null); // { matchId, timeoutMs }
   const [matchStatus, setMatchStatus] = useState(null); // 'accepting' | 'accepted' | 'declined' | null
   const [isPublic, setIsPublic]     = useState(false);
+  const [votes, setVotes]           = useState({}); // { [packId]: count }
   const hostBannerTimer             = useRef(null);
 
   // Emit config update and update local state
@@ -240,6 +250,10 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
     setTeams(updated);
     socket.emit('update_teams', { roomCode, teams: updated });
   };
+
+  const handleVote = (packId) => {
+    socket.emit('submit_vote', { roomCode, packId });
+  };
   // Matchmaking Handlers
   const handleAcceptMatch = () => {
     socket.emit('accept_match', { matchId: pendingMatch.matchId });
@@ -262,11 +276,11 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
     socket.connect();
 
     if (lobbyIntent === 'host_couch') {
-      socket.emit('create_room', { name: playerData.name });
+      socket.emit('create_room', { name: playerData.name, avatar: playerData.avatar });
     } else if (lobbyIntent === 'join_couch') {
       socket.emit('join_room', { roomCode, playerData });
     } else if (lobbyIntent === 'matchmaking') {
-      socket.emit('join_matchmaking', { name: playerData.name });
+      socket.emit('join_matchmaking', { name: playerData.name, avatar: playerData.avatar, mode: playerData.mode });
     }
 
     socket.on('matchmaking_joined', () => setStatus('Finding a match...'));
@@ -314,6 +328,10 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
       if (data.teams) setTeams(data.teams);
     });
 
+    socket.on('votes_updated', (data) => {
+      if (data.votes) setVotes(data.votes);
+    });
+
     socket.on('room_error', (data) => {
       Alert.alert('Oops', data.message);
       setScreen('Home');
@@ -343,6 +361,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
       socket.off('player_joined');
       socket.off('config_updated');
       socket.off('teams_updated');
+      socket.off('votes_updated');
       socket.off('room_error');
       socket.off('kicked');
       socket.off('host_changed');
@@ -411,7 +430,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
   // Couch Lobby UI
   return (
     <SafeAreaView style={styles.safeArea}>
-      {countdown !== null && <CountdownOverlay count={countdown} />}
+      {countdown !== null && !isPublic && <CountdownOverlay count={countdown} />}
 
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
 
@@ -591,6 +610,32 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
             ) : (
               <Text style={styles.readOnlyValue}>{config.teamMode ? 'On' : 'Off'}</Text>
             )}
+          </View>
+        )}
+
+        {/* ── Public Voting Panel ────────────────────────────────────── */}
+        {roomCode && isPublic && (
+          <View style={[styles.card, { borderColor: theme.colors.primary }]}>
+            <Text style={[styles.cardLabel, { color: theme.colors.primary, textAlign: 'center', fontSize: 16 }]}>
+              VOTE FOR CATEGORY PACK {countdown !== null ? `(${countdown}s)` : ''}
+            </Text>
+            <View style={styles.voteList}>
+              {['classic', 'food', 'nature', 'pop_culture', 'challenge', 'all'].map(packId => (
+                <TouchableOpacity
+                  key={packId}
+                  style={styles.voteBtn}
+                  onPress={() => handleVote(packId)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.voteBtnText}>{PACK_LABELS[packId] ?? packId}</Text>
+                  <View style={[styles.voteCountBadge, votes[packId] > 0 && styles.voteCountBadgeActive]}>
+                    <Text style={[styles.voteCountText, votes[packId] > 0 && styles.voteCountTextActive]}>
+                      {votes[packId] || 0}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
         )}
 
@@ -806,6 +851,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: theme.spacing.md,
+    overflow: 'hidden',
   },
   avatarSelf: {
     backgroundColor: theme.colors.primary,
@@ -814,6 +860,11 @@ const styles = StyleSheet.create({
     color: theme.colors.onPrimary,
     fontFamily: theme.fonts.headingBold,
     fontSize: 20,
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
   },
   playerText: {
     flex: 1,
@@ -1016,11 +1067,52 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.sm,
   },
   startHint: {
-    fontFamily: theme.fonts.bodyBold,
+    fontFamily: theme.fonts.body,
     color: theme.colors.muted,
-    fontSize: 14,
     marginBottom: theme.spacing.sm,
     textAlign: 'center',
+  },
+  // ── Voting UI ────────────────────────────────────────────────────────────
+  voteList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.md,
+  },
+  voteBtn: {
+    flexBasis: '48%',
+    flexGrow: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F3F4F6',
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+  },
+  voteBtnText: {
+    fontFamily: theme.fonts.bodyBold,
+    color: theme.colors.foreground,
+    fontSize: 14,
+  },
+  voteCountBadge: {
+    backgroundColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  voteCountBadgeActive: {
+    backgroundColor: theme.colors.primary,
+  },
+  voteCountText: {
+    fontFamily: theme.fonts.bodyBold,
+    color: theme.colors.muted,
+    fontSize: 12,
+  },
+  voteCountTextActive: {
+    color: '#FFFFFF',
   },
   button: {
     backgroundColor: theme.colors.primary,

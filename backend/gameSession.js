@@ -1,5 +1,5 @@
 const { getRandomCategory, calculateScores } = require('./gameLogic');
-
+const { supabase } = require('./supabase');
 const VALID_ROUND_TYPES = ['Same Same', 'But Different', 'Rush'];
 
 class GameSession {
@@ -54,6 +54,7 @@ class GameSession {
                 teams:      this.teams,
                 teamScores: this.teamScores,
             });
+            this.recordStatsToDatabase();
             return;
         }
 
@@ -67,6 +68,7 @@ class GameSession {
 
         const roundType = this.currentRoundType();
         const category = getRandomCategory(this.config.categoryPack);
+        this.currentCategory = category;
 
         this.io.to(this.roomId).emit('round_started', {
             roundNumber:   this.currentRound,
@@ -89,7 +91,7 @@ class GameSession {
         const trimmed = word.trim();
         if (!trimmed) return;
 
-        pw.words.push(trimmed);
+        pw.words.push({ text: trimmed, time: Date.now() });
 
         // Notify everyone this player submitted a word
         this.io.to(this.roomId).emit('word_submitted', {
@@ -127,7 +129,7 @@ class GameSession {
         }
     }
 
-    endRound(roundType) {
+    async endRound(roundType) {
         // Build playerWords snapshot for scoring (words only, no socket refs)
         const wordSnapshot = {};
         for (const [id, data] of Object.entries(this.playerWords)) {
@@ -135,6 +137,55 @@ class GameSession {
         }
 
         const { groups, scoreUpdates } = calculateScores(wordSnapshot, roundType, this.teams);
+
+        const rejectedWordsList = [];
+        if (roundType === 'But Different') {
+            const { validateWords } = require('./aiValidator');
+            const uniqueWordsToValidate = [];
+            const wordToPlayersMap = {}; // mapping word canonical to array of player IDs who need to lose points if invalid
+
+            groups.forEach(g => {
+                let isUnique = false;
+                if (!this.teams) {
+                    if (g.playerIds.length === 1) isUnique = true;
+                } else {
+                    const byTeam = { A: [], B: [] };
+                    g.playerIds.forEach(p => { const t = this.teams[p.id]; if (t) byTeam[t].push(p); });
+                    if (byTeam.A.length === 1 || byTeam.B.length === 1) isUnique = true;
+                }
+
+                if (isUnique) {
+                    uniqueWordsToValidate.push(g.canonical);
+                    // Keep track of which players submitted this unique word
+                    wordToPlayersMap[g.canonical] = g.playerIds.map(p => p.id);
+                }
+            });
+
+            if (uniqueWordsToValidate.length > 0) {
+                // Notify clients we are thinking
+                this.io.to(this.roomId).emit('ai_validating', {});
+                console.log(`[AI] Validating unique words for category "${this.currentCategory}":`, uniqueWordsToValidate);
+                
+                const validationResults = await validateWords(this.currentCategory, uniqueWordsToValidate);
+                
+                for (const word of uniqueWordsToValidate) {
+                    const lowerWord = word.toLowerCase();
+                    const aiDecision = validationResults[lowerWord];
+                    
+                    // If the AI explicitly says false (boolean or string), reject it.
+                    if (aiDecision === false || aiDecision === 'false') {
+                        const playerIds = wordToPlayersMap[word] || [];
+                        playerIds.forEach(pid => {
+                            // Revoke the 3 points
+                            if (scoreUpdates[pid] >= 3) {
+                                scoreUpdates[pid] -= 3;
+                            }
+                            rejectedWordsList.push({ playerId: pid, word: word });
+                        });
+                    }
+                }
+            }
+        }
 
         for (let pid in scoreUpdates) {
             this.scores[pid] += scoreUpdates[pid];
@@ -162,12 +213,86 @@ class GameSession {
             playerNames:  playerNames,
             teams:        this.teams,
             teamScores:   this.teamScores,
+            rejectedWords: rejectedWordsList, // send to clients to display funny alert
         });
 
         // 10 seconds to show results before next round
         setTimeout(() => {
             this.nextRound();
         }, 10000);
+    }
+
+    async recordStatsToDatabase() {
+        const authenticatedPlayers = this.players.filter(p => p.userId);
+        if (authenticatedPlayers.length === 0) return;
+
+        // Determine winners
+        const winners = new Set();
+        if (this.teams && this.teamScores) {
+            if (this.teamScores.A > this.teamScores.B) {
+                Object.keys(this.teams).forEach(id => { if (this.teams[id] === 'A') winners.add(id); });
+            } else if (this.teamScores.B > this.teamScores.A) {
+                Object.keys(this.teams).forEach(id => { if (this.teams[id] === 'B') winners.add(id); });
+            } else {
+                // Tie: both teams win
+                Object.keys(this.teams).forEach(id => winners.add(id));
+            }
+        } else {
+            let maxScore = -1;
+            for (const pid in this.scores) {
+                if (this.scores[pid] > maxScore) maxScore = this.scores[pid];
+            }
+            for (const pid in this.scores) {
+                if (this.scores[pid] === maxScore) winners.add(pid);
+            }
+        }
+
+        // Update each authenticated player's profile
+        for (const p of authenticatedPlayers) {
+            try {
+                // Fetch current stats to increment (Race conditions possible but acceptable for indie game without RPC)
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('games_played, wins, xp, level')
+                    .eq('id', p.userId)
+                    .single();
+
+                if (error) throw error;
+
+                const isWinner = winners.has(p.id);
+                const playerScore = this.scores[p.id] || 0;
+                
+                // Calculate earned XP
+                let earnedXp = 50; // base completion
+                earnedXp += (playerScore * 10); // score bonus
+                if (isWinner) earnedXp += 100; // win bonus
+
+                let currentXp = (data.xp || 0) + earnedXp;
+                let currentLevel = data.level || 1;
+
+                // Level up scaling: 500 base, increases 10% each level
+                let nextLevelXp = Math.floor(500 * Math.pow(1.10, currentLevel - 1));
+                while (currentXp >= nextLevelXp) {
+                    currentXp -= nextLevelXp;
+                    currentLevel++;
+                    nextLevelXp = Math.floor(500 * Math.pow(1.10, currentLevel - 1));
+                }
+
+                await supabase
+                    .from('profiles')
+                    .update({
+                        games_played: (data.games_played || 0) + 1,
+                        wins: (data.wins || 0) + (isWinner ? 1 : 0),
+                        xp: currentXp,
+                        level: currentLevel
+                    })
+                    .eq('id', p.userId);
+
+                console.log(`Updated stats & XP for ${p.name} (${p.userId}): +${earnedXp} XP (Level ${currentLevel})`);
+            } catch (err) {
+                console.error(`Failed to update stats for ${p.name}:`, err.message);
+            }
+        }
     }
 }
 

@@ -16,9 +16,25 @@ const io = new Server(server, {
 
 const matchmaker = require('./matchmaker');
 const roomManager = require('./roomManager');
+const { supabase } = require('./supabase');
+
+io.use(async (socket, next) => {
+    const token = socket.handshake.auth?.token;
+    if (token) {
+        try {
+            const { data, error } = await supabase.auth.getUser(token);
+            if (!error && data?.user) {
+                socket.userId = data.user.id;
+            }
+        } catch (err) {
+            console.error('Error verifying token:', err.message);
+        }
+    }
+    next();
+});
 
 io.on('connection', (socket) => {
-    console.log(`User connected: ${socket.id}`);
+    console.log(`User connected: ${socket.id} (Auth: ${socket.userId || 'Guest'})`);
 
     // Mode 1: Matchmaking
     socket.on('join_matchmaking', (playerData) => {
@@ -69,6 +85,10 @@ io.on('connection', (socket) => {
     // Gameplay actions
     socket.on('submit_word', ({ roomId, word }) => {
         roomManager.submitWord(roomId, socket.id, word);
+    });
+
+    socket.on('submit_vote', ({ roomCode, packId }) => {
+        roomManager.submitVote(io, socket, roomCode, packId);
     });
 
     socket.on('disconnect', () => {

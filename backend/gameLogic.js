@@ -64,8 +64,12 @@ function calculateScores(playerWords, roundType, teams = null) {
         // Deduplicate words per player before grouping
         const seenStems = new Set();
 
-        for (const word of data.words) {
-            const w = word.toLowerCase().trim();
+        for (const wordObj of data.words) {
+            // Support both old string format (for tests) and new object format
+            const text = typeof wordObj === 'string' ? wordObj : wordObj.text;
+            const time = typeof wordObj === 'string' ? 0 : (wordObj.time || 0);
+
+            const w = text.toLowerCase().trim();
             if (!w) continue;
 
             const stem = PorterStemmer.stem(w);
@@ -77,7 +81,7 @@ function calculateScores(playerWords, roundType, teams = null) {
                 if (g.stem === stem || JaroWinklerDistance(g.canonical, w) > 0.85) {
                     // Only add this player once per group
                     if (!g.playerIds.find(p => p.id === playerId)) {
-                        g.playerIds.push({ id: playerId, name: data.name });
+                        g.playerIds.push({ id: playerId, name: data.name, time });
                     }
                     foundGroup = true;
                     break;
@@ -88,7 +92,7 @@ function calculateScores(playerWords, roundType, teams = null) {
                 groups.push({
                     canonical: w,
                     stem:      stem,
-                    playerIds: [{ id: playerId, name: data.name }],
+                    playerIds: [{ id: playerId, name: data.name, time }],
                 });
             }
         }
@@ -105,9 +109,21 @@ function calculateScores(playerWords, roundType, teams = null) {
         groups.forEach(g => {
             if (roundType === 'Same Same' || roundType === 'Rush') {
                 if (g.playerIds.length > 1) {
+                    let fastestPlayer = null;
+                    let minTime = Infinity;
+
                     g.playerIds.forEach(p => {
                         scoreUpdates[p.id] = (scoreUpdates[p.id] || 0) + g.playerIds.length;
+                        if (roundType === 'Rush' && p.time < minTime) {
+                            minTime = p.time;
+                            fastestPlayer = p.id;
+                        }
                     });
+
+                    // Award speed bonus in Rush mode
+                    if (roundType === 'Rush' && fastestPlayer) {
+                        scoreUpdates[fastestPlayer] += 2;
+                    }
                 }
             } else if (roundType === 'But Different') {
                 if (g.playerIds.length === 1) {
@@ -130,9 +146,21 @@ function calculateScores(playerWords, roundType, teams = null) {
                 ['A', 'B'].forEach(team => {
                     const members = byTeam[team];
                     if (members.length > 1) {
+                        let fastestPlayer = null;
+                        let minTime = Infinity;
+
                         members.forEach(p => {
                             scoreUpdates[p.id] = (scoreUpdates[p.id] || 0) + members.length;
+                            if (roundType === 'Rush' && p.time < minTime) {
+                                minTime = p.time;
+                                fastestPlayer = p.id;
+                            }
                         });
+
+                        // Award speed bonus in Rush mode
+                        if (roundType === 'Rush' && fastestPlayer) {
+                            scoreUpdates[fastestPlayer] += 2;
+                        }
                     }
                 });
             } else if (roundType === 'But Different') {
