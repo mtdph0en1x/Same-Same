@@ -2,13 +2,17 @@ import React from 'react';
 import { StyleSheet, Text, View, ScrollView, SafeAreaView } from 'react-native';
 import { theme } from '../styles/theme';
 
-export default function ResultsScreen({ roundResults }) {
-  const { groups, newScores, playerNames = {} } = roundResults;
+const TEAM_COLORS  = { A: '#E11D48', B: '#2563EB' };
+const TEAM_LABELS  = { A: '🔴 Team A', B: '🔵 Team B' };
+const TEAM_SHADOWS = { A: '#BE123C',  B: '#1D4ED8' };
 
-  // Sort scores descending
+export default function ResultsScreen({ roundResults }) {
+  const { groups, newScores, playerNames = {}, teams = null, teamScores = null } = roundResults;
+
+  // Sort individual scores descending
   const sortedScores = Object.entries(newScores).sort((a, b) => b[1] - a[1]);
 
-  // Separate matching groups from unique ones for cleaner display
+  // Separate matching groups from unique ones
   const matchedGroups = groups.filter(g => g.playerIds.length > 1);
   const uniqueGroups  = groups.filter(g => g.playerIds.length === 1);
 
@@ -19,7 +23,30 @@ export default function ResultsScreen({ roundResults }) {
 
         <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
 
-          {/* Matching words */}
+          {/* ── Team Scoreboard (team mode only) ──────────────────────── */}
+          {teams && teamScores && (
+            <>
+              <Text style={styles.sectionLabel}>⚔️ Teams</Text>
+              <View style={styles.teamBoard}>
+                {['A', 'B'].map(team => (
+                  <View
+                    key={team}
+                    style={[styles.teamCard, { borderColor: TEAM_COLORS[team], shadowColor: TEAM_COLORS[team] }]}
+                  >
+                    <Text style={[styles.teamCardLabel, { color: TEAM_COLORS[team] }]}>
+                      {TEAM_LABELS[team]}
+                    </Text>
+                    <Text style={[styles.teamCardScore, { color: TEAM_COLORS[team] }]}>
+                      {teamScores[team]}
+                    </Text>
+                    <Text style={styles.teamCardUnit}>pts</Text>
+                  </View>
+                ))}
+              </View>
+            </>
+          )}
+
+          {/* ── Matching words ─────────────────────────────────────────── */}
           {matchedGroups.length > 0 && (
             <>
               <Text style={styles.sectionLabel}>🎯 Matches</Text>
@@ -28,7 +55,13 @@ export default function ResultsScreen({ roundResults }) {
                   <Text style={styles.answerText}>{g.canonical.toUpperCase()}</Text>
                   <View style={styles.playersRow}>
                     {g.playerIds.map((p, j) => (
-                      <View key={j} style={styles.playerBadge}>
+                      <View
+                        key={j}
+                        style={[
+                          styles.playerBadge,
+                          teams && { backgroundColor: TEAM_COLORS[teams[p.id]] || theme.colors.secondary },
+                        ]}
+                      >
                         <Text style={styles.playerName}>{p.name}</Text>
                       </View>
                     ))}
@@ -38,7 +71,7 @@ export default function ResultsScreen({ roundResults }) {
             </>
           )}
 
-          {/* Unique words */}
+          {/* ── Unique words ───────────────────────────────────────────── */}
           {uniqueGroups.length > 0 && (
             <>
               <Text style={styles.sectionLabel}>💡 Unique answers</Text>
@@ -47,7 +80,14 @@ export default function ResultsScreen({ roundResults }) {
                   <Text style={styles.answerText}>{g.canonical.toUpperCase()}</Text>
                   <View style={styles.playersRow}>
                     {g.playerIds.map((p, j) => (
-                      <View key={j} style={[styles.playerBadge, styles.playerBadgeUnique]}>
+                      <View
+                        key={j}
+                        style={[
+                          styles.playerBadge,
+                          styles.playerBadgeUnique,
+                          teams && { backgroundColor: TEAM_COLORS[teams[p.id]] || '#7DD3FC' },
+                        ]}
+                      >
                         <Text style={styles.playerName}>{p.name}</Text>
                       </View>
                     ))}
@@ -57,15 +97,21 @@ export default function ResultsScreen({ roundResults }) {
             </>
           )}
 
-          {/* Scoreboard */}
+          {/* ── Individual Scoreboard ──────────────────────────────────── */}
           <Text style={styles.sectionLabel}>🏆 Scoreboard</Text>
-          {sortedScores.map(([pid, score], i) => (
-            <View key={pid} style={[styles.scoreRow, i === 0 && styles.scoreRowFirst]}>
-              <Text style={styles.scoreRank}>{i + 1}</Text>
-              <Text style={styles.scoreName}>{playerNames[pid] || `Player ${pid.substring(0, 4)}`}</Text>
-              <Text style={styles.scoreValue}>{score} pts</Text>
-            </View>
-          ))}
+          {sortedScores.map(([pid, score], i) => {
+            const playerTeam = teams ? teams[pid] : null;
+            return (
+              <View key={pid} style={[styles.scoreRow, i === 0 && styles.scoreRowFirst]}>
+                <Text style={styles.scoreRank}>{i + 1}</Text>
+                {playerTeam && (
+                  <View style={[styles.teamDot, { backgroundColor: TEAM_COLORS[playerTeam] }]} />
+                )}
+                <Text style={styles.scoreName}>{playerNames[pid] || `Player ${pid.substring(0, 4)}`}</Text>
+                <Text style={styles.scoreValue}>{score} pts</Text>
+              </View>
+            );
+          })}
 
           <View style={{ height: 32 }} />
         </ScrollView>
@@ -106,6 +152,40 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
     marginTop: theme.spacing.lg,
   },
+  // Team board
+  teamBoard: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+  },
+  teamCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 3,
+    padding: theme.spacing.lg,
+    alignItems: 'center',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 0,
+    elevation: 2,
+  },
+  teamCardLabel: {
+    fontFamily: theme.fonts.bodyBold,
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  teamCardScore: {
+    fontFamily: theme.fonts.headingBold,
+    fontSize: 48,
+    lineHeight: 56,
+  },
+  teamCardUnit: {
+    fontFamily: theme.fonts.bodyBold,
+    fontSize: 13,
+    color: theme.colors.muted,
+  },
+  // Word groups
   groupCard: {
     backgroundColor: '#FFFFFF',
     padding: theme.spacing.lg,
@@ -151,6 +231,7 @@ const styles = StyleSheet.create({
     fontFamily: theme.fonts.bodyBold,
     fontSize: 15,
   },
+  // Individual scoreboard
   scoreRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -173,6 +254,13 @@ const styles = StyleSheet.create({
     width: 24,
     textAlign: 'center',
   },
+  teamDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.5)',
+  },
   scoreName: {
     flex: 1,
     color: theme.colors.onPrimary,
@@ -185,3 +273,4 @@ const styles = StyleSheet.create({
     fontFamily: theme.fonts.headingBold,
   },
 });
+

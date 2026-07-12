@@ -46,6 +46,10 @@ io.on('connection', (socket) => {
         roomManager.updateConfig(io, socket, roomCode, config);
     });
 
+    socket.on('update_teams', ({ roomCode, teams }) => {
+        roomManager.updateTeams(io, socket, roomCode, teams);
+    });
+
     socket.on('start_game', ({ roomCode }) => {
         roomManager.startGame(io, socket, roomCode);
     });
@@ -62,7 +66,12 @@ io.on('connection', (socket) => {
     });
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Backend server running on port ${PORT}`);
-});
+// Only bind a port when run directly (not when required by tests)
+if (require.main === module) {
+    const PORT = process.env.PORT || 3000;
+    server.listen(PORT, () => {
+        console.log(`Backend server running on port ${PORT}`);
+    });
+}
+
+module.exports = { app, server, io };

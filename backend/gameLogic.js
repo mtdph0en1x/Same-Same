@@ -42,11 +42,22 @@ function getPackNames() {
 // playerWords shape:
 //   { [playerId]: { name: string, words: string[] } }
 //
+// teams shape (optional):
+//   { [playerId]: 'A' | 'B' }
+//   When null/undefined: solo mode — existing rules apply unchanged.
+//
+// Team mode rules (symmetric — the team is the unit of comparison):
+//   Same Same / Rush : intra-team matches score (2+ teammates said the same word).
+//                      Cross-team word overlaps do NOT score.
+//   But Different    : intra-team unique words score (only 1 player from your
+//                      team said it). What the opposing team said is irrelevant.
+//
 // Returns:
 //   groups: [{ canonical: string, stem: string, playerIds: [{ id, name }] }]
 //   scoreUpdates: { [playerId]: pointsEarned }
 // ---------------------------------------------------------------------------
-function calculateScores(playerWords, roundType) {
+function calculateScores(playerWords, roundType, teams = null) {
+    // ── Step 1: Build word groups (global fuzzy matching, same as before) ──
     const groups = [];
 
     for (const [playerId, data] of Object.entries(playerWords)) {
@@ -76,31 +87,66 @@ function calculateScores(playerWords, roundType) {
             if (!foundGroup) {
                 groups.push({
                     canonical: w,
-                    stem: stem,
+                    stem:      stem,
                     playerIds: [{ id: playerId, name: data.name }],
                 });
             }
         }
     }
 
+    // ── Step 2: Score ────────────────────────────────────────────────────────
     const scoreUpdates = {};
 
-    // Same Same: shared answers score (points = group size)
-    // But Different: unique answers score (3 points)
-    // Rush: same as Same Same (speed mechanic deferred)
-    groups.forEach(g => {
-        if (roundType === 'Same Same' || roundType === 'Rush') {
-            if (g.playerIds.length > 1) {
-                g.playerIds.forEach(p => {
-                    scoreUpdates[p.id] = (scoreUpdates[p.id] || 0) + g.playerIds.length;
+    if (!teams) {
+        // ── Solo mode (unchanged) ──────────────────────────────────────────
+        // Same Same: shared answers score (points = group size)
+        // But Different: unique answers score (3 points)
+        // Rush: same as Same Same (speed mechanic deferred)
+        groups.forEach(g => {
+            if (roundType === 'Same Same' || roundType === 'Rush') {
+                if (g.playerIds.length > 1) {
+                    g.playerIds.forEach(p => {
+                        scoreUpdates[p.id] = (scoreUpdates[p.id] || 0) + g.playerIds.length;
+                    });
+                }
+            } else if (roundType === 'But Different') {
+                if (g.playerIds.length === 1) {
+                    scoreUpdates[g.playerIds[0].id] = (scoreUpdates[g.playerIds[0].id] || 0) + 3;
+                }
+            }
+        });
+    } else {
+        // ── Team mode (team is the unit of comparison) ─────────────────────
+        groups.forEach(g => {
+            // Split the group's players by team
+            const byTeam = { A: [], B: [] };
+            g.playerIds.forEach(p => {
+                const t = teams[p.id];
+                if (t === 'A' || t === 'B') byTeam[t].push(p);
+            });
+
+            if (roundType === 'Same Same' || roundType === 'Rush') {
+                // Intra-team matches: each team independently checks if 2+ teammates said it
+                ['A', 'B'].forEach(team => {
+                    const members = byTeam[team];
+                    if (members.length > 1) {
+                        members.forEach(p => {
+                            scoreUpdates[p.id] = (scoreUpdates[p.id] || 0) + members.length;
+                        });
+                    }
+                });
+            } else if (roundType === 'But Different') {
+                // Intra-team unique: score if only 1 person from your team said it
+                ['A', 'B'].forEach(team => {
+                    const members = byTeam[team];
+                    if (members.length === 1) {
+                        const p = members[0];
+                        scoreUpdates[p.id] = (scoreUpdates[p.id] || 0) + 3;
+                    }
                 });
             }
-        } else if (roundType === 'But Different') {
-            if (g.playerIds.length === 1) {
-                scoreUpdates[g.playerIds[0].id] = (scoreUpdates[g.playerIds[0].id] || 0) + 3;
-            }
-        }
-    });
+        });
+    }
 
     return { groups, scoreUpdates };
 }

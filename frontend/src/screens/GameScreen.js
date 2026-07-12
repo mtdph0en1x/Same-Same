@@ -6,6 +6,9 @@ import {
 import { socket } from '../socket';
 import { theme } from '../styles/theme';
 
+const TEAM_COLORS = { A: '#E11D48', B: '#2563EB' };
+const TEAM_LABELS = { A: '🔴 Team A', B: '🔵 Team B' };
+
 function WordChip({ word }) {
   const scaleAnim = useRef(new Animated.Value(0.6)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -24,7 +27,7 @@ function WordChip({ word }) {
   );
 }
 
-export default function GameScreen({ roomCode, gameData }) {
+export default function GameScreen({ roomCode, gameData, teams }) {
   const [currentWord, setCurrentWord]       = useState('');
   const [submittedWords, setSubmittedWords] = useState([]);
   const [isDone, setIsDone]                 = useState(false);
@@ -32,6 +35,7 @@ export default function GameScreen({ roomCode, gameData }) {
   const [finishedPlayers, setFinishedPlayers] = useState(new Set());
 
   const wordsPerRound = gameData.wordsPerRound || 5;
+  const myTeam = teams ? teams[socket.id] : null;
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -78,6 +82,13 @@ export default function GameScreen({ roomCode, gameData }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+
+        {/* Team badge */}
+        {myTeam && (
+          <View style={[styles.teamBadge, { backgroundColor: TEAM_COLORS[myTeam] }]}>
+            <Text style={styles.teamBadgeText}>{TEAM_LABELS[myTeam]}</Text>
+          </View>
+        )}
 
         {/* Header: Round info */}
         <Text style={styles.headerText}>
@@ -157,6 +168,19 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     alignItems: 'center',
     paddingBottom: 40,
+  },
+  teamBadge: {
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    marginBottom: theme.spacing.sm,
+  },
+  teamBadgeText: {
+    color: '#FFFFFF',
+    fontFamily: theme.fonts.bodyBold,
+    fontSize: 13,
+    letterSpacing: 0.5,
   },
   headerText: {
     fontSize: 16,

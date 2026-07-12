@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
   StyleSheet, Text, View, TouchableOpacity,
-  SafeAreaView, Animated, Alert, ScrollView
+  SafeAreaView, Animated, Alert, ScrollView, PanResponder
 } from 'react-native';
 import { socket } from '../socket';
 import { theme } from '../styles/theme';
 
-const MIN_PLAYERS = 2;
+const MIN_PLAYERS      = 2;
+const MIN_TEAM_PLAYERS = 4;
 
 const PACK_LABELS = {
   all:         '🌍 All',
@@ -16,6 +17,11 @@ const PACK_LABELS = {
   pop_culture: '🎬 Pop Culture',
   challenge:   '🔥 Challenge',
 };
+
+const TEAM_COLORS  = { A: '#E11D48', B: '#2563EB' };
+const TEAM_BG      = { A: '#FFF1F2', B: '#EFF6FF' };
+const TEAM_BORDER  = { A: '#FECDD3', B: '#BFDBFE' };
+const TEAM_LABELS  = { A: '🔴 Team A', B: '🔵 Team B' };
 
 // Segmented control (row of option buttons)
 function SegmentedControl({ options, value, onChange, labelMap }) {
@@ -50,14 +56,70 @@ function RoundTypeToggle({ type, active, onChange }) {
   );
 }
 
-// Animated player card
+// Draggable player card (team mode)
+function DraggablePlayerCard({ player, isSelf, myTeam, dragTarget, setDragTarget, onDropToTeam, isHost }) {
+  const scaleAnim  = useRef(new Animated.Value(1)).current;
+  const shadowAnim = useRef(new Animated.Value(0)).current;
+  const [dragging, setDragging] = useState(false);
+
+  const lift = () => {
+    setDragging(true);
+    Animated.parallel([
+      Animated.spring(scaleAnim,  { toValue: 1.06, useNativeDriver: true }),
+      Animated.timing(shadowAnim, { toValue: 1, duration: 150, useNativeDriver: false }),
+    ]).start();
+  };
+
+  const drop = () => {
+    setDragging(false);
+    Animated.parallel([
+      Animated.spring(scaleAnim,  { toValue: 1, useNativeDriver: true }),
+      Animated.timing(shadowAnim, { toValue: 0, duration: 150, useNativeDriver: false }),
+    ]).start();
+    if (dragTarget && dragTarget !== myTeam) {
+      onDropToTeam(player.id, dragTarget);
+    }
+    setDragTarget(null);
+  };
+
+  const color = TEAM_COLORS[myTeam];
+
+  return (
+    <Animated.View
+      style={[
+        styles.teamPlayerCard,
+        { borderColor: color, transform: [{ scale: scaleAnim }] },
+        dragging && styles.teamPlayerCardLifted,
+      ]}
+    >
+      <View style={[styles.teamAvatar, { backgroundColor: color }]}>
+        <Text style={styles.avatarText}>{player.name.charAt(0).toUpperCase()}</Text>
+      </View>
+      <Text style={styles.teamPlayerText} numberOfLines={1}>
+        {player.name}{isSelf ? ' (You)' : ''}
+      </Text>
+      {isHost && !isSelf && (
+        <TouchableOpacity
+          style={[styles.dragHandle, { backgroundColor: color + '22' }]}
+          onLongPress={lift}
+          onPressOut={drop}
+          delayLongPress={150}
+        >
+          <Text style={{ color, fontSize: 16 }}>⠿</Text>
+        </TouchableOpacity>
+      )}
+    </Animated.View>
+  );
+}
+
+// Animated player card (solo mode)
 function PlayerCard({ player, isHost, isSelf, onKick }) {
-  const slideAnim = useRef(new Animated.Value(60)).current;
+  const slideAnim   = useRef(new Animated.Value(60)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.parallel([
-      Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 80, friction: 10 }),
+      Animated.spring(slideAnim,   { toValue: 0, useNativeDriver: true, tension: 80, friction: 10 }),
       Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
     ]).start();
   }, []);
@@ -79,14 +141,14 @@ function PlayerCard({ player, isHost, isSelf, onKick }) {
 
 // Countdown overlay
 function CountdownOverlay({ count }) {
-  const scaleAnim = useRef(new Animated.Value(0.4)).current;
+  const scaleAnim   = useRef(new Animated.Value(0.4)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     scaleAnim.setValue(0.4);
     opacityAnim.setValue(0);
     Animated.parallel([
-      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 120, friction: 6 }),
+      Animated.spring(scaleAnim,   { toValue: 1, useNativeDriver: true, tension: 120, friction: 6 }),
       Animated.timing(opacityAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
     ]).start();
   }, [count]);
@@ -107,6 +169,7 @@ const DEFAULT_CONFIG = {
   wordsPerRound: 5,
   roundTypes:    ['Same Same', 'But Different', 'Rush'],
   categoryPack:  'classic',
+  teamMode:      false,
 };
 
 export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, lobbyIntent, playerData, setScreen }) {
@@ -115,6 +178,8 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
   const [countdown, setCountdown]   = useState(null);
   const [hostBanner, setHostBanner] = useState(false);
   const [config, setConfig]         = useState(DEFAULT_CONFIG);
+  const [teams, setTeams]           = useState({});      // { [playerId]: 'A' | 'B' }
+  const [dragTarget, setDragTarget] = useState(null);    // 'A' | 'B' | null — column being hovered
   const hostBannerTimer             = useRef(null);
 
   // Emit config update and update local state
@@ -128,13 +193,20 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
     const current = config.roundTypes;
     let next;
     if (current.includes(type)) {
-      // Don't allow removing the last one
       if (current.length === 1) return;
       next = current.filter(t => t !== type);
     } else {
       next = [...current, type];
     }
     handleConfigChange({ roundTypes: next });
+  };
+
+  // Move a player to a different team (host only)
+  const handleDropToTeam = (playerId, newTeam) => {
+    if (!isHost) return;
+    const updated = { ...teams, [playerId]: newTeam };
+    setTeams(updated);
+    socket.emit('update_teams', { roomCode, teams: updated });
   };
 
   useEffect(() => {
@@ -154,19 +226,28 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
       setRoomCode(data.roomCode);
       if (data.players) setPlayers(data.players);
       if (data.config)  setConfig(data.config);
+      if (data.teams)   setTeams(data.teams);
       setStatus('Waiting for players...');
     });
 
     socket.on('joined_room', (data) => {
       setPlayers(data.players);
       if (data.config) setConfig(data.config);
+      if (data.teams)  setTeams(data.teams);
       setStatus('Waiting for host to start...');
     });
 
-    socket.on('player_joined', (data) => setPlayers(data.players));
+    socket.on('player_joined', (data) => {
+      setPlayers(data.players);
+      if (data.teams) setTeams(data.teams);
+    });
 
     socket.on('config_updated', (data) => {
       if (data.config) setConfig(data.config);
+    });
+
+    socket.on('teams_updated', (data) => {
+      if (data.teams) setTeams(data.teams);
     });
 
     socket.on('room_error', (data) => {
@@ -197,6 +278,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
       socket.off('joined_room');
       socket.off('player_joined');
       socket.off('config_updated');
+      socket.off('teams_updated');
       socket.off('room_error');
       socket.off('kicked');
       socket.off('host_changed');
@@ -207,14 +289,19 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
   }, []);
 
   const handleStartGame = () => socket.emit('start_game', { roomCode });
-  const handleKick = (targetId) => socket.emit('kick_player', { roomCode, targetId });
-  const handleLeave = () => {
+  const handleKick      = (targetId) => socket.emit('kick_player', { roomCode, targetId });
+  const handleLeave     = () => {
     socket.emit('leave_room', { roomCode });
     socket.disconnect();
     setScreen('Home');
   };
 
-  const canStart = players.length >= MIN_PLAYERS;
+  const minPlayers = config.teamMode ? MIN_TEAM_PLAYERS : MIN_PLAYERS;
+  const canStart   = players.length >= minPlayers;
+
+  // Split players by team for the two-column board
+  const teamA = players.filter(p => teams[p.id] === 'A');
+  const teamB = players.filter(p => teams[p.id] === 'B');
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -248,23 +335,76 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
 
         <Text style={styles.status}>{status}</Text>
 
-        {/* Player list */}
+        {/* ── Player list ────────────────────────────────────────────── */}
         {players.length > 0 && (
           <View style={styles.card}>
-            <Text style={styles.cardLabel}>PLAYERS  {players.length}/{8}</Text>
-            {players.map((p) => (
-              <PlayerCard
-                key={p.id}
-                player={p}
-                isHost={isHost}
-                isSelf={p.id === socket.id}
-                onKick={handleKick}
-              />
-            ))}
+            {config.teamMode ? (
+              /* Two-column team board */
+              <>
+                <Text style={styles.cardLabel}>TEAMS  {players.length}/{8}</Text>
+                {isHost && (
+                  <Text style={styles.dragHint}>Long-press ⠿ to drag a player to the other team</Text>
+                )}
+                <View style={styles.teamColumns}>
+                  {(['A', 'B']).map(team => {
+                    const members = team === 'A' ? teamA : teamB;
+                    const isHovered = dragTarget === team;
+                    return (
+                      <TouchableOpacity
+                        key={team}
+                        activeOpacity={1}
+                        onPress={() => {}} // drop zone — handled by DraggablePlayerCard drop
+                        style={[
+                          styles.teamColumn,
+                          { backgroundColor: TEAM_BG[team], borderColor: isHovered ? TEAM_COLORS[team] : TEAM_BORDER[team] },
+                          isHovered && styles.teamColumnHovered,
+                        ]}
+                        // Expose this column as the drag target when hovered
+                        onStartShouldSetResponder={() => { setDragTarget(team); return false; }}
+                        onMoveShouldSetResponder={()  => { setDragTarget(team); return false; }}
+                      >
+                        <Text style={[styles.teamColumnLabel, { color: TEAM_COLORS[team] }]}>
+                          {TEAM_LABELS[team]}
+                        </Text>
+                        {members.map(p => (
+                          <DraggablePlayerCard
+                            key={p.id}
+                            player={p}
+                            isSelf={p.id === socket.id}
+                            myTeam={team}
+                            dragTarget={dragTarget}
+                            setDragTarget={setDragTarget}
+                            onDropToTeam={handleDropToTeam}
+                            isHost={isHost}
+                          />
+                        ))}
+                        {members.length === 0 && (
+                          <Text style={styles.emptyTeam}>Drop here</Text>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </>
+            ) : (
+              /* Flat player list (solo mode) */
+              <>
+                <Text style={styles.cardLabel}>PLAYERS  {players.length}/{8}</Text>
+                {players.map((p) => (
+                  <PlayerCard
+                    key={p.id}
+                    player={p}
+                    isHost={isHost}
+                    isSelf={p.id === socket.id}
+                    onKick={handleKick}
+                  />
+                ))}
+              </>
+            )}
           </View>
         )}
 
-        {/* Settings panel — editable for host, read-only for guests */}
+        {/* ── Settings panel ─────────────────────────────────────────── */}
         {roomCode && (
           <View style={styles.card}>
             <Text style={styles.cardLabel}>GAME SETTINGS{!isHost ? '  (set by host)' : ''}</Text>
@@ -332,6 +472,27 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
             ) : (
               <Text style={styles.readOnlyValue}>{PACK_LABELS[config.categoryPack] ?? config.categoryPack}</Text>
             )}
+
+            {/* Teams toggle */}
+            <Text style={styles.settingLabel}>Team mode</Text>
+            {isHost ? (
+              <View style={styles.toggleRow}>
+                <TouchableOpacity
+                  style={[styles.toggleBtn, !config.teamMode && styles.toggleBtnActive]}
+                  onPress={() => handleConfigChange({ teamMode: false })}
+                >
+                  <Text style={[styles.toggleText, !config.teamMode && styles.toggleTextActive]}>Off</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.toggleBtn, config.teamMode && styles.toggleBtnActiveTeam]}
+                  onPress={() => handleConfigChange({ teamMode: true })}
+                >
+                  <Text style={[styles.toggleText, config.teamMode && styles.toggleTextActive]}>On</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <Text style={styles.readOnlyValue}>{config.teamMode ? 'On' : 'Off'}</Text>
+            )}
           </View>
         )}
 
@@ -339,7 +500,11 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
         {isHost && (
           <View style={styles.startSection}>
             {!canStart && (
-              <Text style={styles.startHint}>Need at least {MIN_PLAYERS} players to start</Text>
+              <Text style={styles.startHint}>
+                {config.teamMode
+                  ? `Team mode needs at least ${MIN_TEAM_PLAYERS} players`
+                  : `Need at least ${MIN_PLAYERS} players to start`}
+              </Text>
             )}
             <TouchableOpacity
               style={[styles.button, !canStart && styles.buttonDisabled]}
@@ -448,6 +613,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     marginBottom: theme.spacing.md,
   },
+  // ── Solo player list ───────────────────────────────────────────────────
   playerCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -493,6 +659,81 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: theme.fonts.bodyBold,
   },
+  // ── Team board ─────────────────────────────────────────────────────────
+  dragHint: {
+    fontFamily: theme.fonts.body,
+    fontSize: 12,
+    color: theme.colors.muted,
+    marginBottom: theme.spacing.md,
+    fontStyle: 'italic',
+  },
+  teamColumns: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
+  },
+  teamColumn: {
+    flex: 1,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 2,
+    padding: theme.spacing.sm,
+    minHeight: 80,
+  },
+  teamColumnHovered: {
+    borderStyle: 'dashed',
+  },
+  teamColumnLabel: {
+    fontFamily: theme.fonts.bodyBold,
+    fontSize: 13,
+    letterSpacing: 0.5,
+    marginBottom: theme.spacing.sm,
+    textAlign: 'center',
+  },
+  teamPlayerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1.5,
+    padding: theme.spacing.sm,
+    marginBottom: 6,
+  },
+  teamPlayerCardLifted: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  teamAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  teamPlayerText: {
+    flex: 1,
+    fontFamily: theme.fonts.bodyBold,
+    fontSize: 14,
+    color: theme.colors.foreground,
+  },
+  dragHandle: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyTeam: {
+    fontFamily: theme.fonts.body,
+    fontSize: 13,
+    color: theme.colors.muted,
+    textAlign: 'center',
+    paddingVertical: theme.spacing.md,
+    fontStyle: 'italic',
+  },
+  // ── Settings ────────────────────────────────────────────────────────────
   settingLabel: {
     fontFamily: theme.fonts.bodyBold,
     color: theme.colors.foreground,
@@ -561,6 +802,36 @@ const styles = StyleSheet.create({
   chipTextActive: {
     color: '#FFFFFF',
   },
+  // Team mode toggle
+  toggleRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  toggleBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
+  },
+  toggleBtnActive: {
+    backgroundColor: theme.colors.accent,
+    borderColor: theme.colors.accent,
+  },
+  toggleBtnActiveTeam: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  toggleText: {
+    fontFamily: theme.fonts.bodyBold,
+    fontSize: 14,
+    color: theme.colors.foreground,
+  },
+  toggleTextActive: {
+    color: '#FFFFFF',
+  },
   // START button
   startSection: {
     width: '100%',
@@ -572,6 +843,7 @@ const styles = StyleSheet.create({
     color: theme.colors.muted,
     fontSize: 14,
     marginBottom: theme.spacing.sm,
+    textAlign: 'center',
   },
   button: {
     backgroundColor: theme.colors.primary,

@@ -23,15 +23,22 @@ class GameSession {
             roundTypes:    roundTypes.length > 0 ? roundTypes : ['Same Same', 'But Different', 'Rush'],
             categoryPack:  config.categoryPack || 'classic',
         };
+
+        // teams: { [playerId]: 'A' | 'B' } or null for solo mode
+        this.teams      = config.teams || null;
+        this.teamScores = this.teams ? { A: 0, B: 0 } : null;
     }
 
     start() {
-        this.io.to(this.roomId).emit('game_started', { players: this.players });
+        this.io.to(this.roomId).emit('game_started', {
+            players: this.players,
+            teams:   this.teams,
+        });
 
-        // Short delay before first round
+        // Short delay before first round (countdown already happened in roomManager)
         setTimeout(() => {
             this.nextRound();
-        }, 3000);
+        }, 500);
     }
 
     currentRoundType() {
@@ -42,7 +49,11 @@ class GameSession {
 
     nextRound() {
         if (this.currentRound >= this.config.maxRounds) {
-            this.io.to(this.roomId).emit('game_over', { scores: this.scores });
+            this.io.to(this.roomId).emit('game_over', {
+                scores:     this.scores,
+                teams:      this.teams,
+                teamScores: this.teamScores,
+            });
             return;
         }
 
@@ -107,10 +118,21 @@ class GameSession {
             wordSnapshot[id] = { name: data.name, words: data.words };
         }
 
-        const { groups, scoreUpdates } = calculateScores(wordSnapshot, roundType);
+        const { groups, scoreUpdates } = calculateScores(wordSnapshot, roundType, this.teams);
 
         for (let pid in scoreUpdates) {
             this.scores[pid] += scoreUpdates[pid];
+        }
+
+        // Recompute cumulative team scores from per-player totals
+        if (this.teams && this.teamScores) {
+            this.teamScores = { A: 0, B: 0 };
+            for (const pid in this.scores) {
+                const team = this.teams[pid];
+                if (team === 'A' || team === 'B') {
+                    this.teamScores[team] += this.scores[pid];
+                }
+            }
         }
 
         // Build a playerNames map so the client can display names in scores
@@ -122,6 +144,8 @@ class GameSession {
             scoreUpdates: scoreUpdates,
             newScores:    this.scores,
             playerNames:  playerNames,
+            teams:        this.teams,
+            teamScores:   this.teamScores,
         });
 
         // 10 seconds to show results before next round

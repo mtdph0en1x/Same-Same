@@ -20,8 +20,9 @@ export default function App() {
   const [playerData, setPlayerData] = useState({});
   const [isHost, setIsHost] = useState(false);
   const [lobbyIntent, setLobbyIntent] = useState(null);
-  
+
   const [gameData, setGameData] = useState(null);
+  const [teams, setTeams] = useState(null);       // { [playerId]: 'A' | 'B' } or null
   const [roundResults, setRoundResults] = useState(null);
 
   let [fontsLoaded] = useFonts({
@@ -38,7 +39,7 @@ export default function App() {
 
   useEffect(() => {
     socket.on('game_started', (data) => {
-      // Small delay for UI effect
+      setTeams(data.teams || null);
     });
 
     socket.on('round_started', (data) => {
@@ -79,8 +80,8 @@ export default function App() {
     <View style={styles.container} onLayout={onLayoutRootView}>
       <StatusBar style="dark" />
       {currentScreen === 'Home' && (
-        <HomeScreen 
-          setScreen={setCurrentScreen} 
+        <HomeScreen
+          setScreen={setCurrentScreen}
           setRoomCode={setRoomCode}
           setPlayerData={setPlayerData}
           setIsHost={setIsHost}
@@ -88,7 +89,7 @@ export default function App() {
         />
       )}
       {currentScreen === 'Lobby' && (
-        <LobbyScreen 
+        <LobbyScreen
           roomCode={roomCode}
           setRoomCode={setRoomCode}
           isHost={isHost}
@@ -99,13 +100,14 @@ export default function App() {
         />
       )}
       {currentScreen === 'Game' && (
-        <GameScreen 
-          roomCode={roomCode} 
-          gameData={gameData} 
+        <GameScreen
+          roomCode={roomCode}
+          gameData={gameData}
+          teams={teams}
         />
       )}
       {currentScreen === 'Results' && (
-        <ResultsScreen 
+        <ResultsScreen
           roundResults={roundResults}
         />
       )}
@@ -119,3 +121,5 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
 });
+
+

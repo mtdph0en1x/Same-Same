@@ -2,12 +2,13 @@ const GameSession = require('./gameSession');
 const { getPackNames } = require('./gameLogic');
 
 const rooms = {};
-const MIN_PLAYERS = 2;
-const MAX_PLAYERS = 8;
+const MIN_PLAYERS      = 2;
+const MIN_TEAM_PLAYERS = 4;
+const MAX_PLAYERS      = 8;
 
-const VALID_ROUND_TYPES   = ['Same Same', 'But Different', 'Rush'];
-const VALID_MAX_ROUNDS    = [3, 6, 9];
-const VALID_TIME_LIMITS   = [30, 60, 90];
+const VALID_ROUND_TYPES    = ['Same Same', 'But Different', 'Rush'];
+const VALID_MAX_ROUNDS     = [3, 6, 9];
+const VALID_TIME_LIMITS    = [30, 60, 90];
 const VALID_WORDS_PER_ROUND = [3, 5, 7];
 
 const DEFAULT_CONFIG = {
@@ -16,12 +17,13 @@ const DEFAULT_CONFIG = {
     wordsPerRound: 5,
     roundTypes:    ['Same Same', 'But Different', 'Rush'],
     categoryPack:  'classic',
+    teamMode:      false,
 };
 
 function validateConfig(incoming) {
     const config = { ...DEFAULT_CONFIG };
-    if (VALID_MAX_ROUNDS.includes(incoming.maxRounds))       config.maxRounds     = incoming.maxRounds;
-    if (VALID_TIME_LIMITS.includes(incoming.timeLimit))      config.timeLimit     = incoming.timeLimit;
+    if (VALID_MAX_ROUNDS.includes(incoming.maxRounds))        config.maxRounds     = incoming.maxRounds;
+    if (VALID_TIME_LIMITS.includes(incoming.timeLimit))       config.timeLimit     = incoming.timeLimit;
     if (VALID_WORDS_PER_ROUND.includes(incoming.wordsPerRound)) config.wordsPerRound = incoming.wordsPerRound;
     if (Array.isArray(incoming.roundTypes)) {
         const filtered = incoming.roundTypes.filter(t => VALID_ROUND_TYPES.includes(t));
@@ -29,6 +31,7 @@ function validateConfig(incoming) {
     }
     const validPacks = ['all', ...getPackNames()];
     if (validPacks.includes(incoming.categoryPack)) config.categoryPack = incoming.categoryPack;
+    if (typeof incoming.teamMode === 'boolean') config.teamMode = incoming.teamMode;
     return config;
 }
 
@@ -41,23 +44,48 @@ function generateRoomCode() {
     return result;
 }
 
+// Assign a new player to whichever team has fewer members (A wins ties)
+function assignTeam(teams) {
+    const countA = Object.values(teams).filter(t => t === 'A').length;
+    const countB = Object.values(teams).filter(t => t === 'B').length;
+    return countA <= countB ? 'A' : 'B';
+}
+
+// Rebuild teams map to include only current players (prunes disconnected players)
+function pruneTeams(teams, players) {
+    const ids = new Set(players.map(p => p.id));
+    const pruned = {};
+    for (const [id, team] of Object.entries(teams)) {
+        if (ids.has(id)) pruned[id] = team;
+    }
+    return pruned;
+}
+
+function safePlayerList(players) {
+    return players.map(p => ({ id: p.id, name: p.name }));
+}
+
 function createRoom(io, socket, playerData) {
     const roomCode = generateRoomCode();
-    const safePlayers = [{ id: socket.id, name: playerData.name || "Host" }];
+    const player = { id: socket.id, name: playerData.name || 'Host', socket };
+    const teams = { [socket.id]: 'A' };
+
     rooms[roomCode] = {
-        host: socket.id,
-        players: [{ id: socket.id, name: playerData.name || "Host", socket }],
+        host:        socket.id,
+        players:     [player],
+        teams:       teams,
         gameSession: null,
-        countdown: null,
-        config: { ...DEFAULT_CONFIG },
+        countdown:   null,
+        config:      { ...DEFAULT_CONFIG },
     };
 
     socket.join(roomCode);
     socket.emit('room_created', {
         roomCode,
-        host: true,
-        players: safePlayers,
-        config: rooms[roomCode].config,
+        host:    true,
+        players: safePlayerList([player]),
+        teams:   teams,
+        config:  rooms[roomCode].config,
     });
 }
 
@@ -76,12 +104,23 @@ function joinRoom(io, socket, roomCode, playerData) {
         return;
     }
 
-    room.players.push({ id: socket.id, name: playerData.name || "Player", socket });
+    const player = { id: socket.id, name: playerData.name || 'Player', socket };
+    room.players.push(player);
+
+    // Auto-assign to the smaller team
+    room.teams[socket.id] = assignTeam(room.teams);
+
     socket.join(roomCode);
 
-    const safePlayers = room.players.map(p => ({ id: p.id, name: p.name }));
-    io.to(roomCode).emit('player_joined', { players: safePlayers });
-    socket.emit('joined_room', { roomCode, players: safePlayers, host: false, config: room.config });
+    const safePlayers = safePlayerList(room.players);
+    io.to(roomCode).emit('player_joined', { players: safePlayers, teams: room.teams });
+    socket.emit('joined_room', {
+        roomCode,
+        players: safePlayers,
+        host:    false,
+        config:  room.config,
+        teams:   room.teams,
+    });
 }
 
 function updateConfig(io, socket, roomCode, incomingConfig) {
@@ -90,6 +129,20 @@ function updateConfig(io, socket, roomCode, incomingConfig) {
 
     room.config = validateConfig(incomingConfig);
     io.to(roomCode).emit('config_updated', { config: room.config });
+}
+
+function updateTeams(io, socket, roomCode, incomingTeams) {
+    const room = rooms[roomCode];
+    if (!room || room.host !== socket.id || room.gameSession || room.countdown) return;
+
+    // Validate: every key must be a current player, every value must be 'A' or 'B'
+    const playerIds = new Set(room.players.map(p => p.id));
+    for (const [id, team] of Object.entries(incomingTeams)) {
+        if (!playerIds.has(id) || (team !== 'A' && team !== 'B')) return;
+    }
+
+    room.teams = { ...incomingTeams };
+    io.to(roomCode).emit('teams_updated', { teams: room.teams });
 }
 
 function kickPlayer(io, socket, roomCode, targetId) {
@@ -104,8 +157,10 @@ function kickPlayer(io, socket, roomCode, targetId) {
     target.socket.leave(roomCode);
 
     room.players = room.players.filter(p => p.id !== targetId);
-    const safePlayers = room.players.map(p => ({ id: p.id, name: p.name }));
-    io.to(roomCode).emit('player_joined', { players: safePlayers });
+    room.teams   = pruneTeams(room.teams, room.players);
+
+    const safePlayers = safePlayerList(room.players);
+    io.to(roomCode).emit('player_joined', { players: safePlayers, teams: room.teams });
 }
 
 function leaveRoom(io, socket, roomCode) {
@@ -113,6 +168,7 @@ function leaveRoom(io, socket, roomCode) {
     if (!room) return;
 
     room.players = room.players.filter(p => p.id !== socket.id);
+    room.teams   = pruneTeams(room.teams, room.players);
     socket.leave(roomCode);
 
     if (room.players.length === 0) {
@@ -126,15 +182,21 @@ function leaveRoom(io, socket, roomCode) {
         io.to(roomCode).emit('host_changed', { newHostId: newHost.id, newHostName: newHost.name });
     }
 
-    const safePlayers = room.players.map(p => ({ id: p.id, name: p.name }));
-    io.to(roomCode).emit('player_joined', { players: safePlayers });
+    const safePlayers = safePlayerList(room.players);
+    io.to(roomCode).emit('player_joined', { players: safePlayers, teams: room.teams });
 }
 
 function startGame(io, socket, roomCode) {
     const room = rooms[roomCode];
     if (!room || room.host !== socket.id || room.gameSession || room.countdown) return;
-    if (room.players.length < MIN_PLAYERS) {
-        socket.emit('room_error', { message: `Need at least ${MIN_PLAYERS} players to start.` });
+
+    const minPlayers = room.config.teamMode ? MIN_TEAM_PLAYERS : MIN_PLAYERS;
+    if (room.players.length < minPlayers) {
+        socket.emit('room_error', {
+            message: room.config.teamMode
+                ? `Team mode needs at least ${MIN_TEAM_PLAYERS} players.`
+                : `Need at least ${MIN_PLAYERS} players to start.`,
+        });
         return;
     }
 
@@ -149,8 +211,12 @@ function startGame(io, socket, roomCode) {
             clearInterval(room.countdown);
             room.countdown = null;
 
-            const gamePlayers = room.players.map(p => ({ id: p.id, name: p.name }));
-            room.gameSession = new GameSession(io, roomCode, gamePlayers, room.config);
+            const gamePlayers = safePlayerList(room.players);
+            const sessionConfig = {
+                ...room.config,
+                teams: room.config.teamMode ? { ...room.teams } : null,
+            };
+            room.gameSession = new GameSession(io, roomCode, gamePlayers, sessionConfig);
             room.gameSession.start();
         }
     }, 1000);
@@ -178,6 +244,7 @@ function handleDisconnect(io, socket) {
         if (!wasInRoom) continue;
 
         room.players = room.players.filter(p => p.id !== socket.id);
+        room.teams   = pruneTeams(room.teams, room.players);
 
         if (room.players.length === 0) {
             delete rooms[code];
@@ -190,8 +257,8 @@ function handleDisconnect(io, socket) {
             io.to(code).emit('host_changed', { newHostId: newHost.id, newHostName: newHost.name });
         }
 
-        const safePlayers = room.players.map(p => ({ id: p.id, name: p.name }));
-        io.to(code).emit('player_joined', { players: safePlayers });
+        const safePlayers = safePlayerList(room.players);
+        io.to(code).emit('player_joined', { players: safePlayers, teams: room.teams });
     }
 }
 
@@ -199,9 +266,12 @@ module.exports = {
     createRoom,
     joinRoom,
     updateConfig,
+    updateTeams,
     kickPlayer,
     leaveRoom,
     startGame,
     submitWord,
     handleDisconnect,
 };
+
+

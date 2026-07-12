@@ -2,9 +2,20 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "test": "jest --runInBand --forceExit",
+    "test:unit": "jest --runInBand --forceExit __tests__/gameLogic.test.js",
+    "test:integration": "jest --runInBand --forceExit __tests__/integration.test.js"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testTimeout": 15000,
+    "moduleNameMapper": {
+      "^natural$": "<rootDir>/__mocks__/natural.js",
+      "^uuid$":    "<rootDir>/__mocks__/uuid.js"
+    }
   },
   "keywords": [],
   "author": "",
@@ -17,5 +28,9 @@
     "natural": "^8.1.1",
     "socket.io": "^4.8.3",
     "uuid": "^14.0.1"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "socket.io-client": "^4.8.3"
   }
 }
