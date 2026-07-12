@@ -50,7 +50,7 @@ export default function AuthScreen({ setScreen }) {
   async function handleGoogleLogin() {
     setLoading(true);
     try {
-      const redirectUrl = Linking.createURL('/');
+      const redirectUrl = Platform.OS === 'web' ? window.location.origin : Linking.createURL('/');
       
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
