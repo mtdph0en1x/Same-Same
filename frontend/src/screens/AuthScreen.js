@@ -47,8 +47,9 @@ export default function AuthScreen({ setScreen }) {
     setLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      // The redirect URL is automatically handled by Supabase for web when not specified, 
-      // but we can ensure it redirects back to the app domain.
+      options: {
+        redirectTo: Platform.OS === 'web' ? window.location.origin : undefined,
+      }
     });
     if (error) {
       Alert.alert('Google Login Failed', error.message);
