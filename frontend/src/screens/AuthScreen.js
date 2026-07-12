@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, SafeAreaView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, SafeAreaView, Platform } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 import { supabase } from '../supabase';
 import { theme } from '../styles/theme';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function AuthScreen({ setScreen }) {
   const [email, setEmail] = useState('');
@@ -45,14 +49,45 @@ export default function AuthScreen({ setScreen }) {
 
   async function handleGoogleLogin() {
     setLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: Platform.OS === 'web' ? window.location.href : undefined,
+    try {
+      const redirectUrl = Linking.createURL('/');
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUrl,
+          skipBrowserRedirect: Platform.OS !== 'web',
+        }
+      });
+      
+      if (error) throw error;
+      
+      if (Platform.OS !== 'web' && data?.url) {
+        const res = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+        if (res.type === 'success' && res.url) {
+          const parsed = Linking.parse(res.url);
+          
+          // Check for PKCE flow (code in query params)
+          if (parsed.queryParams && parsed.queryParams.code) {
+            await supabase.auth.exchangeCodeForSession(parsed.queryParams.code);
+          } else {
+            // Check for Implicit flow (tokens in hash)
+            const hash = res.url.split('#')[1];
+            if (hash) {
+              const hashParams = new URLSearchParams(hash);
+              const access_token = hashParams.get('access_token');
+              const refresh_token = hashParams.get('refresh_token');
+              if (access_token && refresh_token) {
+                await supabase.auth.setSession({ access_token, refresh_token });
+              }
+            }
+          }
+        }
       }
-    });
-    if (error) {
+      // On web, it redirects automatically and we don't reach here.
+    } catch (error) {
       Alert.alert('Google Login Failed', error.message);
+    } finally {
       setLoading(false);
     }
   }
