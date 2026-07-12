@@ -66,7 +66,6 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {!isWebProd && (
         <View style={styles.headerAuth}>
           {user ? (
             <TouchableOpacity onPress={() => setScreen('Profile')} style={styles.authBtn}>
@@ -78,7 +77,6 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
             </TouchableOpacity>
           )}
         </View>
-      )}
       <View style={styles.container}>
         <Text style={styles.title}>Same Same?</Text>
         
@@ -90,17 +88,13 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
           onChangeText={setName}
         />
 
-        {!isWebProd && (
-          <Button title="Find Online Match" onPress={handleOpenMmModal} type="primary" style={styles.mainBtn} />
-        )}
+        <Button title="Find Online Match" onPress={handleOpenMmModal} type="primary" style={styles.mainBtn} />
 
-        {!isWebProd && (
-          <View style={styles.dividerContainer}>
-            <View style={styles.divider} />
-            <Text style={styles.dividerText}>OR</Text>
-            <View style={styles.divider} />
-          </View>
-        )}
+        <View style={styles.dividerContainer}>
+          <View style={styles.divider} />
+          <Text style={styles.dividerText}>OR</Text>
+          <View style={styles.divider} />
+        </View>
 
         <Button title="Host Couch Game" onPress={handleHostCouch} type="secondary" style={styles.mainBtn} />
         <Button title="Join Couch Game" onPress={() => setJoinModalVisible(true)} type="secondary" style={styles.mainBtn} />
