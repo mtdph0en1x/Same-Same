@@ -28,6 +28,9 @@ jobs:
       - name: Run unit tests
         working-directory: ./backend
         run: npm run test:unit
+        env:
+          SUPABASE_URL: 'https://dummy.supabase.co'
+          SUPABASE_SERVICE_KEY: 'dummy'
 
   integration-tests:
     name: Integration Tests (socket)
@@ -50,3 +53,6 @@ jobs:
       - name: Run integration tests
         working-directory: ./backend
         run: npm run test:integration
+        env:
+          SUPABASE_URL: 'https://dummy.supabase.co'
+          SUPABASE_SERVICE_KEY: 'dummy'
