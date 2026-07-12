@@ -102,12 +102,28 @@ class GameSession {
             pw.done = true;
             this.io.to(this.roomId).emit('player_finished', { playerId });
 
-            // End round early if everyone is done
-            const allDone = Object.values(this.playerWords).every(p => p.done);
-            if (allDone) {
-                clearTimeout(this.timer);
-                this.endRound(this.currentRoundType());
-            }
+            this.checkRoundEarlyEnd();
+        }
+    }
+
+    removePlayer(playerId) {
+        this.players = this.players.filter(p => p.id !== playerId);
+        if (this.playerWords[playerId]) {
+            this.playerWords[playerId].done = true; // Pretend they are done so we don't wait
+        }
+        this.checkRoundEarlyEnd();
+    }
+
+    checkRoundEarlyEnd() {
+        // Only consider players who are still in the session
+        const activeIds = new Set(this.players.map(p => p.id));
+        const allDone = Object.entries(this.playerWords)
+            .filter(([id, _]) => activeIds.has(id))
+            .every(([_, p]) => p.done);
+            
+        if (allDone && this.players.length > 0) {
+            clearTimeout(this.timer);
+            this.endRound(this.currentRoundType());
         }
     }
 

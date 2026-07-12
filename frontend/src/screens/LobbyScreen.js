@@ -293,6 +293,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
     });
 
     socket.on('joined_room', (data) => {
+      setRoomCode(data.roomCode);
       setPlayers(data.players);
       if (data.config) setConfig(data.config);
       if (data.teams)  setTeams(data.teams);

@@ -319,6 +319,10 @@ function handleDisconnect(io, socket) {
             continue;
         }
 
+        if (room.gameSession) {
+            room.gameSession.removePlayer(socket.id);
+        }
+
         if (room.host === socket.id) {
             const newHost = room.players[0];
             room.host = newHost.id;

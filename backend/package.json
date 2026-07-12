@@ -7,7 +7,7 @@
     "start": "node server.js",
     "test": "jest --runInBand --forceExit",
     "test:unit": "jest --runInBand --forceExit __tests__/gameLogic.test.js",
-    "test:integration": "jest --runInBand --forceExit __tests__/integration.test.js"
+    "test:integration": "jest --runInBand --forceExit __tests__/integration.test.js __tests__/matchmaking.test.js"
   },
   "jest": {
     "testEnvironment": "node",
