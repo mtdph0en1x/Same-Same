@@ -48,7 +48,7 @@ export default function AuthScreen({ setScreen }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: Platform.OS === 'web' ? window.location.origin : undefined,
+        redirectTo: Platform.OS === 'web' ? window.location.href : undefined,
       }
     });
     if (error) {
