@@ -91,6 +91,22 @@ io.on('connection', (socket) => {
         roomManager.submitVote(io, socket, roomCode, packId);
     });
 
+    socket.on('vote_next_step', ({ roomId }) => {
+        roomManager.voteNextStep(roomId, socket.id);
+    });
+
+    socket.on('force_next_step', ({ roomId }) => {
+        roomManager.forceNextStep(roomId, socket.id);
+    });
+
+    socket.on('send_reaction', ({ roomId, reactionId, senderName }) => {
+        io.to(roomId).emit('reaction_received', { reactionId, senderName, xOffset: Math.random() });
+    });
+
+    socket.on('send_chat', ({ roomId, message, senderName }) => {
+        io.to(roomId).emit('chat_received', { message, senderName, timestamp: Date.now() });
+    });
+
     socket.on('disconnect', () => {
         console.log(`User disconnected: ${socket.id}`);
         matchmaker.removePlayer(socket.id);

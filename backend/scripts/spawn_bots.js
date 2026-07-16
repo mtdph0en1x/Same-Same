@@ -76,7 +76,18 @@ for (let i = 1; i <= NUM_BOTS; i++) {
     });
     
     socket.on('round_ended', () => {
-        console.log(`[${botName}] Round ended.`);
+        console.log(`[${botName}] Round ended. Entering Review Phase...`);
+        setTimeout(() => {
+            socket.emit('vote_next_step', { roomId: currentRoomCode });
+            console.log(`[${botName}] Voted to advance review step.`);
+        }, Math.random() * 2000 + 1000);
+    });
+    
+    socket.on('review_step_advanced', (data) => {
+        setTimeout(() => {
+            socket.emit('vote_next_step', { roomId: currentRoomCode });
+            console.log(`[${botName}] Voted to advance review step ${data.step}.`);
+        }, Math.random() * 2000 + 2000); // 2-4 seconds to read the word
     });
     
     socket.on('game_over', () => {

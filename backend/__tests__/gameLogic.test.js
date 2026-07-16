@@ -124,7 +124,8 @@ describe('Solo · Rush', () => {
     test('shared words score base points just like Same Same', () => {
         const { scoreUpdates } = calculateScores(
             words({ a: ['cat'], b: ['cat'] }),
-            'Rush'
+            'Same Same',
+            ['Rush']
         );
         // We aren't testing times here, so they default to 0. The first player 'a' will be picked as fastest if times are equal.
         // Group size is 2, plus 2 for speed bonus for 'a' = 4 points. 'b' gets 2 points.
@@ -135,7 +136,8 @@ describe('Solo · Rush', () => {
     test('unique words score nothing', () => {
         const { scoreUpdates } = calculateScores(
             words({ a: ['sun'], b: ['moon'] }),
-            'Rush'
+            'Same Same',
+            ['Rush']
         );
         expect(scoreUpdates.a).toBeUndefined();
         expect(scoreUpdates.b).toBeUndefined();
@@ -148,7 +150,8 @@ describe('Solo · Rush', () => {
                 fast: [{ text: 'apple', time: 1000 }],
                 medium: [{ text: 'apple', time: 3000 }]
             }),
-            'Rush'
+            'Same Same',
+            ['Rush']
         );
         // Group size is 3. Everyone gets 3 points.
         // 'fast' gets an extra +2 for being fastest.
@@ -267,6 +270,7 @@ describe('Team mode · Same Same', () => {
         const { scoreUpdates } = calculateScores(
             words({ a1: ['pizza'], a2: ['pizza'], b1: ['burger'], b2: ['sushi'] }),
             'Same Same',
+            [],
             teams
         );
         expect(scoreUpdates.a1).toBe(2);
@@ -280,6 +284,7 @@ describe('Team mode · Same Same', () => {
         const { scoreUpdates } = calculateScores(
             words({ a1: ['pizza'], b1: ['pizza'] }),
             'Same Same',
+            [],
             { a1: 'A', b1: 'B' }
         );
         // Group has a1 + b1, but each team only has 1 member → no intra-team match
@@ -290,6 +295,7 @@ describe('Team mode · Same Same', () => {
         const { scoreUpdates } = calculateScores(
             words({ a1: ['cat'], a2: ['cat'], b1: ['dog'], b2: ['dog'] }),
             'Same Same',
+            [],
             teams
         );
         expect(scoreUpdates.a1).toBe(2);
@@ -303,6 +309,7 @@ describe('Team mode · Same Same', () => {
         const { scoreUpdates } = calculateScores(
             words({ a1: ['cat'], a2: ['cat'], a3: ['cat'], b1: ['dog'] }),
             'Same Same',
+            [],
             bigTeams
         );
         expect(scoreUpdates.a1).toBe(3);
@@ -315,6 +322,7 @@ describe('Team mode · Same Same', () => {
         const { scoreUpdates } = calculateScores(
             words({ a1: ['pizza'], b1: ['pizza'], b2: ['pizza'] }),
             'Same Same',
+            [],
             { a1: 'A', b1: 'B', b2: 'B' }
         );
         // Team A: only a1 said 'pizza' → no intra match
@@ -336,6 +344,7 @@ describe('Team mode · But Different', () => {
         const { scoreUpdates } = calculateScores(
             words({ a1: ['unicorn'], a2: ['dragon'], b1: ['phoenix'], b2: ['griffin'] }),
             'But Different',
+            [],
             teams
         );
         // Every player's word is unique within their own team
@@ -349,6 +358,7 @@ describe('Team mode · But Different', () => {
         const { scoreUpdates } = calculateScores(
             words({ a1: ['pizza'], a2: ['pizza'], b1: ['burger'], b2: ['sushi'] }),
             'But Different',
+            [],
             teams
         );
         // a1 + a2 share 'pizza' → intra-team duplicate → no score for either
@@ -365,6 +375,7 @@ describe('Team mode · But Different', () => {
         const { scoreUpdates } = calculateScores(
             words({ a1: ['pizza'], a2: ['burger'], b1: ['pizza'], b2: ['sushi'] }),
             'But Different',
+            [],
             teams
         );
         // a1: pizza unique within team A → scores
@@ -380,6 +391,7 @@ describe('Team mode · But Different', () => {
         const { scoreUpdates } = calculateScores(
             words({ a1: ['pizza'], a2: ['pizza'] }),
             'But Different',
+            [],
             { a1: 'A', a2: 'A' }
         );
         expect(scoreUpdates).toEqual({});
@@ -395,7 +407,8 @@ describe('Team mode · Rush', () => {
         const teams = { a1: 'A', a2: 'A', b1: 'B', b2: 'B' };
         const { scoreUpdates } = calculateScores(
             words({ a1: ['cat'], a2: ['cat'], b1: ['dog'], b2: ['fish'] }),
-            'Rush',
+            'Same Same',
+            ['Rush'],
             teams
         );
         // a1 gets speed bonus (+2) because its time (0) ties with a2, and a1 was processed first.

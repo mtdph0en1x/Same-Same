@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
   StyleSheet, Text, View, TouchableOpacity,
-  SafeAreaView, Animated, Alert, ScrollView, PanResponder, Image
+  SafeAreaView, Animated, Alert, ScrollView, PanResponder, Image, useWindowDimensions
 } from 'react-native';
 import { socket } from '../socket';
 import { theme } from '../styles/theme';
@@ -206,9 +206,10 @@ const DEFAULT_CONFIG = {
   maxRounds:     6,
   timeLimit:     60,
   wordsPerRound: 5,
-  roundTypes:    ['Same Same', 'But Different', 'Rush'],
+  roundTypes:    ['Same Same', 'But Different', 'Blitz'],
   categoryPack:  'classic',
   teamMode:      false,
+  modifiers:     [],
 };
 
 export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, lobbyIntent, playerData, setScreen }) {
@@ -223,6 +224,8 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
   const [isPublic, setIsPublic]     = useState(false);
   const [votes, setVotes]           = useState({}); // { [packId]: count }
   const hostBannerTimer             = useRef(null);
+  const { width } = useWindowDimensions();
+  const isDesktop = width > 800;
 
   // Emit config update and update local state
   const handleConfigChange = (patch) => {
@@ -241,6 +244,17 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
       next = [...current, type];
     }
     handleConfigChange({ roundTypes: next });
+  };
+
+  const toggleModifier = (mod) => {
+    const current = config.modifiers || [];
+    let next;
+    if (current.includes(mod)) {
+      next = current.filter(m => m !== mod);
+    } else {
+      next = [...current, mod];
+    }
+    handleConfigChange({ modifiers: next });
   };
 
   // Move a player to a different team (host only)
@@ -432,7 +446,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
     <SafeAreaView style={styles.safeArea}>
       {countdown !== null && !isPublic && <CountdownOverlay count={countdown} />}
 
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.container, isDesktop && styles.containerDesktop]} showsVerticalScrollIndicator={false}>
 
         {/* Header */}
         <View style={styles.header}>
@@ -440,6 +454,9 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
             <Text style={styles.leaveButtonText}>← Leave</Text>
           </TouchableOpacity>
         </View>
+
+        <View style={isDesktop ? styles.desktopRow : {}}>
+          <View style={isDesktop ? styles.desktopColLeft : {}}>
 
         {/* Host promotion banner */}
         {hostBanner && (
@@ -517,12 +534,15 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
                   />
                 ))}
               </>
-            )}
-          </View>
-        )}
+              )}
+            </View>
+          )}
 
-        {/* ── Settings panel ─────────────────────────────────────────── */}
-        {roomCode && !isPublic && (
+          </View>
+
+          <View style={isDesktop ? styles.desktopColRight : {}}>
+          {/* ── Settings panel ─────────────────────────────────────────── */}
+          {roomCode && !isPublic && (
           <View style={styles.card}>
             <Text style={styles.cardLabel}>GAME SETTINGS{!isHost ? '  (set by host)' : ''}</Text>
 
@@ -565,7 +585,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
             <Text style={styles.settingLabel}>Round types</Text>
             {isHost ? (
               <View style={styles.chipRow}>
-                {['Same Same', 'But Different', 'Rush'].map(type => (
+                {['Same Same', 'But Different', 'Blitz'].map(type => (
                   <RoundTypeToggle
                     key={type}
                     type={type}
@@ -576,6 +596,22 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
               </View>
             ) : (
               <Text style={styles.readOnlyValue}>{config.roundTypes.join(', ')}</Text>
+            )}
+
+            <Text style={styles.settingLabel}>Game modifiers</Text>
+            {isHost ? (
+              <View style={styles.chipRow}>
+                {['Rush'].map(mod => (
+                  <RoundTypeToggle
+                    key={mod}
+                    type={mod}
+                    active={(config.modifiers || []).includes(mod)}
+                    onChange={toggleModifier}
+                  />
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.readOnlyValue}>{(config.modifiers || []).length > 0 ? config.modifiers.join(', ') : 'None'}</Text>
             )}
 
             <Text style={styles.settingLabel}>Category pack</Text>
@@ -616,7 +652,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
         {/* ── Public Voting Panel ────────────────────────────────────── */}
         {roomCode && isPublic && (
           <View style={[styles.card, { borderColor: theme.colors.primary }]}>
-            <Text style={[styles.cardLabel, { color: theme.colors.primary, textAlign: 'center', fontSize: 16 }]}>
+            <Text style={[styles.cardLabel, { color: '#000', textAlign: 'center', fontSize: 16 }]}>
               VOTE FOR CATEGORY PACK {countdown !== null ? `(${countdown}s)` : ''}
             </Text>
             <View style={styles.voteList}>
@@ -660,6 +696,8 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
         )}
 
         <View style={{ height: 32 }} />
+          </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -668,11 +706,28 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: 'transparent',
   },
   container: {
     padding: theme.spacing.xl,
-    alignItems: 'center',
+    paddingBottom: 100,
+  },
+  containerDesktop: {
+    paddingHorizontal: 40,
+    maxWidth: 1000,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  desktopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 40,
+  },
+  desktopColLeft: {
+    flex: 1,
+  },
+  desktopColRight: {
+    flex: 1,
   },
   header: {
     width: '100%',
@@ -695,7 +750,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: theme.spacing.xl,
-    backgroundColor: theme.colors.background,
+    backgroundColor: 'transparent',
   },
   searchingStatus: {
     fontSize: 24,
@@ -716,29 +771,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   matchFoundCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.primary, // Yellow
     padding: theme.spacing.xl,
-    borderRadius: theme.borderRadius.xl,
+    borderRadius: theme.borderRadius.md,
     alignItems: 'center',
-    borderWidth: 4,
-    borderColor: theme.colors.primary,
-    shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
+    borderWidth: 3,
+    borderColor: '#000',
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 0,
     width: '100%',
+    transform: [{ rotate: '-1deg' }],
   },
   matchFoundTitle: {
     fontFamily: theme.fonts.headingBold,
     fontSize: 32,
-    color: theme.colors.primary,
+    color: '#000',
     marginBottom: theme.spacing.sm,
   },
   matchFoundSubtitle: {
     fontFamily: theme.fonts.bodyBold,
     fontSize: 18,
-    color: theme.colors.foreground,
+    color: '#000',
     marginBottom: theme.spacing.xl,
   },
   matchActionRow: {
@@ -751,21 +807,24 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: theme.borderRadius.md,
     alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#000',
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 0,
   },
   matchBtnDecline: {
-    backgroundColor: '#F3F4F6',
-    borderWidth: 2,
-    borderColor: '#D1D5DB',
+    backgroundColor: '#FFFFFF',
   },
   matchBtnAccept: {
-    backgroundColor: '#10B981', // Emerald green
-    borderWidth: 2,
-    borderColor: '#059669',
+    backgroundColor: theme.colors.accent, // Cyan
   },
   matchBtnText: {
     fontFamily: theme.fonts.headingBold,
     fontSize: 18,
-    color: theme.colors.foreground,
+    color: '#000',
   },
   // ── Couch UI ─────────────────────────────────────────────────────────────
   hostBanner: {
@@ -788,7 +847,7 @@ const styles = StyleSheet.create({
   },
   codeLabel: {
     fontFamily: theme.fonts.bodyBold,
-    color: theme.colors.foreground,
+    color: '#000',
     fontSize: 16,
     letterSpacing: 2,
     marginBottom: theme.spacing.xs,
@@ -811,27 +870,28 @@ const styles = StyleSheet.create({
   status: {
     fontSize: 18,
     fontFamily: theme.fonts.bodyBold,
-    color: theme.colors.accent,
+    color: '#000',
     marginBottom: theme.spacing.lg,
   },
   card: {
     width: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.primary, // Vibrant Yellow
     padding: theme.spacing.lg,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.borderRadius.md,
     marginBottom: theme.spacing.lg,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    shadowColor: theme.colors.border,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
+    borderWidth: 3,
+    borderColor: '#000',
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
     shadowRadius: 0,
-    elevation: 2,
+    elevation: 0,
+    transform: [{ rotate: '-1deg' }],
   },
   cardLabel: {
     fontFamily: theme.fonts.bodyBold,
-    color: theme.colors.muted,
-    fontSize: 12,
+    color: '#000',
+    fontSize: 14,
     letterSpacing: 1.5,
     marginBottom: theme.spacing.md,
   },
@@ -868,7 +928,7 @@ const styles = StyleSheet.create({
   },
   playerText: {
     flex: 1,
-    color: theme.colors.foreground,
+    color: '#000',
     fontFamily: theme.fonts.bodyBold,
     fontSize: 18,
   },
@@ -919,11 +979,13 @@ const styles = StyleSheet.create({
   teamPlayerCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.accent, // Cyan
     borderRadius: theme.borderRadius.md,
-    borderWidth: 1.5,
+    borderWidth: 2,
+    borderColor: '#000',
     padding: theme.spacing.sm,
     marginBottom: 6,
+    transform: [{ rotate: '1deg' }],
   },
   teamPlayerCardLifted: {
     shadowColor: '#000',
@@ -944,7 +1006,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: theme.fonts.bodyBold,
     fontSize: 14,
-    color: theme.colors.foreground,
+    color: '#000',
   },
   dragHandle: {
     width: 28,
@@ -964,14 +1026,14 @@ const styles = StyleSheet.create({
   // ── Settings ────────────────────────────────────────────────────────────
   settingLabel: {
     fontFamily: theme.fonts.bodyBold,
-    color: theme.colors.foreground,
-    fontSize: 15,
+    color: '#000',
+    fontSize: 16,
     marginTop: theme.spacing.md,
     marginBottom: theme.spacing.sm,
   },
   readOnlyValue: {
-    fontFamily: theme.fonts.body,
-    color: theme.colors.secondary,
+    fontFamily: theme.fonts.bodyBold,
+    color: '#000',
     fontSize: 15,
     marginBottom: theme.spacing.sm,
   },
@@ -987,9 +1049,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: theme.borderRadius.md,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    backgroundColor: '#F9FAFB',
+    borderWidth: 3,
+    borderColor: '#000',
+    backgroundColor: '#FFF',
     alignItems: 'center',
   },
   segmentBtnActive: {
@@ -1002,7 +1064,7 @@ const styles = StyleSheet.create({
     color: theme.colors.foreground,
   },
   segmentTextActive: {
-    color: '#FFFFFF',
+    color: '#000',
   },
   // Round type chip toggles
   chipRow: {
@@ -1013,10 +1075,10 @@ const styles = StyleSheet.create({
   chip: {
     paddingVertical: 8,
     paddingHorizontal: 14,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    backgroundColor: '#F9FAFB',
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 3,
+    borderColor: '#000',
+    backgroundColor: '#FFF',
   },
   chipActive: {
     backgroundColor: theme.colors.primary,
@@ -1028,7 +1090,7 @@ const styles = StyleSheet.create({
     color: theme.colors.foreground,
   },
   chipTextActive: {
-    color: '#FFFFFF',
+    color: '#000',
   },
   // Team mode toggle
   toggleRow: {
@@ -1039,9 +1101,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 8,
     borderRadius: theme.borderRadius.md,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    backgroundColor: '#F9FAFB',
+    borderWidth: 3,
+    borderColor: '#000',
+    backgroundColor: '#FFF',
     alignItems: 'center',
   },
   toggleBtnActive: {
@@ -1058,7 +1120,7 @@ const styles = StyleSheet.create({
     color: theme.colors.foreground,
   },
   toggleTextActive: {
-    color: '#FFFFFF',
+    color: '#000',
   },
   // START button
   startSection: {
@@ -1085,16 +1147,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#FFF',
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.md,
     borderRadius: theme.borderRadius.md,
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderWidth: 3,
+    borderColor: '#000',
   },
   voteBtnText: {
     fontFamily: theme.fonts.bodyBold,
-    color: theme.colors.foreground,
+    color: '#000',
     fontSize: 14,
   },
   voteCountBadge: {
@@ -1102,26 +1164,33 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 8,
     paddingVertical: 2,
+    borderWidth: 2,
+    borderColor: 'transparent',
   },
   voteCountBadgeActive: {
     backgroundColor: theme.colors.primary,
+    borderColor: '#000',
   },
   voteCountText: {
     fontFamily: theme.fonts.bodyBold,
-    color: theme.colors.muted,
+    color: '#000',
     fontSize: 12,
   },
   voteCountTextActive: {
-    color: '#FFFFFF',
+    color: '#000',
   },
   button: {
     backgroundColor: theme.colors.primary,
     padding: theme.spacing.lg,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.borderRadius.md,
     width: '100%',
     alignItems: 'center',
-    borderBottomWidth: 6,
-    borderBottomColor: '#BE123C',
+    borderWidth: 3,
+    borderColor: '#000',
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
   },
   buttonDisabled: {
     backgroundColor: '#D1D5DB',

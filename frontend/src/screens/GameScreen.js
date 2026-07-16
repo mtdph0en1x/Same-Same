@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet, Text, View, TextInput, TouchableOpacity,
-  SafeAreaView, ScrollView, Animated, Image
+  SafeAreaView, ScrollView, Animated, Image, useWindowDimensions
 } from 'react-native';
 import { socket } from '../socket';
 import { theme } from '../styles/theme';
@@ -37,6 +37,8 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
   const wordsPerRound = gameData.wordsPerRound || 5;
   const myTeam = teams ? teams[socket.id] : null;
   const inputRef = useRef(null);
+  const { width } = useWindowDimensions();
+  const isDesktop = width > 800;
 
   useEffect(() => {
     setTimeLeft(gameData.timeLimit || 60);
@@ -78,10 +80,18 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
 
   const isWarning = timeLeft <= 10;
   const progress = submittedWords.length;
+  
+  const isBlitz = Array.isArray(gameData.category);
+  const currentCategory = isBlitz 
+      ? (progress < wordsPerRound ? gameData.category[progress] : 'Blitz Complete!') 
+      : gameData.category;
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.container, isDesktop && styles.containerDesktop]} keyboardShouldPersistTaps="handled">
+
+        <View style={isDesktop ? styles.desktopRow : {}}>
+          <View style={isDesktop ? styles.desktopColLeft : {}}>
 
         {/* Team badge */}
         {myTeam && (
@@ -132,9 +142,14 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
           </View>
         </View>
 
+        </View>
+
+        <View style={isDesktop ? styles.desktopColRight : {}}>
+
         {/* Category */}
         <View style={styles.categoryCard}>
-          <Text style={styles.categoryTitle}>{gameData.category}</Text>
+          {isBlitz && <Text style={styles.blitzHeader}>⚡ BLITZ TOPIC {progress + 1} ⚡</Text>}
+          <Text style={styles.categoryTitle}>{currentCategory}</Text>
         </View>
 
         {/* Submitted words */}
@@ -175,6 +190,9 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
             </Text>
           </View>
         )}
+        
+        </View>
+        </View>
 
       </ScrollView>
     </SafeAreaView>
@@ -184,13 +202,34 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: 'transparent',
   },
   container: {
     padding: theme.spacing.xl,
-    backgroundColor: theme.colors.background,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     paddingBottom: 40,
+  },
+  containerDesktop: {
+    paddingHorizontal: 40,
+    maxWidth: 1000,
+    alignSelf: 'center',
+    width: '100%',
+    alignItems: 'stretch',
+  },
+  desktopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 40,
+    width: '100%',
+  },
+  desktopColLeft: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  desktopColRight: {
+    flex: 2,
+    alignItems: 'center',
   },
   teamBadge: {
     alignSelf: 'flex-start',
@@ -225,16 +264,16 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    borderWidth: 5,
-    borderColor: theme.colors.accent,
+    borderWidth: 4,
+    borderColor: '#000',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
-    shadowColor: theme.colors.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 0,
   },
   timerCircleWarning: {
     borderColor: theme.colors.destructive,
@@ -242,7 +281,7 @@ const styles = StyleSheet.create({
   },
   timerText: {
     fontSize: 36,
-    color: theme.colors.foreground,
+    color: '#000',
     fontFamily: theme.fonts.headingBold,
   },
   timerTextWarning: {
@@ -261,7 +300,7 @@ const styles = StyleSheet.create({
   progressValue: {
     fontFamily: theme.fonts.headingBold,
     fontSize: 28,
-    color: theme.colors.foreground,
+    color: '#000',
     marginBottom: 6,
   },
   progressBar: {
@@ -278,21 +317,31 @@ const styles = StyleSheet.create({
   categoryCard: {
     backgroundColor: theme.colors.primary,
     padding: theme.spacing.xl,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.borderRadius.md,
     width: '100%',
     alignItems: 'center',
     marginBottom: theme.spacing.xl,
-    borderBottomWidth: 6,
-    borderBottomColor: '#BE123C',
+    borderWidth: 3,
+    borderColor: '#000',
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 0,
+    transform: [{ rotate: '-1deg' }],
+  },
+  blitzHeader: {
+    fontFamily: theme.fonts.bodyBold,
+    color: '#FDA4AF',
+    fontSize: 14,
+    letterSpacing: 2,
+    marginBottom: theme.spacing.sm,
   },
   categoryTitle: {
     fontSize: 28,
-    color: theme.colors.onPrimary,
+    color: '#000',
     textAlign: 'center',
     fontFamily: theme.fonts.headingBold,
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
   },
   chipsContainer: {
     flexDirection: 'row',
@@ -302,45 +351,50 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.xl,
   },
   chip: {
-    backgroundColor: '#ECFDF5',
-    borderWidth: 2,
-    borderColor: '#6EE7B7',
-    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 3,
+    borderColor: '#000',
+    borderRadius: theme.borderRadius.md,
     paddingVertical: 6,
     paddingHorizontal: 14,
   },
   chipText: {
     fontFamily: theme.fonts.bodyBold,
     fontSize: 16,
-    color: '#065F46',
+    color: '#000',
   },
   inputContainer: {
     width: '100%',
   },
   input: {
     backgroundColor: '#FFFFFF',
-    color: theme.colors.foreground,
+    color: '#000',
     padding: theme.spacing.xl,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.borderRadius.md,
     fontSize: 22,
     marginBottom: theme.spacing.lg,
     textAlign: 'center',
     fontFamily: theme.fonts.bodyBold,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    shadowColor: theme.colors.border,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
+    borderWidth: 3,
+    borderColor: '#000',
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
     shadowRadius: 0,
-    elevation: 2,
+    elevation: 0,
   },
   button: {
     backgroundColor: theme.colors.accent,
     padding: theme.spacing.xl,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.borderRadius.md,
     alignItems: 'center',
-    borderBottomWidth: 6,
-    borderBottomColor: '#1D4ED8',
+    borderWidth: 3,
+    borderColor: '#000',
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 0,
   },
   buttonText: {
     color: theme.colors.onPrimary,
@@ -350,12 +404,18 @@ const styles = StyleSheet.create({
   },
   waitingContainer: {
     padding: theme.spacing.xl,
-    backgroundColor: '#F0FDF4',
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: theme.colors.secondary, // Pink
+    borderRadius: theme.borderRadius.md,
     width: '100%',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#86EFAC',
+    borderWidth: 3,
+    borderColor: '#000',
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 0,
+    transform: [{ rotate: '1deg' }],
   },
   waitingEmoji: {
     fontSize: 40,
@@ -363,13 +423,13 @@ const styles = StyleSheet.create({
   },
   waitingText: {
     fontSize: 24,
-    color: '#15803D',
+    color: '#000',
     fontFamily: theme.fonts.headingBold,
     marginBottom: 4,
   },
   waitingSubtext: {
     fontSize: 16,
-    color: '#4ADE80',
+    color: '#000',
     fontFamily: theme.fonts.bodyBold,
   },
   playersBar: {

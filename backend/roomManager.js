@@ -6,18 +6,20 @@ const MIN_PLAYERS      = 2;
 const MIN_TEAM_PLAYERS = 4;
 const MAX_PLAYERS      = 8;
 
-const VALID_ROUND_TYPES    = ['Same Same', 'But Different', 'Rush'];
+const VALID_ROUND_TYPES    = ['Same Same', 'But Different', 'Blitz'];
 const VALID_MAX_ROUNDS     = [3, 6, 9];
 const VALID_TIME_LIMITS    = [30, 60, 90];
 const VALID_WORDS_PER_ROUND = [3, 5, 7];
+const VALID_MODIFIERS      = ['Rush'];
 
 const DEFAULT_CONFIG = {
     maxRounds:     6,
     timeLimit:     60,
     wordsPerRound: 5,
-    roundTypes:    ['Same Same', 'But Different', 'Rush'],
+    roundTypes:    ['Same Same', 'But Different', 'Blitz'],
     categoryPack:  'classic',
     teamMode:      false,
+    modifiers:     [],
 };
 
 function validateConfig(incoming) {
@@ -28,6 +30,9 @@ function validateConfig(incoming) {
     if (Array.isArray(incoming.roundTypes)) {
         const filtered = incoming.roundTypes.filter(t => VALID_ROUND_TYPES.includes(t));
         if (filtered.length > 0) config.roundTypes = filtered;
+    }
+    if (Array.isArray(incoming.modifiers)) {
+        config.modifiers = incoming.modifiers.filter(m => VALID_MODIFIERS.includes(m));
     }
     const validPacks = ['all', ...getPackNames()];
     if (validPacks.includes(incoming.categoryPack)) config.categoryPack = incoming.categoryPack;
@@ -335,6 +340,28 @@ function submitWord(roomId, playerId, word) {
     }
 }
 
+function voteNextStep(roomId, playerId) {
+    const matchmaker = require('./matchmaker'); // Lazy load
+    let game = null;
+
+    if (matchmaker.activeGames[roomId]) {
+        game = matchmaker.activeGames[roomId];
+    } else if (rooms[roomId] && rooms[roomId].gameSession) {
+        game = rooms[roomId].gameSession;
+    }
+
+    if (game) {
+        game.voteNextStep(playerId);
+    }
+}
+
+function forceNextStep(roomId, playerId) {
+    const room = rooms[roomId];
+    if (room && room.host === playerId && room.gameSession) {
+        room.gameSession.forceNextStep();
+    }
+}
+
 function handleDisconnect(io, socket) {
     for (let code in rooms) {
         const room = rooms[code];
@@ -395,6 +422,8 @@ module.exports = {
     leaveRoom,
     startGame,
     submitWord,
+    voteNextStep,
+    forceNextStep,
     handleDisconnect,
     submitVote,
 };

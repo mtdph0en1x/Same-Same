@@ -1,15 +1,15 @@
 export const theme = {
   colors: {
-    primary: '#E11D48',
-    onPrimary: '#FFFFFF',
-    secondary: '#FB7185',
-    accent: '#2563EB',
-    background: '#FFF1F2',
-    foreground: '#881337',
-    muted: '#F0ECF2',
-    border: '#FECDD3',
-    destructive: '#DC2626',
-    ring: '#E11D48',
+    primary: '#FBBF24', // Vibrant Mustard Yellow
+    onPrimary: '#111827',
+    secondary: '#D946EF', // Electric Purple
+    accent: '#06B6D4', // Cyan
+    background: '#1F2937', // Dark Gray / Slate background
+    foreground: '#F9FAFB', // White text
+    muted: '#374151',
+    border: '#000000', // Hard black borders
+    destructive: '#EF4444',
+    ring: '#FBBF24',
   },
   fonts: {
     heading: 'Fredoka_600SemiBold',
@@ -26,9 +26,25 @@ export const theme = {
     xxl: 48,
   },
   borderRadius: {
-    sm: 8,
-    md: 16,
-    lg: 24,
+    sm: 0,
+    md: 4,
+    lg: 8,
     pill: 9999,
+  },
+  shadows: {
+    neobrutal: {
+      shadowColor: '#000',
+      shadowOffset: { width: 4, height: 4 },
+      shadowOpacity: 1,
+      shadowRadius: 0,
+      elevation: 0,
+    },
+    neobrutalActive: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 1,
+      shadowRadius: 0,
+      elevation: 0,
+    }
   },
 };

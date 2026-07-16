@@ -56,7 +56,7 @@ function getPackNames() {
 //   groups: [{ canonical: string, stem: string, playerIds: [{ id, name }] }]
 //   scoreUpdates: { [playerId]: pointsEarned }
 // ---------------------------------------------------------------------------
-function calculateScores(playerWords, roundType, teams = null) {
+function calculateScores(playerWords, roundType, modifiers = [], teams = null) {
     // ── Step 1: Build word groups (global fuzzy matching, same as before) ──
     const groups = [];
 
@@ -64,7 +64,8 @@ function calculateScores(playerWords, roundType, teams = null) {
         // Deduplicate words per player before grouping
         const seenStems = new Set();
 
-        for (const wordObj of data.words) {
+        for (let i = 0; i < data.words.length; i++) {
+            const wordObj = data.words[i];
             // Support both old string format (for tests) and new object format
             const text = typeof wordObj === 'string' ? wordObj : wordObj.text;
             const time = typeof wordObj === 'string' ? 0 : (wordObj.time || 0);
@@ -78,6 +79,8 @@ function calculateScores(playerWords, roundType, teams = null) {
 
             let foundGroup = false;
             for (const g of groups) {
+                if (roundType === 'Blitz' && g.topicIndex !== i) continue;
+
                 if (g.stem === stem || JaroWinklerDistance(g.canonical, w) > 0.85) {
                     // Only add this player once per group
                     if (!g.playerIds.find(p => p.id === playerId)) {
@@ -92,6 +95,7 @@ function calculateScores(playerWords, roundType, teams = null) {
                 groups.push({
                     canonical: w,
                     stem:      stem,
+                    topicIndex: roundType === 'Blitz' ? i : -1,
                     playerIds: [{ id: playerId, name: data.name, time }],
                 });
             }
@@ -103,25 +107,24 @@ function calculateScores(playerWords, roundType, teams = null) {
 
     if (!teams) {
         // ── Solo mode (unchanged) ──────────────────────────────────────────
-        // Same Same: shared answers score (points = group size)
+        // Same Same / Blitz: shared answers score (points = group size)
         // But Different: unique answers score (3 points)
-        // Rush: same as Same Same (speed mechanic deferred)
         groups.forEach(g => {
-            if (roundType === 'Same Same' || roundType === 'Rush') {
+            if (roundType === 'Same Same' || roundType === 'Blitz') {
                 if (g.playerIds.length > 1) {
                     let fastestPlayer = null;
                     let minTime = Infinity;
 
                     g.playerIds.forEach(p => {
                         scoreUpdates[p.id] = (scoreUpdates[p.id] || 0) + g.playerIds.length;
-                        if (roundType === 'Rush' && p.time < minTime) {
+                        if (modifiers.includes('Rush') && p.time < minTime) {
                             minTime = p.time;
                             fastestPlayer = p.id;
                         }
                     });
 
                     // Award speed bonus in Rush mode
-                    if (roundType === 'Rush' && fastestPlayer) {
+                    if (modifiers.includes('Rush') && fastestPlayer) {
                         scoreUpdates[fastestPlayer] += 2;
                     }
                 }
@@ -141,7 +144,7 @@ function calculateScores(playerWords, roundType, teams = null) {
                 if (t === 'A' || t === 'B') byTeam[t].push(p);
             });
 
-            if (roundType === 'Same Same' || roundType === 'Rush') {
+            if (roundType === 'Same Same' || roundType === 'Blitz') {
                 // Intra-team matches: each team independently checks if 2+ teammates said it
                 ['A', 'B'].forEach(team => {
                     const members = byTeam[team];
@@ -151,14 +154,14 @@ function calculateScores(playerWords, roundType, teams = null) {
 
                         members.forEach(p => {
                             scoreUpdates[p.id] = (scoreUpdates[p.id] || 0) + members.length;
-                            if (roundType === 'Rush' && p.time < minTime) {
+                            if (modifiers.includes('Rush') && p.time < minTime) {
                                 minTime = p.time;
                                 fastestPlayer = p.id;
                             }
                         });
 
                         // Award speed bonus in Rush mode
-                        if (roundType === 'Rush' && fastestPlayer) {
+                        if (modifiers.includes('Rush') && fastestPlayer) {
                             scoreUpdates[fastestPlayer] += 2;
                         }
                     }

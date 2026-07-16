@@ -5,7 +5,7 @@
 The game uses **Groq's Llama 3** to act as a snarky AI Judge that ruthlessly validates players' unique answers!
 
 ## Tech Stack
-* **Frontend:** React Native Web (Expo), deployed to Vercel
+* **Frontend:** React Native Web (Expo), deployed to Vercel (using an app-shell architecture with a persistent game window)
 * **Backend:** Node.js, Express, Socket.io, deployed to Render
 * **Database:** Supabase (PostgreSQL, Auth, Storage)
 * **AI Provider:** Groq (`llama-3.1-8b-instant`)

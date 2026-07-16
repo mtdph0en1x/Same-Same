@@ -20,8 +20,9 @@ class GameSession {
             maxRounds:     [3, 6, 9].includes(config.maxRounds)       ? config.maxRounds     : 6,
             timeLimit:     [30, 60, 90].includes(config.timeLimit)     ? config.timeLimit     : 60,
             wordsPerRound: [3, 5, 7].includes(config.wordsPerRound)   ? config.wordsPerRound : 5,
-            roundTypes:    roundTypes.length > 0 ? roundTypes : ['Same Same', 'But Different', 'Rush'],
+            roundTypes:    roundTypes.length > 0 ? roundTypes : ['Same Same', 'But Different', 'Blitz'],
             categoryPack:  config.categoryPack || 'classic',
+            modifiers:     config.modifiers || [],
         };
 
         // teams: { [playerId]: 'A' | 'B' } or null for solo mode
@@ -67,7 +68,15 @@ class GameSession {
         });
 
         const roundType = this.currentRoundType();
-        const category = getRandomCategory(this.config.categoryPack);
+        let category;
+        if (roundType === 'Blitz') {
+            category = [];
+            for (let i = 0; i < this.config.wordsPerRound; i++) {
+                category.push(getRandomCategory(this.config.categoryPack));
+            }
+        } else {
+            category = getRandomCategory(this.config.categoryPack);
+        }
         this.currentCategory = category;
 
         this.io.to(this.roomId).emit('round_started', {
@@ -136,7 +145,7 @@ class GameSession {
             wordSnapshot[id] = { name: data.name, words: data.words };
         }
 
-        const { groups, scoreUpdates } = calculateScores(wordSnapshot, roundType, this.teams);
+        const { groups, scoreUpdates } = calculateScores(wordSnapshot, roundType, this.config.modifiers, this.teams);
 
         const rejectedWordsList = [];
         if (roundType === 'But Different') {
@@ -206,8 +215,46 @@ class GameSession {
         const playerNames = {};
         this.players.forEach(p => { playerNames[p.id] = p.name; });
 
+        this.reviewGroups = [...groups].sort((a, b) => {
+            if (roundType === 'Blitz') {
+                if (a.topicIndex !== b.topicIndex) return a.topicIndex - b.topicIndex;
+                if (a.playerIds.length === 1 && b.playerIds.length > 1) return -1;
+                if (a.playerIds.length > 1 && b.playerIds.length === 1) return 1;
+                return a.playerIds.length - b.playerIds.length;
+            } else if (roundType === 'But Different') {
+                if (a.playerIds.length > 1 && b.playerIds.length === 1) return -1;
+                if (a.playerIds.length === 1 && b.playerIds.length > 1) return 1;
+            } else {
+                if (a.playerIds.length === 1 && b.playerIds.length > 1) return -1;
+                if (a.playerIds.length > 1 && b.playerIds.length === 1) return 1;
+            }
+            return a.playerIds.length - b.playerIds.length;
+        });
+
+        if (roundType === 'Blitz') {
+            const newGroups = [];
+            let currentTopic = -1;
+            this.reviewGroups.forEach(g => {
+                if (g.topicIndex !== currentTopic) {
+                    currentTopic = g.topicIndex;
+                    newGroups.push({ 
+                        isTopicHeader: true, 
+                        topicIndex: currentTopic, 
+                        title: this.currentCategory[currentTopic] 
+                    });
+                }
+                newGroups.push(g);
+            });
+            this.reviewGroups = newGroups;
+        }
+
+        this.reviewVotes = new Set();
+        this.reviewMaxSteps = Math.max(1, this.reviewGroups.length);
+        this.reviewCurrentStep = -1;
+
         this.io.to(this.roomId).emit('round_ended', {
-            groups:       groups,
+            groups:       this.reviewGroups,
+            roundType:    roundType,
             scoreUpdates: scoreUpdates,
             newScores:    this.scores,
             playerNames:  playerNames,
@@ -216,10 +263,96 @@ class GameSession {
             rejectedWords: rejectedWordsList, // send to clients to display funny alert
         });
 
-        // 10 seconds to show results before next round
-        setTimeout(() => {
+        // Start auto-advancing the review steps
+        this.scheduleNextReviewStep();
+    }
+
+    scheduleNextReviewStep() {
+        if (this.reviewCurrentStep >= this.reviewMaxSteps) {
+            return;
+        }
+
+        let duration = 2800; // Default fast wait for 0th step or Perfect Round
+        if (this.reviewCurrentStep >= 0 && this.reviewCurrentStep < this.reviewGroups.length) {
+            const group = this.reviewGroups[this.reviewCurrentStep];
+            if (group.isTopicHeader) {
+                duration = 3000;
+            } else if (group.playerIds.length === 1) {
+                duration = 2800; // 800ms reveal + 2000ms wait
+            } else {
+                duration = (group.playerIds.length * 800) + 2000;
+            }
+        }
+
+        this.reviewTimer = setTimeout(() => {
+            this.advanceReviewStep();
+        }, duration);
+    }
+
+    advanceReviewStep() {
+        if (this.reviewCurrentStep >= this.reviewMaxSteps) return;
+
+        this.reviewCurrentStep++;
+        this.io.to(this.roomId).emit('review_step_advanced', {
+            step: this.reviewCurrentStep
+        });
+
+        if (this.reviewCurrentStep >= this.reviewMaxSteps) {
+            // Re-emit vote updates to trigger UI if anyone voted early
+            const activePlayerIds = this.players.map(p => p.id);
+            const threshold = Math.floor(activePlayerIds.length / 2) + 1;
+            this.io.to(this.roomId).emit('review_votes_updated', {
+                votes: this.reviewVotes.size,
+                threshold: threshold
+            });
+        } else {
+            this.scheduleNextReviewStep();
+        }
+    }
+
+    voteNextStep(playerId) {
+        // Can only vote to advance round when on the scoreboard
+        if (this.reviewCurrentStep < this.reviewMaxSteps) return;
+
+        this.reviewVotes.add(playerId);
+        
+        const activePlayerIds = this.players.map(p => p.id);
+        this.reviewVotes = new Set([...this.reviewVotes].filter(id => activePlayerIds.includes(id)));
+
+        const threshold = Math.floor(activePlayerIds.length / 2) + 1;
+        
+        this.io.to(this.roomId).emit('review_votes_updated', {
+            votes: this.reviewVotes.size,
+            threshold: threshold
+        });
+
+        if (this.reviewVotes.size >= threshold) {
+            this.reviewVotes.clear();
+            clearTimeout(this.reviewTimer);
             this.nextRound();
-        }, 10000);
+        }
+    }
+
+    forceNextStep() {
+        if (this.reviewCurrentStep < this.reviewMaxSteps) {
+            // Force skip to scoreboard
+            this.reviewCurrentStep = this.reviewMaxSteps;
+            clearTimeout(this.reviewTimer);
+            this.io.to(this.roomId).emit('review_step_advanced', {
+                step: this.reviewCurrentStep
+            });
+            const threshold = Math.floor(this.players.length / 2) + 1;
+            this.io.to(this.roomId).emit('review_votes_updated', {
+                votes: 0,
+                threshold: threshold
+            });
+            return;
+        }
+        
+        // If already on scoreboard, force next round
+        this.reviewVotes.clear();
+        clearTimeout(this.reviewTimer);
+        this.nextRound();
     }
 
     async recordStatsToDatabase() {
