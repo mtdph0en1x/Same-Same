@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { 
   Swords, Users, Shield, User, PartyPopper, Zap, 
-  Gamepad2, Trophy, BarChart2, Flame 
+  Gamepad2, Trophy, BarChart2, Flame, Home, Globe 
 } from 'lucide-react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
@@ -254,7 +254,8 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
     if (name.trim()) return name.trim();
     if (profileData?.username) return profileData.username;
     if (user?.email) return user.email.split('@')[0];
-    return null;
+    if (guestName?.trim()) return guestName.trim();
+    return 'GUEST';
   };
 
   const handleOpenMmModal = () => {
@@ -524,9 +525,12 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
               ]}
             >
             <View style={[s.panelHeader, s.panelHeaderRight]}>
-              <Text style={s.panelHeaderText}>
-                {isDesktop ? '🎮  PLAY' : activeTab === 'public' ? '🌍  PUBLIC' : '🏠  PRIVATE'}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                {isDesktop ? <Gamepad2 size={24} color="#000" strokeWidth={2.5} /> : activeTab === 'public' ? <Globe size={24} color="#000" strokeWidth={2.5} /> : <Home size={24} color="#000" strokeWidth={2.5} />}
+                <Text style={s.panelHeaderText}>
+                  {isDesktop ? 'PLAY' : activeTab === 'public' ? 'PUBLIC' : 'PRIVATE'}
+                </Text>
+              </View>
               <Text style={s.panelSubText}>
                 {isDesktop ? 'Choose how you want to play' : activeTab === 'public' ? 'Online Matchmaking' : 'Local Couch Games'}
               </Text>
@@ -547,7 +551,10 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
                       onPress={() => handleFindMatch('team4v4')}
                       activeOpacity={0.8}
                     >
-                      <Text style={s.quickPlayBtnText}>🔥 QUICK MATCH</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+                        <Flame size={24} color="#000" strokeWidth={3} />
+                        <Text style={s.quickPlayBtnText}>QUICK MATCH</Text>
+                      </View>
                       <Text style={s.quickPlaySubText}>Jump right into a 4v4 battle</Text>
                     </TouchableOpacity>
                   </Animated.View>
@@ -581,13 +588,14 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
                     <Text style={[s.playSectionTitle, { marginBottom: 16 }]}>COUCH GAMES</Text>
                   )}
                   <Button
-                    title="🏠  Host Couch Game"
+                    title="HOST COUCH GAME"
+                    icon={<Home size={24} color="#000" strokeWidth={3} />}
                     onPress={handleHostCouch}
                     type="secondary"
                     style={s.panelBtn}
                   />
 
-                  <View style={s.joinRow}>
+                  <View style={[s.joinRow, !isDesktop && { flexDirection: 'column' }]}>
                     <TextInput
                       style={s.joinCodeInput}
                       placeholder="XXXX"

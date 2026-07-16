@@ -3,7 +3,7 @@ import { Animated, TouchableWithoutFeedback, StyleSheet, Text, View } from 'reac
 import * as Haptics from 'expo-haptics';
 import { theme } from '../styles/theme';
 
-export default function Button({ title, onPress, type = 'primary', style }) {
+export default function Button({ title, onPress, type = 'primary', style, icon }) {
   const translateY = useRef(new Animated.Value(0)).current;
 
   const handlePressIn = () => {
@@ -39,7 +39,8 @@ export default function Button({ title, onPress, type = 'primary', style }) {
         onPressOut={handlePressOut}
         onPress={handlePress}
       >
-        <Animated.View style={[buttonStyle, { transform: [{ translateY }] }]}>
+        <Animated.View style={[buttonStyle, { transform: [{ translateY }] }, icon && { flexDirection: 'row', justifyContent: 'center' }]}>
+          {icon && <View style={{ marginRight: 10 }}>{icon}</View>}
           <Text style={styles.buttonText}>{title}</Text>
         </Animated.View>
       </TouchableWithoutFeedback>

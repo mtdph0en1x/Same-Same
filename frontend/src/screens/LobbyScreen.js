@@ -1061,7 +1061,7 @@ const styles = StyleSheet.create({
   segmentText: {
     fontFamily: theme.fonts.bodyBold,
     fontSize: 14,
-    color: theme.colors.foreground,
+    color: '#000',
   },
   segmentTextActive: {
     color: '#000',
@@ -1081,13 +1081,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
   },
   chipActive: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.accent,
+    borderColor: theme.colors.accent,
   },
   chipText: {
     fontFamily: theme.fonts.bodyBold,
     fontSize: 14,
-    color: theme.colors.foreground,
+    color: '#000',
   },
   chipTextActive: {
     color: '#000',
@@ -1111,13 +1111,13 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.accent,
   },
   toggleBtnActiveTeam: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.accent,
+    borderColor: theme.colors.accent,
   },
   toggleText: {
     fontFamily: theme.fonts.bodyBold,
     fontSize: 14,
-    color: theme.colors.foreground,
+    color: '#000',
   },
   toggleTextActive: {
     color: '#000',

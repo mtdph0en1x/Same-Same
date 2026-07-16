@@ -104,6 +104,14 @@ function AppContent() {
     }
   }, [user, isGuest, currentScreen, loading]);
 
+  // Clear previous game state when entering a new lobby
+  useEffect(() => {
+    if (currentScreen === 'Lobby') {
+      setRoundResults(null);
+      setGameData(null);
+    }
+  }, [currentScreen]);
+
   const onLayoutRootView = useCallback(async () => {
     if (fontsLoaded) await SplashScreen.hideAsync();
   }, [fontsLoaded]);
