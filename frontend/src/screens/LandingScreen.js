@@ -8,40 +8,13 @@ import { theme } from '../styles/theme';
 WebBrowser.maybeCompleteAuthSession();
 
 export default function LandingScreen({ setIsGuest }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [guestName, setGuestName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isLogin, setIsLogin] = useState(true);
   const [activeTab, setActiveTab] = useState('guest'); // 'guest' | 'auth'
   
   const { width } = useWindowDimensions();
   const isDesktop = width > 800;
 
-  async function handleAuth() {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please enter email and password');
-      return;
-    }
-
-    setLoading(true);
-    
-    if (isLogin) {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) Alert.alert('Login Failed', error.message);
-    } else {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-      if (error) Alert.alert('Signup Failed', error.message);
-      else Alert.alert('Success', 'Account created!');
-    }
-    setLoading(false);
-  }
 
   async function handleGoogleLogin() {
     setLoading(true);
@@ -84,12 +57,12 @@ export default function LandingScreen({ setIsGuest }) {
   const tScale = Math.max(0.7, containerWidth / 400);
 
   return (
-    <SafeAreaView style={s.safeArea}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View style={[s.layout, isDesktop && s.layoutDesktop]}>
+    <SafeAreaView style={[s.safeArea, { flex: 1 }]}>
+      <View style={[{ flex: 1 }]}>
+        <View style={[s.layout, isDesktop && s.layoutDesktop, { flex: 1 }]}>
           
           {/* COLUMN 1: TABBED ID */}
-          <View style={[s.col, s.colMain, isDesktop && { flex: 3 }]}>
+          <View style={[s.col, s.colMain, isDesktop ? { flex: 3, borderRightWidth: 4, borderColor: '#000' } : { flex: 1 }]}>
             
             {/* TABS */}
             <View style={s.tabBar}>
@@ -107,12 +80,12 @@ export default function LandingScreen({ setIsGuest }) {
               </TouchableOpacity>
             </View>
 
-            <View style={s.colBody}>
-              <View style={s.idCardContainer}>
+            <View style={[s.colBody, { flex: 1 }]}>
+              <View style={[s.idCardContainer, { flex: 1 }]}>
                 <Image 
                   source={activeTab === 'guest' ? require('../../assets/visitor_template.jpg') : require('../../assets/id_template.jpg')} 
                   style={{ width: '100%', height: '100%', position: 'absolute' }} 
-                  resizeMode="stretch" 
+                  resizeMode="cover" 
                 />
                 
                 <View style={[s.idCardContent, { flex: 1 }]}>
@@ -121,7 +94,7 @@ export default function LandingScreen({ setIsGuest }) {
                     <>
                       <View style={s.idCardTopSection}>
                         <View style={s.avatarRing}>
-                          <Text style={{ fontSize: 60 * tScale }}>👤</Text>
+                          <Text style={{ fontSize: 40 * tScale }}>👤</Text>
                         </View>
                       </View>
 
@@ -136,40 +109,13 @@ export default function LandingScreen({ setIsGuest }) {
                   ) : (
                     // --- AUTH VIEW ---
                     <>
-                      <View style={s.idCardTopSection}>
-                        <Text style={[s.authToggleHeader, { fontSize: 16 * tScale }]}>{isLogin ? 'WELCOME BACK' : 'CREATE ACCOUNT'}</Text>
-                      </View>
-                      
-                      <TextInput
-                        style={[s.input, { width: '85%', textAlign: 'center' }]}
-                        onChangeText={setEmail}
-                        value={email}
-                        placeholder="EMAIL ADDRESS"
-                        placeholderTextColor="#a0603a"
-                        autoCapitalize="none"
-                        keyboardType="email-address"
-                      />
-                      <TextInput
-                        style={[s.input, { width: '85%', textAlign: 'center' }]}
-                        onChangeText={setPassword}
-                        value={password}
-                        placeholder="PASSWORD"
-                        placeholderTextColor="#a0603a"
-                        secureTextEntry
-                      />
-
-                      <View style={[s.dividerRow, { width: '85%' }]}>
-                        <View style={s.dividerLine} />
-                        <Text style={[s.dividerText, { fontSize: 12 * tScale }]}>OR</Text>
-                        <View style={s.dividerLine} />
-                      </View>
-
+                      <View style={s.idCardTopSection} />
                       <TouchableOpacity 
-                        style={[s.googleBtn, { width: '85%' }, loading && { opacity: 0.7 }]} 
+                        style={[s.input, { width: '85%', alignSelf: 'center', alignItems: 'center', justifyContent: 'center' }, loading && { opacity: 0.7 }]} 
                         onPress={handleGoogleLogin}
                         disabled={loading}
                       >
-                        <Text style={[s.googleBtnText, { fontSize: 14 * tScale }]}>🌐 CONTINUE WITH GOOGLE</Text>
+                        {loading ? <ActivityIndicator color="#000" /> : <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: 13, color: '#000' }}>🌐 CONTINUE WITH GOOGLE</Text>}
                       </TouchableOpacity>
                     </>
                   )}
@@ -177,7 +123,7 @@ export default function LandingScreen({ setIsGuest }) {
               </View>
 
               {/* BOTTOM ACTIONS */}
-              <View style={{ height: 140, paddingHorizontal: 24, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6' }}>
+              <View style={{ height: 100, paddingHorizontal: 24, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' }}>
                 {activeTab === 'guest' ? (
                   <TouchableOpacity 
                     style={[s.guestBtn, { width: '100%', marginBottom: 0 }]}
@@ -186,20 +132,9 @@ export default function LandingScreen({ setIsGuest }) {
                     <Text style={[s.guestBtnText, { fontSize: 16 * tScale }]}>ENTER AS GUEST →</Text>
                   </TouchableOpacity>
                 ) : (
-                  <>
-                    <TouchableOpacity 
-                      style={[s.guestBtn, { width: '100%', marginBottom: 15 }, loading && { opacity: 0.7 }]} 
-                      onPress={handleAuth}
-                      disabled={loading}
-                    >
-                      {loading ? <ActivityIndicator color="#fff" /> : <Text style={[s.guestBtnText, { fontSize: 16 * tScale }]}>{isLogin ? 'LOGIN →' : 'SIGN UP →'}</Text>}
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => setIsLogin(!isLogin)}>
-                      <Text style={[s.toggleText, { fontSize: 13 * tScale, marginBottom: 0 }]}>
-                        {isLogin ? "Need an ID? Sign up" : 'Have an ID? Log in'}
-                      </Text>
-                    </TouchableOpacity>
-                  </>
+                  <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: 11 * tScale, color: '#333', textAlign: 'center', paddingHorizontal: 10 }}>
+                    "By linking an account, you legally agree that it's your fault when you lose."
+                  </Text>
                 )}
               </View>
 
@@ -239,20 +174,18 @@ export default function LandingScreen({ setIsGuest }) {
           )}
 
         </View>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
   safeArea: {
-    flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: 'transparent',
   },
   layout: {
-    flex: 1,
     flexDirection: 'column',
-    backgroundColor: '#fff',
+    backgroundColor: 'transparent',
   },
   layoutDesktop: {
     flexDirection: 'row',
@@ -260,12 +193,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   col: {
-    flex: 1,
-    borderRightWidth: 4,
-    borderBottomWidth: 4,
-    borderColor: '#000',
-    backgroundColor: '#fff',
-    minHeight: 500,
+    backgroundColor: 'transparent',
     overflow: 'hidden',
   },
   colMain: {
@@ -326,22 +254,20 @@ const s = StyleSheet.create({
     letterSpacing: 2,
   },
   colBody: {
-    flex: 1,
-    backgroundColor: '#f3f4f6', 
+    backgroundColor: 'transparent', 
+    justifyContent: 'center',
   },
   colNewsBody: {
     padding: 24,
     flex: 1,
   },
   
-  // Embedded ID Card Styles
   idCardContainer: {
     width: '100%',
-    flex: 1,
-    alignSelf: 'center',
     position: 'relative',
     overflow: 'hidden',
-    backgroundColor: '#FFCA28',
+    backgroundColor: 'transparent',
+    marginBottom: 20, // Add some bottom spacing for the "By linking an account..." text
   },
   idCardContent: {
     position: 'absolute',
@@ -350,14 +276,14 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   idCardTopSection: {
-    height: 140, // consistent height forces inputs to start at exact same coordinate
+    height: 100, // Reduced height so elements don't spill down
     width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarRing: {
-    width: 100, height: 100, // made slightly smaller
-    borderRadius: 50,
+    width: 70, height: 70, // Made smaller
+    borderRadius: 35,
     borderWidth: 5,
     borderColor: '#000',
     backgroundColor: '#fff',
@@ -409,9 +335,9 @@ const s = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#000',
     backgroundColor: '#fff',
-    padding: 12,
+    padding: 10,
     fontFamily: theme.fonts.bodyBold,
-    fontSize: 14,
+    fontSize: 13,
     marginBottom: 10,
     borderRadius: theme.borderRadius.md,
     shadowColor: '#000',

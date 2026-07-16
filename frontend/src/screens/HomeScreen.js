@@ -302,7 +302,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
 
   // ── Unified View ────────────────────────────────────────────────────────
   return (
-    <View style={s.screenRoot}>
+    <View style={[s.screenRoot, isDesktop && { flex: 1 }]}>
       <View style={[s.dualWindow, isDesktop && s.dualWindowDesktop]}>
 
           {/* ── LEFT PANEL — Profile (ID Card) ── */}
@@ -558,19 +558,18 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
 // ─────────────────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
   // screenRoot fills the appWindow frame from App.js
-  screenRoot: { flex: 1 },
+  screenRoot: { backgroundColor: 'transparent' },
 
   // ── Dual-panel layout (fills parent, no border — App.js owns the frame) ───
   dualWindow: {
-    flex: 1,
     flexDirection: 'column',
     backgroundColor: '#fff',
     overflow: 'hidden',
   },
-  dualWindowDesktop: { flexDirection: 'row' },
+  dualWindowDesktop: { flexDirection: 'row', flex: 1 },
 
   // ── Panels ─────────────────────────────────────────────────────────────────
-  panel: { flex: 1, overflow: 'hidden' },
+  panel: { overflow: 'hidden' },
   panelLeft:  { backgroundColor: '#FFFFFF' }, // Stark White
   panelRight: { backgroundColor: '#F3F4F6' }, // Cool gray to contrast with white
   panelLeftDesktop: { flex: 3 }, // 30% width
@@ -865,7 +864,7 @@ const s = StyleSheet.create({
   },
   idCardSpacer: {
     width: '100%',
-    paddingTop: '155%', // Taller container makes `cover` zoom in more on the 1:1 image, cropping left/right and enlarging the center
+    paddingTop: '110%', // Reduced from 155% to eliminate empty vertical space
   },
   idCardContent: {
     position: 'absolute',
@@ -873,8 +872,8 @@ const s = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    paddingTop: '46%', // Shifted down since the image physically grew taller
-    paddingHorizontal: '16%', // Reduced since the white box is now physically wider relative to the container
+    paddingTop: '38%', // Adjusted to match the new 110% height
+    paddingHorizontal: '16%',
     alignItems: 'center',
   },
   xpContainer: {

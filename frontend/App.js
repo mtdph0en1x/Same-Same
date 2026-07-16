@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View, Text, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, useWindowDimensions, ScrollView } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, Fredoka_400Regular, Fredoka_500Medium, Fredoka_600SemiBold, Fredoka_700Bold } from '@expo-google-fonts/fredoka';
 import { Nunito_300Light, Nunito_400Regular, Nunito_500Medium, Nunito_600SemiBold, Nunito_700Bold } from '@expo-google-fonts/nunito';
@@ -190,8 +190,11 @@ function AppContent() {
         {NewsBar}
 
         {/* ── Window area — all screens render here ── */}
-        <View style={styles.windowArea}>
-          <View style={styles.appWindow}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.windowArea}>
+          <View style={[
+            styles.appWindow, 
+            !isDesktop && currentScreen === 'Landing' && { width: '90%', alignSelf: 'center', marginBottom: 20 }
+          ]}>
             {/* Subtle inner pattern */}
             <View style={styles.appWindowPattern} pointerEvents="none" />
             <MessyDeskBackground />
@@ -204,7 +207,7 @@ function AppContent() {
               />
             )}
             
-            <View style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+            <View style={[{ position: 'relative', overflow: 'hidden', flex: 1 }]}>
               {currentScreen === 'Home' && (
                 <HomeScreen
                   setScreen={setCurrentScreen}
@@ -256,7 +259,7 @@ function AppContent() {
               />
             )}
           </View>
-        </View>
+        </ScrollView>
 
         {/* ── Persistent bottom chrome ── */}
         {ActivityBar}
