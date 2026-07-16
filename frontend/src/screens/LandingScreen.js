@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, SafeAreaView, Platform, useWindowDimensions, ScrollView, Image } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, SafeAreaView, Platform, useWindowDimensions, ScrollView, Image, Animated, PanResponder } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { supabase } from '../supabase';
@@ -10,9 +10,91 @@ WebBrowser.maybeCompleteAuthSession();
 export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('guest'); // 'guest' | 'auth'
-  
+
   const { width } = useWindowDimensions();
   const isDesktop = width > 800;
+
+  // ── Swipe state ──────────────────────────────────────────────────────────
+  const slideX        = useRef(new Animated.Value(0)).current;
+  const containerW    = useRef(0);   // measured width of colBody
+  const currentOffset = useRef(0);   // offset at start of each pan gesture
+
+  // Navigate to a tab, animating the rail
+  const goToTabRef = useRef(null);
+  goToTabRef.current = (tab) => {
+    const toValue = tab === 'guest' ? 0 : -containerW.current;
+    setActiveTab(tab);
+    currentOffset.current = toValue;
+    Animated.spring(slideX, {
+      toValue,
+      useNativeDriver: true,
+      speed: 22,
+      bounciness: 5,
+    }).start();
+  };
+  const goToTab = (tab) => goToTabRef.current(tab);
+
+  // Peek animation on mount — nudges toward auth panel then bounces back
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      Animated.sequence([
+        Animated.spring(slideX, {
+          toValue: -240,
+          useNativeDriver: true,
+          speed: 12,
+          bounciness: 0,
+        }),
+        Animated.spring(slideX, {
+          toValue: 0,
+          useNativeDriver: true,
+          speed: 10,
+          bounciness: 12,
+        }),
+      ]).start();
+    }, 900);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Swipe gesture handler
+  const panResponder = useRef(
+    PanResponder.create({
+      // Only claim horizontal swipes
+      onMoveShouldSetPanResponder: (_, { dx, dy }) =>
+        Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy) * 1.5,
+      onPanResponderGrant: () => {
+        // Freeze animation and capture current position
+        slideX.stopAnimation();
+      },
+      onPanResponderMove: (_, { dx }) => {
+        const next    = currentOffset.current + dx;
+        const maxLeft = -containerW.current;
+        // Rubber-band past edges (20% drag resistance)
+        let clamped;
+        if (next > 0)         clamped = next * 0.2;
+        else if (next < maxLeft) clamped = maxLeft + (next - maxLeft) * 0.2;
+        else                  clamped = next;
+        slideX.setValue(clamped);
+      },
+      onPanResponderRelease: (_, { dx, vx }) => {
+        const threshold   = containerW.current * 0.3;
+        const onGuestPage = currentOffset.current >= -containerW.current / 2;
+        let nextTab;
+        // High-velocity flick takes priority
+        if      (vx < -0.6)                       nextTab = 'auth';
+        else if (vx >  0.6)                       nextTab = 'guest';
+        // Threshold drag
+        else if (onGuestPage  && dx < -threshold) nextTab = 'auth';
+        else if (!onGuestPage && dx >  threshold) nextTab = 'guest';
+        // Otherwise snap back to whichever side we're closer to
+        else nextTab = onGuestPage ? 'guest' : 'auth';
+        goToTabRef.current(nextTab);
+      },
+      onPanResponderTerminate: () => {
+        const onGuestPage = currentOffset.current >= -containerW.current / 2;
+        goToTabRef.current(onGuestPage ? 'guest' : 'auth');
+      },
+    })
+  ).current;
 
 
   async function handleGoogleLogin() {
@@ -63,40 +145,46 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
           {/* COLUMN 1: TABBED ID */}
           <View style={[s.col, s.colMain, isDesktop ? { flex: 3, borderRightWidth: 4, borderColor: '#000' } : { flex: 1 }]}>
             
-            {/* TABS */}
+            {/* TABS — pressing them also animates the rail */}
             <View style={s.tabBar}>
-              <TouchableOpacity 
-                style={[s.tab, activeTab === 'guest' && s.activeTab]} 
-                onPress={() => setActiveTab('guest')}
+              <TouchableOpacity
+                style={[s.tab, activeTab === 'guest' && s.activeTab]}
+                onPress={() => goToTab('guest')}
               >
                 <Text style={[s.tabText, activeTab === 'guest' && s.activeTabText]}>🎟️ VISITOR PASS</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={[s.tab, activeTab === 'auth' && s.activeTab, { borderRightWidth: 0 }]} 
-                onPress={() => setActiveTab('auth')}
+              <TouchableOpacity
+                style={[s.tab, activeTab === 'auth' && s.activeTab, { borderRightWidth: 0 }]}
+                onPress={() => goToTab('auth')}
               >
                 <Text style={[s.tabText, activeTab === 'auth' && s.activeTabText]}>🪪 SAMESAME ID</Text>
               </TouchableOpacity>
             </View>
 
-            <View style={[s.colBody, { flex: 1 }]}>
-              <View style={[s.idCardContainer, { flex: 1 }]}>
-                <Image 
-                  source={activeTab === 'guest' ? require('../../assets/visitor_template.png') : require('../../assets/id_template.png')} 
-                  style={{ width: '100%', height: '100%', position: 'absolute' }} 
-                  resizeMode="cover" 
-                />
-                
-                <View style={[s.idCardContent, { flex: 1 }]}>
-                  {activeTab === 'guest' ? (
-                    // --- GUEST VIEW ---
-                    <>
+            {/* ── Swipeable content rail ─────────────────────────────── */}
+            <View
+              style={[s.colBody, { flex: 1, overflow: 'hidden' }]}
+              onLayout={e => { containerW.current = e.nativeEvent.layout.width; }}
+            >
+              <Animated.View
+                style={{ flexDirection: 'row', width: '200%', flex: 1, transform: [{ translateX: slideX }] }}
+                {...panResponder.panHandlers}
+              >
+
+                {/* ── PAGE 1: GUEST ─────────────────────────────────── */}
+                <View style={{ width: '50%', flex: 1 }}>
+                  <View style={[s.idCardContainer, { flex: 1 }]}>
+                    <Image
+                      source={require('../../assets/visitor_template.png')}
+                      style={{ width: '100%', height: '100%', position: 'absolute' }}
+                      resizeMode="cover"
+                    />
+                    <View style={[s.idCardContent, { flex: 1 }]}>
                       <View style={s.idCardTopSection}>
                         <View style={s.avatarRing}>
                           <Text style={{ fontSize: 40 * tScale }}>👤</Text>
                         </View>
                       </View>
-
                       <TextInput
                         style={[s.input, { width: '85%', textAlign: 'center' }]}
                         onChangeText={setGuestName}
@@ -104,39 +192,50 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
                         placeholder="ENTER GUEST NAME"
                         placeholderTextColor="#a0603a"
                       />
-                    </>
-                  ) : (
-                    // --- AUTH VIEW ---
-                    <>
+                    </View>
+                  </View>
+                  {/* Guest bottom action */}
+                  <View style={{ height: 100, paddingHorizontal: 24, paddingVertical: 16, alignItems: 'center', justifyContent: 'center' }}>
+                    <TouchableOpacity
+                      style={[s.guestBtn, { width: '100%', marginBottom: 0 }]}
+                      onPress={() => setIsGuest(true)}
+                    >
+                      <Text style={[s.guestBtnText, { fontSize: 16 * tScale }]}>ENTER AS GUEST →</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* ── PAGE 2: AUTH ──────────────────────────────────── */}
+                <View style={{ width: '50%', flex: 1 }}>
+                  <View style={[s.idCardContainer, { flex: 1 }]}>
+                    <Image
+                      source={require('../../assets/id_template.png')}
+                      style={{ width: '100%', height: '100%', position: 'absolute' }}
+                      resizeMode="cover"
+                    />
+                    <View style={[s.idCardContent, { flex: 1 }]}>
                       <View style={s.idCardTopSection} />
-                      <TouchableOpacity 
-                        style={[s.input, { width: '85%', alignSelf: 'center', alignItems: 'center', justifyContent: 'center' }, loading && { opacity: 0.7 }]} 
+                      <TouchableOpacity
+                        style={[s.input, { width: '85%', alignSelf: 'center', alignItems: 'center', justifyContent: 'center' }, loading && { opacity: 0.7 }]}
                         onPress={handleGoogleLogin}
                         disabled={loading}
                       >
-                        {loading ? <ActivityIndicator color="#000" /> : <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: 13, color: '#000' }}>🌐 CONTINUE WITH GOOGLE</Text>}
+                        {loading
+                          ? <ActivityIndicator color="#000" />
+                          : <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: 13, color: '#000' }}>🌐 CONTINUE WITH GOOGLE</Text>
+                        }
                       </TouchableOpacity>
-                    </>
-                  )}
+                    </View>
+                  </View>
+                  {/* Auth bottom action */}
+                  <View style={{ height: 100, paddingHorizontal: 24, paddingVertical: 16, alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: 11 * tScale, color: '#333', textAlign: 'center', paddingHorizontal: 10 }}>
+                      {"\"By linking an account, you legally agree that it's your fault when you lose.\""}
+                    </Text>
+                  </View>
                 </View>
-              </View>
 
-              {/* BOTTOM ACTIONS */}
-              <View style={{ height: 100, paddingHorizontal: 24, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' }}>
-                {activeTab === 'guest' ? (
-                  <TouchableOpacity 
-                    style={[s.guestBtn, { width: '100%', marginBottom: 0 }]}
-                    onPress={() => setIsGuest(true)}
-                  >
-                    <Text style={[s.guestBtnText, { fontSize: 16 * tScale }]}>ENTER AS GUEST →</Text>
-                  </TouchableOpacity>
-                ) : (
-                  <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: 11 * tScale, color: '#333', textAlign: 'center', paddingHorizontal: 10 }}>
-                    "By linking an account, you legally agree that it's your fault when you lose."
-                  </Text>
-                )}
-              </View>
-
+              </Animated.View>
             </View>
           </View>
 

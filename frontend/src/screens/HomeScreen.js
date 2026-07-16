@@ -297,7 +297,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
     { mode: 'duel',    label: '1v1', icon: <Swords size={32} color="#D946EF" strokeWidth={2.5} />, desc: 'Duel'        },
     { mode: 'team2v2', label: '2v2', icon: <Users size={32} color="#10B981" strokeWidth={2.5} />, desc: 'Teams'       },
     { mode: 'team4v4', label: '4v4', icon: <Shield size={32} color="#FBBF24" strokeWidth={2.5} />, desc: 'Battle'      },
-    { mode: 'solo4',   label: '4p',  icon: <User size={32} color="#06B6D4" strokeWidth={2.5} />, desc: 'Free-for-all' },
+    { mode: 'solo4',   label: '4p',  icon: <User size={32} color="#10B981" strokeWidth={2.5} />, desc: 'Free-for-all' },
     { mode: 'solo6',   label: '6p',  icon: <PartyPopper size={32} color="#F59E0B" strokeWidth={2.5} />, desc: 'Party'       },
     { mode: 'solo8',   label: '8p',  icon: <Zap size={32} color="#EF4444" strokeWidth={2.5} />, desc: 'Chaos'       },
   ];

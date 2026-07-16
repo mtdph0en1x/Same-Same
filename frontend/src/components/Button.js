@@ -3,44 +3,73 @@ import { Animated, TouchableWithoutFeedback, StyleSheet, Text, View } from 'reac
 import * as Haptics from 'expo-haptics';
 import { theme } from '../styles/theme';
 
+// Shadow offset — matches the badge's hard drop shadow exactly
+const SHADOW_X = 4;
+const SHADOW_Y = 4;
+
 export default function Button({ title, onPress, type = 'primary', style, icon }) {
+  const translateX = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(0)).current;
 
   const handlePressIn = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    Animated.spring(translateY, {
-      toValue: 6,
-      useNativeDriver: true,
-      speed: 30,
-      bounciness: 12,
-    }).start();
+    Animated.parallel([
+      Animated.spring(translateX, {
+        toValue: SHADOW_X,
+        useNativeDriver: true,
+        speed: 40,
+        bounciness: 0,
+      }),
+      Animated.spring(translateY, {
+        toValue: SHADOW_Y,
+        useNativeDriver: true,
+        speed: 40,
+        bounciness: 0,
+      }),
+    ]).start();
   };
 
   const handlePressOut = () => {
-    Animated.spring(translateY, {
-      toValue: 0,
-      useNativeDriver: true,
-      speed: 20,
-      bounciness: 12,
-    }).start();
+    Animated.parallel([
+      Animated.spring(translateX, {
+        toValue: 0,
+        useNativeDriver: true,
+        speed: 25,
+        bounciness: 4,
+      }),
+      Animated.spring(translateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        speed: 25,
+        bounciness: 4,
+      }),
+    ]).start();
   };
 
   const handlePress = () => {
     if (onPress) onPress();
   };
 
-  const isPrimary = type === 'primary';
-  const buttonStyle = isPrimary ? styles.buttonPrimary : styles.buttonSecondary;
+  const bg = type === 'primary' ? theme.colors.primary : theme.colors.accent;
 
   return (
-    <View style={[styles.container, style]}>
+    // Black shadow block — sized by the button sitting on top with a negative offset
+    <View style={[styles.shadow, style]}>
       <TouchableWithoutFeedback
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={handlePress}
       >
-        <Animated.View style={[buttonStyle, { transform: [{ translateY }] }, icon && { flexDirection: 'row', justifyContent: 'center' }]}>
-          {icon && <View style={{ marginRight: 10 }}>{icon}</View>}
+        <Animated.View
+          style={[
+            styles.button,
+            { backgroundColor: bg },
+            { transform: [{ translateX: translateX.interpolate({ inputRange: [0, SHADOW_X], outputRange: [-SHADOW_X, 0] }) },
+                          { translateY: translateY.interpolate({ inputRange: [0, SHADOW_Y], outputRange: [-SHADOW_Y, 0] }) }] },
+            icon && { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
+          ]}
+        >
+          {icon && <View style={{ marginRight: 8 }}>{icon}</View>}
           <Text style={styles.buttonText}>{title}</Text>
         </Animated.View>
       </TouchableWithoutFeedback>
@@ -49,35 +78,26 @@ export default function Button({ title, onPress, type = 'primary', style, icon }
 }
 
 const styles = StyleSheet.create({
-  container: {
+  // The black block IS the shadow — button lifts off it
+  shadow: {
     backgroundColor: '#000',
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.borderRadius.sm, // sharp corners like the badge
   },
-  buttonPrimary: {
-    backgroundColor: theme.colors.primary,
+  button: {
     padding: theme.spacing.lg,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.borderRadius.sm,
     alignItems: 'center',
-    borderWidth: 3,
+    borderWidth: 4,
     borderColor: '#000',
-    marginTop: -6, // To rest above the black container
-    marginLeft: -4,
-  },
-  buttonSecondary: {
-    backgroundColor: theme.colors.accent,
-    padding: theme.spacing.lg,
-    borderRadius: theme.borderRadius.md,
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#000',
-    marginTop: -6,
-    marginLeft: -4,
+    // Resting position: lifted off the shadow by the offset amount
+    marginTop: -SHADOW_Y,
+    marginLeft: -SHADOW_X,
   },
   buttonText: {
     color: '#000',
     fontFamily: theme.fonts.headingBold,
-    fontSize: 24,
-    letterSpacing: 1,
+    fontSize: 18,
+    letterSpacing: 2,
     textTransform: 'uppercase',
   },
 });

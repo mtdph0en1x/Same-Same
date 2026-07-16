@@ -3,7 +3,7 @@ export const theme = {
     primary: '#FBBF24', // Vibrant Mustard Yellow
     onPrimary: '#111827',
     secondary: '#D946EF', // Electric Purple
-    accent: '#06B6D4', // Cyan
+    accent: '#10B981', // Mint Green
     background: '#1F2937', // Dark Gray / Slate background
     foreground: '#F9FAFB', // White text
     muted: '#374151',
