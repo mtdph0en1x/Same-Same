@@ -88,10 +88,10 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={[styles.container, isDesktop && styles.containerDesktop]} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.container, !isDesktop && styles.containerMobile, isDesktop && styles.containerDesktop]} keyboardShouldPersistTaps="handled">
 
-        <View style={isDesktop ? styles.desktopRow : {}}>
-          <View style={isDesktop ? styles.desktopColLeft : {}}>
+        <View style={isDesktop ? styles.desktopRow : styles.mobileRow}>
+          <View style={isDesktop ? styles.desktopColLeft : styles.mobileCol}>
 
         {/* Team badge */}
         {myTeam && (
@@ -129,9 +129,9 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
         </Text>
 
         {/* Timer + progress row */}
-        <View style={styles.metaRow}>
-          <View style={[styles.timerCircle, isWarning && styles.timerCircleWarning]}>
-            <Text style={[styles.timerText, isWarning && styles.timerTextWarning]}>{timeLeft}</Text>
+        <View style={[styles.metaRow, !isDesktop && styles.metaRowMobile]}>
+          <View style={[styles.timerCircle, !isDesktop && styles.timerCircleMobile, isWarning && styles.timerCircleWarning]}>
+            <Text style={[styles.timerText, !isDesktop && styles.timerTextMobile, isWarning && styles.timerTextWarning]}>{timeLeft}</Text>
           </View>
           <View style={styles.progressContainer}>
             <Text style={styles.progressLabel}>WORDS</Text>
@@ -144,12 +144,12 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
 
         </View>
 
-        <View style={isDesktop ? styles.desktopColRight : {}}>
+        <View style={isDesktop ? styles.desktopColRight : styles.mobileCol}>
 
         {/* Category */}
-        <View style={styles.categoryCard}>
-          {isBlitz && <Text style={styles.blitzHeader}>⚡ BLITZ TOPIC {progress + 1} ⚡</Text>}
-          <Text style={styles.categoryTitle}>{currentCategory}</Text>
+        <View style={[styles.categoryCard, !isDesktop && styles.categoryCardMobile]}>
+          {isBlitz && <Text style={[styles.blitzHeader, !isDesktop && styles.blitzHeaderMobile]}>⚡ BLITZ TOPIC {progress + 1} ⚡</Text>}
+          <Text style={[styles.categoryTitle, !isDesktop && styles.categoryTitleMobile]}>{currentCategory}</Text>
         </View>
 
         {/* Submitted words */}
@@ -166,7 +166,7 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
           <View style={styles.inputContainer}>
             <TextInput
               ref={inputRef}
-              style={styles.input}
+              style={[styles.input, !isDesktop && styles.inputMobile]}
               placeholder={`Name something... (${wordsPerRound - progress} left)`}
               placeholderTextColor={theme.colors.muted}
               value={currentWord}
@@ -177,8 +177,8 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
               autoCorrect={false}
               autoCapitalize="none"
             />
-            <TouchableOpacity style={styles.button} activeOpacity={0.8} onPress={handleSubmit}>
-              <Text style={styles.buttonText}>Submit ↵</Text>
+            <TouchableOpacity style={[styles.button, !isDesktop && styles.buttonMobile]} activeOpacity={0.8} onPress={handleSubmit}>
+              <Text style={[styles.buttonText, !isDesktop && styles.buttonTextMobile]}>Submit ↵</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -207,8 +207,12 @@ const styles = StyleSheet.create({
   container: {
     padding: theme.spacing.xl,
     backgroundColor: 'transparent',
-    alignItems: 'center',
+    alignItems: 'stretch',
     paddingBottom: 40,
+  },
+  containerMobile: {
+    padding: theme.spacing.md,
+    paddingBottom: 20,
   },
   containerDesktop: {
     paddingHorizontal: 40,
@@ -229,7 +233,16 @@ const styles = StyleSheet.create({
   },
   desktopColRight: {
     flex: 2,
-    alignItems: 'center',
+    alignItems: 'stretch',
+  },
+  mobileRow: {
+    flexDirection: 'column',
+    width: '100%',
+    gap: 16,
+  },
+  mobileCol: {
+    width: '100%',
+    alignItems: 'stretch',
   },
   teamBadge: {
     alignSelf: 'flex-start',
@@ -260,6 +273,10 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.xl,
     gap: theme.spacing.xl,
   },
+  metaRowMobile: {
+    gap: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+  },
   timerCircle: {
     width: 80,
     height: 80,
@@ -275,6 +292,11 @@ const styles = StyleSheet.create({
     shadowRadius: 0,
     elevation: 0,
   },
+  timerCircleMobile: {
+    width: 60,
+    height: 60,
+    borderWidth: 3,
+  },
   timerCircleWarning: {
     borderColor: theme.colors.destructive,
     shadowColor: theme.colors.destructive,
@@ -283,6 +305,9 @@ const styles = StyleSheet.create({
     fontSize: 36,
     color: '#000',
     fontFamily: theme.fonts.headingBold,
+  },
+  timerTextMobile: {
+    fontSize: 24,
   },
   timerTextWarning: {
     color: theme.colors.destructive,
@@ -330,6 +355,10 @@ const styles = StyleSheet.create({
     elevation: 0,
     transform: [{ rotate: '-1deg' }],
   },
+  categoryCardMobile: {
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+  },
   blitzHeader: {
     fontFamily: theme.fonts.bodyBold,
     color: '#FDA4AF',
@@ -342,6 +371,9 @@ const styles = StyleSheet.create({
     color: '#000',
     textAlign: 'center',
     fontFamily: theme.fonts.headingBold,
+  },
+  categoryTitleMobile: {
+    fontSize: 20,
   },
   chipsContainer: {
     flexDirection: 'row',
@@ -383,6 +415,11 @@ const styles = StyleSheet.create({
     shadowRadius: 0,
     elevation: 0,
   },
+  inputMobile: {
+    padding: theme.spacing.md,
+    fontSize: 16,
+    marginBottom: theme.spacing.md,
+  },
   button: {
     backgroundColor: theme.colors.accent,
     padding: theme.spacing.xl,
@@ -401,6 +438,12 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontFamily: theme.fonts.headingBold,
     letterSpacing: 1,
+  },
+  buttonMobile: {
+    padding: theme.spacing.md,
+  },
+  buttonTextMobile: {
+    fontSize: 18,
   },
   waitingContainer: {
     padding: theme.spacing.xl,

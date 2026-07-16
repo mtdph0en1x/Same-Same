@@ -1,8 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, View, Image } from 'react-native';
+import { StyleSheet, Text, View, Image, ScrollView } from 'react-native';
 import { theme } from '../styles/theme';
 
-export default function LeaderboardSidebar({ players, roundResults, currentScreen }) {
+export default function LeaderboardSidebar({ players, roundResults, currentScreen, isDesktop = true }) {
   // players is an array of player objects: { id, name, avatar, score, level }
   
   // If we have new scores from ResultsScreen, we can show them, otherwise show base score
@@ -17,13 +17,18 @@ export default function LeaderboardSidebar({ players, roundResults, currentScree
   const sortedPlayers = [...players].sort((a, b) => getPlayerScore(b.id) - getPlayerScore(a.id));
 
   return (
-    <View style={styles.sidebar}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Leaderboard</Text>
+    <View style={[styles.sidebar, !isDesktop && styles.sidebarMobile]}>
+      <View style={[styles.header, !isDesktop && styles.headerMobile]}>
+        <Text style={[styles.headerTitle, !isDesktop && styles.headerTitleMobile]}>Leaderboard</Text>
       </View>
-      <View style={styles.list}>
+      <ScrollView 
+        style={[styles.list, !isDesktop && styles.listMobile]}
+        horizontal={!isDesktop}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={!isDesktop ? { gap: 8, alignItems: 'center' } : { gap: 12 }}
+      >
         {sortedPlayers.map((p, index) => (
-          <View key={p.id} style={styles.playerCard}>
+          <View key={p.id} style={[styles.playerCard, !isDesktop && styles.playerCardMobile]}>
             <View style={styles.rankBadge}>
               <Text style={styles.rankText}>#{index + 1}</Text>
             </View>
@@ -43,7 +48,7 @@ export default function LeaderboardSidebar({ players, roundResults, currentScree
         {players.length === 0 && (
           <Text style={styles.emptyText}>Waiting for players...</Text>
         )}
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -138,5 +143,33 @@ const styles = StyleSheet.create({
     color: theme.colors.muted,
     textAlign: 'center',
     marginTop: 20,
-  }
+  },
+  sidebarMobile: {
+    width: '100%',
+    height: 'auto',
+    borderRightWidth: 0,
+    borderBottomWidth: 3,
+    flexDirection: 'row',
+  },
+  headerMobile: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderBottomWidth: 0,
+    borderRightWidth: 3,
+    height: '100%',
+    justifyContent: 'center',
+  },
+  headerTitleMobile: {
+    fontSize: 14,
+  },
+  listMobile: {
+    flex: 1,
+    padding: 8,
+    flexDirection: 'row',
+  },
+  playerCardMobile: {
+    width: 140,
+    padding: 6,
+    marginBottom: 0,
+  },
 });

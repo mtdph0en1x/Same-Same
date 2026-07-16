@@ -7,8 +7,7 @@ import { theme } from '../styles/theme';
 
 WebBrowser.maybeCompleteAuthSession();
 
-export default function LandingScreen({ setIsGuest }) {
-  const [guestName, setGuestName] = useState('');
+export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('guest'); // 'guest' | 'auth'
   
@@ -83,7 +82,7 @@ export default function LandingScreen({ setIsGuest }) {
             <View style={[s.colBody, { flex: 1 }]}>
               <View style={[s.idCardContainer, { flex: 1 }]}>
                 <Image 
-                  source={activeTab === 'guest' ? require('../../assets/visitor_template.jpg') : require('../../assets/id_template.jpg')} 
+                  source={activeTab === 'guest' ? require('../../assets/visitor_template.png') : require('../../assets/id_template.png')} 
                   style={{ width: '100%', height: '100%', position: 'absolute' }} 
                   resizeMode="cover" 
                 />
@@ -265,7 +264,7 @@ const s = StyleSheet.create({
   idCardContainer: {
     width: '100%',
     position: 'relative',
-    overflow: 'hidden',
+    overflow: 'visible',
     backgroundColor: 'transparent',
     marginBottom: 20, // Add some bottom spacing for the "By linking an account..." text
   },

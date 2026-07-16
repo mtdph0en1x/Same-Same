@@ -45,6 +45,7 @@ export default function App() {
 function AppContent() {
   const { user, loading } = useContext(AuthContext);
   const [isGuest, setIsGuest] = useState(false);
+  const [guestName, setGuestName] = useState('');
   const [currentScreen, setCurrentScreen] = useState('Landing');
   const [roomCode, setRoomCode] = useState(null);
   const [playerData, setPlayerData] = useState({});
@@ -193,7 +194,8 @@ function AppContent() {
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.windowArea}>
           <View style={[
             styles.appWindow, 
-            !isDesktop && currentScreen === 'Landing' && { width: '90%', alignSelf: 'center', marginBottom: 20 }
+            !isDesktop && { width: '90%', alignSelf: 'center', marginBottom: 20 },
+            { flexDirection: isDesktop ? 'row' : 'column' }
           ]}>
             {/* Subtle inner pattern */}
             <View style={styles.appWindowPattern} pointerEvents="none" />
@@ -204,6 +206,7 @@ function AppContent() {
                 players={players} 
                 roundResults={roundResults} 
                 currentScreen={currentScreen} 
+                isDesktop={isDesktop}
               />
             )}
             
@@ -216,10 +219,11 @@ function AppContent() {
                   setIsHost={setIsHost}
                   setLobbyIntent={setLobbyIntent}
                   setIsGuest={setIsGuest}
+                  guestName={guestName}
                 />
               )}
               {currentScreen === 'Landing' && (
-                <LandingScreen setIsGuest={setIsGuest} />
+                <LandingScreen setIsGuest={setIsGuest} guestName={guestName} setGuestName={setGuestName} />
               )}
               {currentScreen === 'Lobby' && (
                 <LobbyScreen
@@ -256,6 +260,7 @@ function AppContent() {
                 playerData={playerData} 
                 isSidebarOpen={isSidebarOpen} 
                 setIsSidebarOpen={setIsSidebarOpen} 
+                isDesktop={isDesktop}
               />
             )}
           </View>
@@ -285,7 +290,6 @@ const styles = StyleSheet.create({
     width: '80%',
     maxWidth: 2400,
     backgroundColor: '#FDFBF7',
-    flexDirection: 'row',
     position: 'relative',
     borderWidth: 3,
     borderColor: '#000',

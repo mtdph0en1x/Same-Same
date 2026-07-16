@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, Animated } from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, Animated, ScrollView } from 'react-native';
 import { socket } from '../socket';
 import { theme } from '../styles/theme';
 
@@ -37,10 +37,12 @@ const FloatingReaction = ({ reaction, onComplete }) => {
   );
 };
 
-export default function ChatSidebar({ roomCode, playerData, isSidebarOpen, setIsSidebarOpen }) {
+export default function ChatSidebar({ roomCode, playerData, isSidebarOpen, setIsSidebarOpen, isDesktop = true }) {
   const [reactions, setReactions] = useState([]);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
+  const [latestMessage, setLatestMessage] = useState(null);
+  const timeoutRef = useRef(null);
 
   useEffect(() => {
     if (!roomCode) return;
@@ -59,6 +61,9 @@ export default function ChatSidebar({ roomCode, playerData, isSidebarOpen, setIs
 
     const handleChat = ({ message, senderName, timestamp }) => {
       setChatMessages(prev => [...prev, { message, senderName, timestamp }].slice(-20)); // Keep last 20 messages
+      setLatestMessage({ message, senderName });
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => setLatestMessage(null), 4000);
     };
 
     socket.on('reaction_received', handleReaction);
@@ -93,49 +98,108 @@ export default function ChatSidebar({ roomCode, playerData, isSidebarOpen, setIs
         ))}
       </View>
 
-      {/* Sidebar Toggle Button (Floats on the right edge if closed, or attached to sidebar if open) */}
-      <TouchableOpacity 
-        style={[styles.toggleBtn, isSidebarOpen ? styles.toggleBtnOpen : styles.toggleBtnClosed]}
-        onPress={() => setIsSidebarOpen(!isSidebarOpen)}
-      >
-        <Text style={styles.toggleBtnText}>{isSidebarOpen ? '▶' : '◀'}</Text>
-      </TouchableOpacity>
+      {isDesktop ? (
+        <>
+          <TouchableOpacity 
+            style={[styles.toggleBtn, isSidebarOpen ? styles.toggleBtnOpen : styles.toggleBtnClosed]}
+            onPress={() => setIsSidebarOpen(!isSidebarOpen)}
+          >
+            <Text style={styles.toggleBtnText}>{isSidebarOpen ? '▶' : '◀'}</Text>
+          </TouchableOpacity>
 
-      {/* Sidebar Content */}
-      {isSidebarOpen && (
-        <View style={styles.sidebar}>
-          <View style={styles.chatHistory}>
-            {chatMessages.map((msg, i) => (
-              <Text key={i} style={styles.chatMessage}>
-                <Text style={{fontWeight: 'bold'}}>{msg.senderName}: </Text>
-                {msg.message}
+          {isSidebarOpen && (
+            <View style={styles.sidebar}>
+              <View style={styles.chatHistory}>
+                {chatMessages.map((msg, i) => (
+                  <Text key={i} style={styles.chatMessage}>
+                    <Text style={{fontWeight: 'bold'}}>{msg.senderName}: </Text>
+                    {msg.message}
+                  </Text>
+                ))}
+              </View>
+
+              <View style={styles.sidebarBottom}>
+                <View style={styles.reactionBar}>
+                  {STICKERS.map(s => (
+                    <TouchableOpacity key={s.id} onPress={() => sendReaction(s.id)} style={styles.reactionBtn}>
+                      <Text style={{fontSize: 24}}>{s.emoji}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <View style={styles.chatInputRow}>
+                  <TextInput 
+                    style={styles.chatInput}
+                    placeholder="Chat..."
+                    value={chatInput}
+                    onChangeText={setChatInput}
+                    onSubmitEditing={sendChat}
+                    placeholderTextColor={theme.colors.muted}
+                  />
+                  <TouchableOpacity style={styles.sendChatBtn} onPress={sendChat}>
+                    <Text style={styles.sendChatBtnText}>Send</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
+        </>
+      ) : (
+        <View style={styles.sidebarMobileContainer}>
+          {!isSidebarOpen && latestMessage && (
+            <View style={styles.latestMessagePreview}>
+              <Text style={styles.latestMessageText} numberOfLines={1}>
+                <Text style={{fontWeight: 'bold'}}>{latestMessage.senderName}: </Text>{latestMessage.message}
               </Text>
-            ))}
-          </View>
-
-          <View style={styles.sidebarBottom}>
-            <View style={styles.reactionBar}>
-              {STICKERS.map(s => (
-                <TouchableOpacity key={s.id} onPress={() => sendReaction(s.id)} style={styles.reactionBtn}>
-                  <Text style={{fontSize: 24}}>{s.emoji}</Text>
-                </TouchableOpacity>
-              ))}
             </View>
+          )}
 
-            <View style={styles.chatInputRow}>
-              <TextInput 
-                style={styles.chatInput}
-                placeholder="Chat..."
-                value={chatInput}
-                onChangeText={setChatInput}
-                onSubmitEditing={sendChat}
-                placeholderTextColor={theme.colors.muted}
-              />
-              <TouchableOpacity style={styles.sendChatBtn} onPress={sendChat}>
-                <Text style={styles.sendChatBtnText}>Send</Text>
-              </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.mobileToggleBar} 
+            onPress={() => setIsSidebarOpen(!isSidebarOpen)}
+          >
+            <Text style={{fontFamily: theme.fonts.bodyBold}}>
+               {isSidebarOpen ? '▼ Hide Chat & Emojis' : '▲ Show Chat & Emojis'}
+            </Text>
+          </TouchableOpacity>
+
+          {isSidebarOpen && (
+            <View style={styles.sidebarMobile}>
+              <View style={styles.chatHistoryMobile}>
+                <ScrollView contentContainerStyle={{ gap: 8, flexGrow: 1, justifyContent: 'flex-end' }} showsVerticalScrollIndicator={false}>
+                  {chatMessages.map((msg, i) => (
+                    <Text key={i} style={styles.chatMessage}>
+                      <Text style={{fontWeight: 'bold'}}>{msg.senderName}: </Text>
+                      {msg.message}
+                    </Text>
+                  ))}
+                </ScrollView>
+              </View>
+              <View style={styles.sidebarBottomMobile}>
+                <View style={styles.reactionBar}>
+                  {STICKERS.map(s => (
+                    <TouchableOpacity key={s.id} onPress={() => sendReaction(s.id)} style={styles.reactionBtn}>
+                      <Text style={{fontSize: 24}}>{s.emoji}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <View style={styles.chatInputRow}>
+                  <TextInput 
+                    style={styles.chatInput}
+                    placeholder="Chat..."
+                    value={chatInput}
+                    onChangeText={setChatInput}
+                    onSubmitEditing={sendChat}
+                    placeholderTextColor={theme.colors.muted}
+                  />
+                  <TouchableOpacity style={styles.sendChatBtn} onPress={sendChat}>
+                    <Text style={styles.sendChatBtnText}>Send</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
-          </View>
+          )}
         </View>
       )}
     </>
@@ -232,5 +296,53 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  sidebarMobileContainer: {
+    width: '100%',
+    backgroundColor: '#fff',
+    borderTopWidth: 3,
+    borderColor: '#000',
+    position: 'relative',
+  },
+  mobileToggleBar: {
+    width: '100%',
+    padding: 10,
+    backgroundColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderBottomWidth: 3,
+    borderColor: '#000',
+  },
+  latestMessagePreview: {
+    position: 'absolute',
+    top: -50,
+    left: 10,
+    right: 10,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#000',
+    zIndex: 200,
+  },
+  latestMessageText: {
+    color: '#fff',
+    fontFamily: theme.fonts.body,
+    fontSize: 14,
+  },
+  sidebarMobile: {
+    height: 300,
+    backgroundColor: '#FDFBF7',
+  },
+  chatHistoryMobile: {
+    flex: 1,
+    padding: 10,
+    justifyContent: 'flex-end',
+  },
+  sidebarBottomMobile: {
+    padding: 10,
+    borderTopWidth: 3,
+    borderColor: '#000',
+    backgroundColor: '#fff',
   }
 });

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import {
   StyleSheet, Text, View, TextInput, TouchableOpacity,
-  Platform, Modal, useWindowDimensions,
+  Platform, Modal, useWindowDimensions, ScrollView,
   ActivityIndicator, Alert, Animated, Easing, Pressable, Image, ImageBackground
 } from 'react-native';
 import { 
@@ -136,7 +136,7 @@ function mmModal(visible, setVisible, onFindMatch) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Main HomeScreen
 // ─────────────────────────────────────────────────────────────────────────────
-export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setIsHost, setLobbyIntent, setIsGuest }) {
+export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setIsHost, setLobbyIntent, setIsGuest, guestName }) {
   const { user } = useContext(AuthContext);
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
@@ -144,13 +144,14 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
   const [joinModalVisible, setJoinModalVisible] = useState(false);
   const [mmModalVisible, setMmModalVisible] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
+  const [activeTab, setActiveTab] = useState('public');
 
   const { width } = useWindowDimensions();
   const isDesktop = width > 800;
   
   // Calculate a dynamic scale factor for the ID card based on panel width
   const panelWidth = isDesktop ? width * 0.3 : width;
-  const tScale = Math.min(Math.max(panelWidth / 400, 0.65), 1.4);
+  const tScale = Math.min(Math.max(panelWidth / 700, 0.65), 1.4);
 
   // Animations
   const [animVal] = useState(new Animated.Value(0));
@@ -302,23 +303,54 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
 
   // ── Unified View ────────────────────────────────────────────────────────
   return (
-    <View style={[s.screenRoot, isDesktop && { flex: 1 }]}>
-      <View style={[s.dualWindow, isDesktop && s.dualWindowDesktop]}>
+    <View style={[s.screenRoot, { flex: 1 }]}>
+      {/* Mobile Tab Bar */}
+      {!isDesktop && (
+        <View style={s.tabBar}>
+          <TouchableOpacity 
+            style={[s.tabBtn, activeTab === 'profile' && s.tabBtnProfileActive]} 
+            onPress={() => setActiveTab('profile')}
+            activeOpacity={0.8}
+          >
+            <Text style={[s.tabText, activeTab === 'profile' && s.tabTextActive]}>PROFILE</Text>
+          </TouchableOpacity>
+          <View style={s.tabDivider} />
+          <TouchableOpacity 
+            style={[s.tabBtn, activeTab === 'public' && s.tabBtnPlayActive]} 
+            onPress={() => setActiveTab('public')}
+            activeOpacity={0.8}
+          >
+            <Text style={[s.tabText, activeTab === 'public' && s.tabTextActive]}>PUBLIC</Text>
+          </TouchableOpacity>
+          <View style={s.tabDivider} />
+          <TouchableOpacity 
+            style={[s.tabBtn, activeTab === 'private' && s.tabBtnPlayActive]} 
+            onPress={() => setActiveTab('private')}
+            activeOpacity={0.8}
+          >
+            <Text style={[s.tabText, activeTab === 'private' && s.tabTextActive]}>PRIVATE</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+        <View style={[s.dualWindow, isDesktop && s.dualWindowDesktop, { flex: 1 }]}>
 
           {/* ── LEFT PANEL — Profile (ID Card) ── */}
-          <Animated.View 
-            style={[
-              s.panel, 
-              s.panelLeft, 
-              isDesktop && s.panelLeftDesktop,
-              { 
-                opacity: animVal,
-                transform: [
-                  { translateY: animVal.interpolate({ inputRange: [0, 1], outputRange: [50, 0] }) }
-                ]
-              }
-            ]}
-          >
+          {(isDesktop || activeTab === 'profile') && (
+            <Animated.View 
+              style={[
+                s.panel, 
+                s.panelLeft, 
+                isDesktop && s.panelLeftDesktop,
+                { 
+                  opacity: animVal,
+                  transform: [
+                    { translateY: animVal.interpolate({ inputRange: [0, 1], outputRange: [50, 0] }) }
+                  ]
+                }
+              ]}
+            >
             <View style={[s.panelHeader, user ? s.panelHeaderLeft : { backgroundColor: '#FBBF24' }]}>
               <Text style={s.panelHeaderText}>{user ? 'SAMESAME ID' : 'VISITOR PASS'}</Text>
               <Text style={s.panelSubText}>{user ? 'OFFICIAL PLAYER BADGE' : 'TEMPORARY ACCESS'}</Text>
@@ -328,109 +360,121 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
               {/* ID Card Wrapper */}
               <View style={s.idCardContainer}>
                 <Image 
-                  source={require('../../assets/id_template.jpg')} 
+                  source={user ? require('../../assets/id_template.png') : require('../../assets/visitor_template.png')} 
                   style={{ width: '100%', height: '100%', position: 'absolute' }}
                   resizeMode="cover"
                 />
-                <View style={s.idCardSpacer} />
                 <View style={s.idCardContent}>
-                  <TouchableOpacity 
-                    activeOpacity={user ? 0.7 : 1}
-                    onPress={user ? pickImage : undefined}
-                    style={[
-                      s.panelAvatarRing, 
-                      { 
-                        backgroundColor: user ? theme.colors.primary : '#D946EF',
-                        width: 80 * tScale,
-                        height: 80 * tScale,
-                        borderRadius: 40 * tScale,
-                      }
-                    ]}
-                  >
-                  {isUploading ? (
-                    <ActivityIndicator size="large" color="#000" />
-                  ) : user && profileData?.avatar && profileData.avatar.startsWith('http') ? (
-                    <Image source={{ uri: profileData.avatar }} style={{ width: '100%', height: '100%', borderRadius: 40 }} />
-                    ) : (
-                      <Text style={[s.panelAvatarEmoji, { fontSize: 36 * tScale }]}>{user ? '👤' : '👽'}</Text>
-                    )}
-                  {user && (
-                    <View style={{ position: 'absolute', bottom: -5, right: -5, backgroundColor: '#fff', borderRadius: 15, padding: 4, borderWidth: 2, borderColor: '#000' }}>
-                      <Text style={{ fontSize: 12 }}>✏️</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-
-                {user ? (
-                  <>
-                    {isEditingName ? (
-                      <TextInput
+                  <View style={{ 
+                    flexDirection: !isDesktop ? 'row-reverse' : 'column', 
+                    width: '100%', 
+                    alignItems: 'center', 
+                    justifyContent: !isDesktop ? 'space-between' : 'flex-start', 
+                    marginTop: !isDesktop ? 10 : 0 
+                  }}>
+                    
+                    {/* AVATAR & NAME (Right on Mobile, Top on Desktop) */}
+                    <View style={{ alignItems: 'center', width: !isDesktop ? 110 : '100%' }}>
+                      <TouchableOpacity 
+                        activeOpacity={user ? 0.7 : 1}
+                        onPress={user ? pickImage : undefined}
                         style={[
-                          s.authUsername, 
+                          s.panelAvatarRing, 
                           { 
-                            fontSize: 22 * tScale,
-                            backgroundColor: '#f3f4f6', 
-                            borderWidth: 2, 
-                            borderColor: '#000', 
-                            borderRadius: theme.borderRadius.md, 
-                            paddingHorizontal: 10, 
-                            minWidth: 150 
+                            backgroundColor: user ? theme.colors.primary : '#D946EF',
+                            width: 80 * tScale,
+                            height: 80 * tScale,
+                            borderRadius: 40 * tScale,
+                            marginBottom: !isDesktop ? 4 : 10,
                           }
                         ]}
-                        value={editName}
-                        onChangeText={setEditName}
-                        autoFocus
-                        maxLength={20}
-                        onBlur={handleSaveName}
-                        onSubmitEditing={handleSaveName}
-                      />
-                    ) : (
-                      <TouchableOpacity onPress={() => setIsEditingName(true)} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-                        <Text style={[s.authUsername, { fontSize: 22 * tScale }]}>
-                          {user.user_metadata?.custom_name || user.email.split('@')[0]}
-                        </Text>
-                        <Text style={{ fontSize: 16 * tScale, marginLeft: 6 }}>✏️</Text>
+                      >
+                        {isUploading ? (
+                          <ActivityIndicator size="large" color="#000" />
+                        ) : user && profileData?.avatar && profileData.avatar.startsWith('http') ? (
+                          <Image source={{ uri: profileData.avatar }} style={{ width: '100%', height: '100%', borderRadius: 40 }} />
+                        ) : (
+                          <Text style={[s.panelAvatarEmoji, { fontSize: 36 * tScale }]}>{user ? '👤' : '👽'}</Text>
+                        )}
+                        {user && (
+                          <View style={{ position: 'absolute', bottom: -5, right: -5, backgroundColor: '#fff', borderRadius: 15, padding: 4, borderWidth: 2, borderColor: '#000' }}>
+                            <Text style={{ fontSize: 12 }}>✏️</Text>
+                          </View>
+                        )}
                       </TouchableOpacity>
-                    )}
 
-                    {/* Stamp stats list */}
-                    <View style={s.statsList}>
-                      {[
-                        { label: 'GAMES PLAYED', value: profileData?.games_played || 0 },
-                        { label: 'MATCH WINS', value: profileData?.wins || 0 },
-                        { label: 'WIN RATE', value: (profileData?.games_played > 0 ? Math.round((profileData.wins / profileData.games_played) * 100) : 0) + '%' },
-                        { label: 'LEVEL', value: profileData?.level || 1 },
-                      ].map((stat) => (
-                        <View key={stat.label} style={s.statListItem}>
-                          <Text style={[s.statListLabel, { fontSize: 11 * tScale }]}>{stat.label}</Text>
-                          <View style={s.statListDots} />
-                          <Text style={[s.statListValue, { fontSize: 15 * tScale }]}>{stat.value}</Text>
+                      {user ? (
+                        <>
+                          {isEditingName ? (
+                            <TextInput
+                              style={[
+                                s.authUsername, 
+                                { 
+                                  fontSize: (!isDesktop ? 16 : 22) * tScale,
+                                  backgroundColor: '#f3f4f6', 
+                                  borderWidth: 2, 
+                                  borderColor: '#000', 
+                                  borderRadius: theme.borderRadius.md, 
+                                  paddingHorizontal: !isDesktop ? 5 : 10, 
+                                  minWidth: !isDesktop ? 90 : 150,
+                                  marginTop: 0,
+                                  marginBottom: !isDesktop ? 0 : 8
+                                }
+                              ]}
+                              value={editName}
+                              onChangeText={setEditName}
+                              autoFocus
+                              maxLength={20}
+                              onBlur={handleSaveName}
+                              onSubmitEditing={handleSaveName}
+                            />
+                          ) : (
+                            <TouchableOpacity onPress={() => setIsEditingName(true)} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                              <Text style={[s.authUsername, { fontSize: (!isDesktop ? 16 : 22) * tScale, marginTop: 0, marginBottom: !isDesktop ? 0 : 8 }]}>
+                                {profileData?.username || user.user_metadata?.custom_name || user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0]}
+                              </Text>
+                              <Text style={{ fontSize: (!isDesktop ? 12 : 16) * tScale, marginLeft: 4 }}>✏️</Text>
+                            </TouchableOpacity>
+                          )}
+                        </>
+                      ) : (
+                        <Text style={[s.authUsername, { fontSize: (!isDesktop ? 16 : 22) * tScale, marginTop: !isDesktop ? 4 : 10, marginBottom: !isDesktop ? 0 : 8 }]}>
+                          {guestName || 'GUEST'}
+                        </Text>
+                      )}
+                    </View>
+
+                    {/* STATS (Left on Mobile, Bottom on Desktop) */}
+                    <View style={{ 
+                        flex: !isDesktop ? 1 : undefined, 
+                        width: !isDesktop ? undefined : '100%',
+                        paddingRight: !isDesktop ? 10 : 0, 
+                        paddingLeft: !isDesktop ? 15 : 0,
+                        marginTop: !isDesktop ? 0 : 5
+                    }}>
+                      {user ? (
+                        <View style={[s.statsList, { marginTop: 0, paddingHorizontal: 0 }]}>
+                          {[
+                            { label: 'GAMES PLAYED', value: profileData?.games_played || 0 },
+                            { label: 'MATCH WINS', value: profileData?.wins || 0 },
+                            { label: 'WIN RATE', value: (profileData?.games_played > 0 ? Math.round((profileData.wins / profileData.games_played) * 100) : 0) + '%' },
+                            { label: 'LEVEL', value: profileData?.level || 1 },
+                          ].map((stat) => (
+                            <View key={stat.label} style={s.statListItem}>
+                              <Text style={[s.statListLabel, { fontSize: (!isDesktop ? 10 : 11) * tScale }]}>{stat.label}</Text>
+                              <View style={s.statListDots} />
+                              <Text style={[s.statListValue, { fontSize: (!isDesktop ? 14 : 15) * tScale }]}>{stat.value}</Text>
+                            </View>
+                          ))}
                         </View>
-                      ))}
+                      ) : (
+                        <View style={[s.statsList, { marginTop: 0, paddingHorizontal: 0 }]}>
+                           <Text style={[s.statListLabel, { fontSize: (!isDesktop ? 10 : 11) * tScale, color: '#9ca3af' }]}>NO STATS FOR GUESTS</Text>
+                        </View>
+                      )}
                     </View>
-                  </>
-                ) : (
-                  <>
-                    <TextInput
-                      style={[s.panelInput, { marginTop: 10, marginBottom: 20 }]}
-                      placeholder="ENTER GUEST NAME"
-                      placeholderTextColor="#a0603a"
-                      value={name}
-                      onChangeText={setName}
-                    />
-                    
-                    <View style={[s.perksBox, { backgroundColor: '#F3F4F6', borderWidth: 3, borderColor: '#000', borderRadius: theme.borderRadius.md, padding: 15 }]}>
-                      <Text style={[s.perksTitle, { fontFamily: theme.fonts.headingBold, color: '#111', fontSize: 16, marginBottom: 8, textAlign: 'center' }]}>GUEST PERKS</Text>
-                      {[
-                        '🎮 Play all game modes',
-                        '🏠 Host local couch games',
-                        '👥 Play with up to 8 people',
-                      ].map(p => (
-                        <Text key={p} style={{ fontFamily: theme.fonts.bodyBold, color: '#374151', marginBottom: 4 }}>{p}</Text>
-                      ))}
-                    </View>
-                  </>
-                )}
+
+                  </View>
                 </View>
               </View>
               <View style={s.profileActionsContainer}>
@@ -451,102 +495,124 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
               </View>
             </View>
           </Animated.View>
+          )}
 
           {/* ── DIVIDER ── */}
-          <View style={[s.panelDivider, isDesktop && s.panelDividerDesktop]}>
-            <View style={[s.panelDividerLine, isDesktop && s.panelDividerLineV]} />
-            <View style={s.panelDividerBadge}>
-              <Text style={s.panelDividerBadgeText}>VS</Text>
+          {isDesktop && (
+            <View style={[s.panelDivider, isDesktop && s.panelDividerDesktop]}>
+              <View style={[s.panelDividerLine, isDesktop && s.panelDividerLineV]} />
+              <View style={s.panelDividerBadge}>
+                <Text style={s.panelDividerBadgeText}>VS</Text>
+              </View>
+              <View style={[s.panelDividerLine, isDesktop && s.panelDividerLineV]} />
             </View>
-            <View style={[s.panelDividerLine, isDesktop && s.panelDividerLineV]} />
-          </View>
+          )}
 
           {/* ── RIGHT PANEL — Play ── */}
-          <Animated.View 
-            style={[
-              s.panel, 
-              s.panelRight,
-              isDesktop && s.panelRightDesktop,
-              { 
-                opacity: animVal,
-                transform: [
-                  { translateY: animVal.interpolate({ inputRange: [0, 1], outputRange: [50, 0] }) }
-                ]
-              }
-            ]}
-          >
+          {(isDesktop || activeTab === 'public' || activeTab === 'private') && (
+            <Animated.View 
+              style={[
+                s.panel, 
+                s.panelRight,
+                isDesktop && s.panelRightDesktop,
+                { 
+                  opacity: animVal,
+                  transform: [
+                    { translateY: animVal.interpolate({ inputRange: [0, 1], outputRange: [50, 0] }) }
+                  ]
+                }
+              ]}
+            >
             <View style={[s.panelHeader, s.panelHeaderRight]}>
-              <Text style={s.panelHeaderText}>🎮  PLAY</Text>
-              <Text style={s.panelSubText}>Choose how you want to play</Text>
+              <Text style={s.panelHeaderText}>
+                {isDesktop ? '🎮  PLAY' : activeTab === 'public' ? '🌍  PUBLIC' : '🏠  PRIVATE'}
+              </Text>
+              <Text style={s.panelSubText}>
+                {isDesktop ? 'Choose how you want to play' : activeTab === 'public' ? 'Online Matchmaking' : 'Local Couch Games'}
+              </Text>
             </View>
 
             <View style={s.panelBody}>
               
-              {/* QUICK PLAY BUTTON */}
-              <Animated.View style={{ 
-                transform: [
-                  { scale: animVal.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.8, 1.05, 1] }) }
-                ] 
-              }}>
-                <TouchableOpacity 
-                  style={s.quickPlayBtn}
-                  onPress={() => handleFindMatch('team4v4')}
-                  activeOpacity={0.8}
-                >
-                  <Text style={s.quickPlayBtnText}>🔥 QUICK MATCH</Text>
-                  <Text style={s.quickPlaySubText}>Jump right into a 4v4 battle</Text>
-                </TouchableOpacity>
-              </Animated.View>
+              {(isDesktop || activeTab === 'public') && (
+                <>
+                  {/* QUICK PLAY BUTTON */}
+                  <Animated.View style={{ 
+                    transform: [
+                      { scale: animVal.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.8, 1.05, 1] }) }
+                    ] 
+                  }}>
+                    <TouchableOpacity 
+                      style={s.quickPlayBtn}
+                      onPress={() => handleFindMatch('team4v4')}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={s.quickPlayBtnText}>🔥 QUICK MATCH</Text>
+                      <Text style={s.quickPlaySubText}>Jump right into a 4v4 battle</Text>
+                    </TouchableOpacity>
+                  </Animated.View>
 
-              {/* Online matchmaking scattered cards */}
-              <Text style={[s.playSectionTitle, { marginTop: 20 }]}>ALL MODES</Text>
-              <View style={s.modeRow}>
-                {ONLINE_MODES.slice(0, 3).map((m, i) => (
-                  <AnimatedModeCard key={m.mode} m={m} rotation="0deg" onPress={() => handleFindMatch(m.mode)} />
-                ))}
-              </View>
-              <View style={[s.modeRow, { marginBottom: 0 }]}>
-                {ONLINE_MODES.slice(3, 6).map((m, i) => (
-                  <AnimatedModeCard key={m.mode} m={m} rotation="0deg" onPress={() => handleFindMatch(m.mode)} />
-                ))}
-              </View>
+                  {/* Online matchmaking scattered cards */}
+                  <Text style={[s.playSectionTitle, { marginTop: 20 }]}>ALL MODES</Text>
+                  <View style={s.modeRow}>
+                    {ONLINE_MODES.slice(0, 3).map((m, i) => (
+                      <AnimatedModeCard key={m.mode} m={m} rotation="0deg" onPress={() => handleFindMatch(m.mode)} />
+                    ))}
+                  </View>
+                  <View style={[s.modeRow, { marginBottom: 0 }]}>
+                    {ONLINE_MODES.slice(3, 6).map((m, i) => (
+                      <AnimatedModeCard key={m.mode} m={m} rotation="0deg" onPress={() => handleFindMatch(m.mode)} />
+                    ))}
+                  </View>
+                </>
+              )}
 
-              {/* Couch games */}
-              <View style={s.dividerRow}>
-                <View style={s.divider} />
-                <Text style={s.dividerText}>OR PLAY LOCAL</Text>
-                <View style={s.divider} />
-              </View>
+              {isDesktop && (
+                <View style={s.dividerRow}>
+                  <View style={s.divider} />
+                  <Text style={s.dividerText}>OR PLAY LOCAL</Text>
+                  <View style={s.divider} />
+                </View>
+              )}
 
-              <Button
-                title="🏠  Host Couch Game"
-                onPress={handleHostCouch}
-                type="secondary"
-                style={s.panelBtn}
-              />
+              {(isDesktop || activeTab === 'private') && (
+                <>
+                  {!isDesktop && (
+                    <Text style={[s.playSectionTitle, { marginBottom: 16 }]}>COUCH GAMES</Text>
+                  )}
+                  <Button
+                    title="🏠  Host Couch Game"
+                    onPress={handleHostCouch}
+                    type="secondary"
+                    style={s.panelBtn}
+                  />
 
-              <View style={s.joinRow}>
-                <TextInput
-                  style={s.joinCodeInput}
-                  placeholder="XXXX"
-                  placeholderTextColor="#9ca3af"
-                  value={code}
-                  onChangeText={setCode}
-                  maxLength={4}
-                  autoCapitalize="characters"
-                  autoCorrect={false}
-                />
-                <Button
-                  title="Join →"
-                  onPress={handleJoinCouch}
-                  type="primary"
-                  style={s.joinBtn}
-                />
-              </View>
+                  <View style={s.joinRow}>
+                    <TextInput
+                      style={s.joinCodeInput}
+                      placeholder="XXXX"
+                      placeholderTextColor="#9ca3af"
+                      value={code}
+                      onChangeText={setCode}
+                      maxLength={4}
+                      autoCapitalize="characters"
+                      autoCorrect={false}
+                    />
+                    <Button
+                      title="Join →"
+                      onPress={handleJoinCouch}
+                      type="primary"
+                      style={s.joinBtn}
+                    />
+                  </View>
+                </>
+              )}
             </View>
           </Animated.View>
+          )}
 
       </View>
+      </ScrollView>
       {joinModal(joinModalVisible, setJoinModalVisible, code, setCode, handleJoinCouch)}
       {mmModal(mmModalVisible, setMmModalVisible, handleFindMatch)}
     </View>
@@ -563,17 +629,50 @@ const s = StyleSheet.create({
   // ── Dual-panel layout (fills parent, no border — App.js owns the frame) ───
   dualWindow: {
     flexDirection: 'column',
-    backgroundColor: '#fff',
+    backgroundColor: 'transparent',
     overflow: 'hidden',
   },
   dualWindowDesktop: { flexDirection: 'row', flex: 1 },
 
   // ── Panels ─────────────────────────────────────────────────────────────────
   panel: { overflow: 'hidden' },
-  panelLeft:  { backgroundColor: '#FFFFFF' }, // Stark White
-  panelRight: { backgroundColor: '#F3F4F6' }, // Cool gray to contrast with white
+  panelLeft:  { backgroundColor: 'transparent', flex: 1 }, 
+  panelRight: { backgroundColor: 'transparent', flex: 1 }, 
   panelLeftDesktop: { flex: 3 }, // 30% width
   panelRightDesktop: { flex: 7 }, // 70% width
+
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: '#000', // Black background for the divider lines
+    borderBottomWidth: 3,
+    borderBottomColor: '#000',
+  },
+  tabBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E5E7EB',
+  },
+  tabDivider: {
+    width: 3,
+    backgroundColor: '#000',
+  },
+  tabBtnProfileActive: {
+    backgroundColor: theme.colors.primary,
+  },
+  tabBtnPlayActive: {
+    backgroundColor: theme.colors.accent,
+  },
+  tabText: {
+    fontFamily: theme.fonts.headingBold,
+    fontSize: 16,
+    color: 'rgba(0,0,0,0.4)',
+    letterSpacing: 2,
+  },
+  tabTextActive: {
+    color: '#000',
+  },
 
   panelHeader: {
     paddingVertical: 24,
@@ -601,11 +700,11 @@ const s = StyleSheet.create({
   },
 
   panelBody: { padding: 32 },
-  panelBodyLeft: { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 32 },
+  panelBodyLeft: { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 32, flex: 1 },
   
   profileActionsContainer: {
     paddingHorizontal: 32,
-    marginTop: 10,
+    marginTop: 'auto',
   },
 
   panelAvatarRing: {
@@ -696,7 +795,7 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     paddingVertical: 8,
     paddingHorizontal: 16,
-    backgroundColor: '#fff',
+    backgroundColor: 'transparent',
   },
   panelDividerDesktop: {
     flexDirection: 'column',
@@ -824,7 +923,7 @@ const s = StyleSheet.create({
   // Stats List
   statsList: {
     width: '100%',
-    marginTop: 10,
+    marginTop: 5,
     paddingHorizontal: 10,
   },
   statListItem: {
@@ -858,21 +957,17 @@ const s = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
     position: 'relative',
-    marginBottom: 0, // Removed bottom margin to pull Sign Out button closer
-    overflow: 'hidden',
-    backgroundColor: '#FFCA28', // Same yellow as the header
-  },
-  idCardSpacer: {
-    width: '100%',
-    paddingTop: '110%', // Reduced from 155% to eliminate empty vertical space
+    marginBottom: 0, 
+    overflow: 'visible',
+    backgroundColor: 'transparent', 
+    flex: 1,
   },
   idCardContent: {
     position: 'absolute',
-    top: 0,
+    top: '34%',
     left: 0,
     right: 0,
     bottom: 0,
-    paddingTop: '38%', // Adjusted to match the new 110% height
     paddingHorizontal: '16%',
     alignItems: 'center',
   },
