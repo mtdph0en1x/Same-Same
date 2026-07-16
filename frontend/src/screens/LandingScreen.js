@@ -13,6 +13,7 @@ export default function LandingScreen({ setIsGuest }) {
   const [guestName, setGuestName] = useState('');
   const [loading, setLoading] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
+  const [activeTab, setActiveTab] = useState('guest'); // 'guest' | 'auth'
   
   const { width } = useWindowDimensions();
   const isDesktop = width > 800;
@@ -87,148 +88,155 @@ export default function LandingScreen({ setIsGuest }) {
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <View style={[s.layout, isDesktop && s.layoutDesktop]}>
           
-          {/* COLUMN 1: VISITOR PASS */}
-          <View style={[s.col, s.colVisitor]}>
-            <View style={[s.colHeader, { backgroundColor: '#FBBF24' }]}>
-              <Text style={s.colTitle}>🎟️ VISITOR</Text>
-              <Text style={s.colSubtitle}>TEMPORARY ACCESS</Text>
+          {/* COLUMN 1: TABBED ID */}
+          <View style={[s.col, s.colMain, isDesktop && { flex: 3 }]}>
+            
+            {/* TABS */}
+            <View style={s.tabBar}>
+              <TouchableOpacity 
+                style={[s.tab, activeTab === 'guest' && s.activeTab]} 
+                onPress={() => setActiveTab('guest')}
+              >
+                <Text style={[s.tabText, activeTab === 'guest' && s.activeTabText]}>🎟️ VISITOR PASS</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[s.tab, activeTab === 'auth' && s.activeTab, { borderRightWidth: 0 }]} 
+                onPress={() => setActiveTab('auth')}
+              >
+                <Text style={[s.tabText, activeTab === 'auth' && s.activeTabText]}>🪪 SAMESAME ID</Text>
+              </TouchableOpacity>
             </View>
+
             <View style={s.colBody}>
               <View style={s.idCardContainer}>
-                <Image source={require('../../assets/visitor_template.jpg')} style={{ width: '100%', height: '100%', position: 'absolute' }} resizeMode="cover" />
-                <View style={s.idCardSpacer} />
-                <View style={s.idCardContent}>
-                  
-                  <View style={s.avatarRing}>
-                    <Text style={{ fontSize: 60 * tScale }}>👤</Text>
-                  </View>
+                <Image 
+                  source={activeTab === 'guest' ? require('../../assets/visitor_template.jpg') : require('../../assets/id_template.jpg')} 
+                  style={{ width: '100%', height: '100%', position: 'absolute' }} 
+                  resizeMode="stretch" 
+                />
+                
+                <View style={[s.idCardContent, { flex: 1 }]}>
+                  {activeTab === 'guest' ? (
+                    // --- GUEST VIEW ---
+                    <>
+                      <View style={s.idCardTopSection}>
+                        <View style={s.avatarRing}>
+                          <Text style={{ fontSize: 60 * tScale }}>👤</Text>
+                        </View>
+                      </View>
 
-                  <TextInput
-                    style={[s.input, { width: '90%', textAlign: 'center', marginTop: 20, marginBottom: 15 }]}
-                    onChangeText={setGuestName}
-                    value={guestName}
-                    placeholder="ENTER GUEST NAME"
-                    placeholderTextColor="#a0603a"
-                  />
-                  
-                  <View style={[s.perksBox, { width: '90%' }]}>
-                    <Text style={[s.perksTitle, { fontSize: 14 * tScale }]}>GUEST PERKS</Text>
-                    {['🎮 Play all modes', '🏠 Host local games', '👥 Play with 8 people'].map(p => (
-                      <Text key={p} style={[s.perkText, { fontSize: 12 * tScale }]}>{p}</Text>
-                    ))}
-                  </View>
+                      <TextInput
+                        style={[s.input, { width: '85%', textAlign: 'center' }]}
+                        onChangeText={setGuestName}
+                        value={guestName}
+                        placeholder="ENTER GUEST NAME"
+                        placeholderTextColor="#a0603a"
+                      />
+                    </>
+                  ) : (
+                    // --- AUTH VIEW ---
+                    <>
+                      <View style={s.idCardTopSection}>
+                        <Text style={[s.authToggleHeader, { fontSize: 16 * tScale }]}>{isLogin ? 'WELCOME BACK' : 'CREATE ACCOUNT'}</Text>
+                      </View>
+                      
+                      <TextInput
+                        style={[s.input, { width: '85%', textAlign: 'center' }]}
+                        onChangeText={setEmail}
+                        value={email}
+                        placeholder="EMAIL ADDRESS"
+                        placeholderTextColor="#a0603a"
+                        autoCapitalize="none"
+                        keyboardType="email-address"
+                      />
+                      <TextInput
+                        style={[s.input, { width: '85%', textAlign: 'center' }]}
+                        onChangeText={setPassword}
+                        value={password}
+                        placeholder="PASSWORD"
+                        placeholderTextColor="#a0603a"
+                        secureTextEntry
+                      />
 
-                  <View style={{ flex: 1 }} />
-                  
+                      <View style={[s.dividerRow, { width: '85%' }]}>
+                        <View style={s.dividerLine} />
+                        <Text style={[s.dividerText, { fontSize: 12 * tScale }]}>OR</Text>
+                        <View style={s.dividerLine} />
+                      </View>
+
+                      <TouchableOpacity 
+                        style={[s.googleBtn, { width: '85%' }, loading && { opacity: 0.7 }]} 
+                        onPress={handleGoogleLogin}
+                        disabled={loading}
+                      >
+                        <Text style={[s.googleBtnText, { fontSize: 14 * tScale }]}>🌐 CONTINUE WITH GOOGLE</Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+                </View>
+              </View>
+
+              {/* BOTTOM ACTIONS */}
+              <View style={{ height: 140, paddingHorizontal: 24, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6' }}>
+                {activeTab === 'guest' ? (
                   <TouchableOpacity 
-                    style={[s.guestBtn, { width: '100%' }]}
+                    style={[s.guestBtn, { width: '100%', marginBottom: 0 }]}
                     onPress={() => setIsGuest(true)}
                   >
                     <Text style={[s.guestBtnText, { fontSize: 16 * tScale }]}>ENTER AS GUEST →</Text>
                   </TouchableOpacity>
+                ) : (
+                  <>
+                    <TouchableOpacity 
+                      style={[s.guestBtn, { width: '100%', marginBottom: 15 }, loading && { opacity: 0.7 }]} 
+                      onPress={handleAuth}
+                      disabled={loading}
+                    >
+                      {loading ? <ActivityIndicator color="#fff" /> : <Text style={[s.guestBtnText, { fontSize: 16 * tScale }]}>{isLogin ? 'LOGIN →' : 'SIGN UP →'}</Text>}
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => setIsLogin(!isLogin)}>
+                      <Text style={[s.toggleText, { fontSize: 13 * tScale, marginBottom: 0 }]}>
+                        {isLogin ? "Need an ID? Sign up" : 'Have an ID? Log in'}
+                      </Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
 
+            </View>
+          </View>
+
+
+          {/* COLUMN 2: UPDATES */}
+          {isDesktop && (
+            <View style={[s.col, s.colNews, { backgroundColor: '#F3F4F6' }, { flex: 7 }]}>
+              <View style={[s.colHeader, { backgroundColor: theme.colors.accent }]}>
+                <Text style={s.colTitle}>📻 TRANSMISSIONS</Text>
+                <Text style={s.colSubtitle}>SYSTEM UPDATES & RULES</Text>
+              </View>
+              <View style={s.colNewsBody}>
+                
+                <View style={s.newsItem}>
+                  <Text style={s.newsDate}>v0.9.4 — TODAY</Text>
+                  <Text style={s.newsHeadline}>Couch Royale is here!</Text>
+                  <Text style={s.newsBody}>Grab up to 8 friends on the same screen and battle it out in our chaotic new local mode.</Text>
                 </View>
-              </View>
-            </View>
-          </View>
 
-
-          {/* COLUMN 2: SAME SAME ID */}
-          <View style={[s.col, s.colAuth]}>
-            <View style={[s.colHeader, { backgroundColor: theme.colors.primary }]}>
-              <Text style={s.colTitle}>🪪 SAMESAME ID</Text>
-              <Text style={s.colSubtitle}>OFFICIAL PLAYER BADGE</Text>
-            </View>
-            <View style={s.colBody}>
-              <View style={s.idCardContainer}>
-                <Image source={require('../../assets/id_template.jpg')} style={{ width: '100%', height: '100%', position: 'absolute' }} resizeMode="cover" />
-                <View style={s.idCardSpacer} />
-                <View style={s.idCardContent}>
-                  
-                  <Text style={[s.authToggleHeader, { fontSize: 16 * tScale }]}>{isLogin ? 'WELCOME BACK' : 'CREATE ACCOUNT'}</Text>
-                  
-                  <TextInput
-                    style={[s.input, { width: '100%' }]}
-                    onChangeText={setEmail}
-                    value={email}
-                    placeholder="EMAIL ADDRESS"
-                    placeholderTextColor="#a0603a"
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                  />
-                  <TextInput
-                    style={[s.input, { width: '100%' }]}
-                    onChangeText={setPassword}
-                    value={password}
-                    placeholder="PASSWORD"
-                    placeholderTextColor="#a0603a"
-                    secureTextEntry
-                  />
-
-                  <TouchableOpacity 
-                    style={[s.authBtn, { width: '100%' }, loading && { opacity: 0.7 }]} 
-                    onPress={handleAuth}
-                    disabled={loading}
-                  >
-                    {loading ? <ActivityIndicator color="#000" /> : <Text style={[s.authBtnText, { fontSize: 16 * tScale }]}>{isLogin ? 'LOGIN' : 'SIGN UP'}</Text>}
-                  </TouchableOpacity>
-
-                  <View style={s.dividerRow}>
-                    <View style={s.dividerLine} />
-                    <Text style={[s.dividerText, { fontSize: 12 * tScale }]}>OR</Text>
-                    <View style={s.dividerLine} />
-                  </View>
-
-                  <TouchableOpacity 
-                    style={[s.googleBtn, { width: '100%' }, loading && { opacity: 0.7 }]} 
-                    onPress={handleGoogleLogin}
-                    disabled={loading}
-                  >
-                    <Text style={[s.googleBtnText, { fontSize: 14 * tScale }]}>🌐 CONTINUE WITH GOOGLE</Text>
-                  </TouchableOpacity>
-
-                  <View style={{ flex: 1 }} />
-
-                  <TouchableOpacity onPress={() => setIsLogin(!isLogin)} style={{ marginTop: 20 }}>
-                    <Text style={[s.toggleText, { fontSize: 13 * tScale }]}>
-                      {isLogin ? "Need an ID? Sign up →" : 'Have an ID? Log in →'}
-                    </Text>
-                  </TouchableOpacity>
-
+                <View style={s.newsItem}>
+                  <Text style={s.newsDate}>SERVER STATUS</Text>
+                  <Text style={s.newsHeadline}>All Systems Operational</Text>
+                  <Text style={s.newsBody}>Current matchmaking wait times are under 10 seconds.</Text>
                 </View>
+
+                <View style={s.newsItem}>
+                  <Text style={s.newsDate}>QUICK RULES</Text>
+                  <Text style={s.newsHeadline}>How to play</Text>
+                  <Text style={s.newsBody}>1. Answer the prompt.{'\n'}2. Try to match the majority.{'\n'}3. Survive the longest!</Text>
+                </View>
+
               </View>
             </View>
-          </View>
-
-
-          {/* COLUMN 3: UPDATES */}
-          <View style={[s.col, isDesktop && { flex: 2 }, s.colNews, { backgroundColor: '#F3F4F6' }]}>
-            <View style={[s.colHeader, { backgroundColor: theme.colors.accent }]}>
-              <Text style={s.colTitle}>📻 TRANSMISSIONS</Text>
-              <Text style={s.colSubtitle}>SYSTEM UPDATES & RULES</Text>
-            </View>
-            <View style={s.colNewsBody}>
-              
-              <View style={s.newsItem}>
-                <Text style={s.newsDate}>v0.9.4 — TODAY</Text>
-                <Text style={s.newsHeadline}>Couch Royale is here!</Text>
-                <Text style={s.newsBody}>Grab up to 8 friends on the same screen and battle it out in our chaotic new local mode.</Text>
-              </View>
-
-              <View style={s.newsItem}>
-                <Text style={s.newsDate}>SERVER STATUS</Text>
-                <Text style={s.newsHeadline}>All Systems Operational</Text>
-                <Text style={s.newsBody}>Current matchmaking wait times are under 10 seconds.</Text>
-              </View>
-
-              <View style={s.newsItem}>
-                <Text style={s.newsDate}>QUICK RULES</Text>
-                <Text style={s.newsHeadline}>How to play</Text>
-                <Text style={s.newsBody}>1. Answer the prompt.{'\n'}2. Try to match the majority.{'\n'}3. Survive the longest!</Text>
-              </View>
-
-            </View>
-          </View>
+          )}
 
         </View>
       </ScrollView>
@@ -260,6 +268,41 @@ const s = StyleSheet.create({
     minHeight: 500,
     overflow: 'hidden',
   },
+  colMain: {
+    // Left column takes equal space
+  },
+  colNews: {
+    // Right column takes equal space
+  },
+
+  // TABS
+  tabBar: {
+    flexDirection: 'row',
+    borderBottomWidth: 4,
+    borderBottomColor: '#000',
+    backgroundColor: '#fff',
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 20,
+    alignItems: 'center',
+    backgroundColor: '#e5e7eb',
+    borderRightWidth: 4,
+    borderRightColor: '#000',
+  },
+  activeTab: {
+    backgroundColor: '#FBBF24', // Matching the ID card yellow
+  },
+  tabText: {
+    fontFamily: theme.fonts.headingBold,
+    fontSize: 14,
+    color: '#6b7280', // grayed out
+  },
+  activeTabText: {
+    color: '#000',
+    fontSize: 16,
+  },
+
   colHeader: {
     paddingVertical: 24,
     paddingHorizontal: 32,
@@ -284,7 +327,7 @@ const s = StyleSheet.create({
   },
   colBody: {
     flex: 1,
-    backgroundColor: '#f3f4f6', // subtle gray behind the ID card
+    backgroundColor: '#f3f4f6', 
   },
   colNewsBody: {
     padding: 24,
@@ -294,31 +337,32 @@ const s = StyleSheet.create({
   // Embedded ID Card Styles
   idCardContainer: {
     width: '100%',
+    flex: 1,
     alignSelf: 'center',
     position: 'relative',
     overflow: 'hidden',
     backgroundColor: '#FFCA28',
   },
-  idCardSpacer: {
-    width: '100%',
-    paddingTop: '155%', // Matches HomeScreen scaling
-  },
   idCardContent: {
     position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    paddingTop: '46%', // Shifted down into the white box
+    top: '30%', left: 0, right: 0, bottom: 0,
     paddingHorizontal: '16%',
     alignItems: 'center',
   },
+  idCardTopSection: {
+    height: 140, // consistent height forces inputs to start at exact same coordinate
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   avatarRing: {
-    width: 120, height: 120,
-    borderRadius: 60,
+    width: 100, height: 100, // made slightly smaller
+    borderRadius: 50,
     borderWidth: 5,
     borderColor: '#000',
     backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: '10%',
   },
 
   // Visitor Styles
@@ -359,41 +403,21 @@ const s = StyleSheet.create({
   authToggleHeader: {
     fontFamily: theme.fonts.headingBold,
     textAlign: 'center',
-    marginTop: '15%',
-    marginBottom: '10%',
     color: '#111',
   },
   input: {
     borderWidth: 3,
     borderColor: '#000',
     backgroundColor: '#fff',
-    padding: 14,
+    padding: 12,
     fontFamily: theme.fonts.bodyBold,
-    fontSize: 16,
+    fontSize: 14,
     marginBottom: 10,
     borderRadius: theme.borderRadius.md,
     shadowColor: '#000',
     shadowOffset: { width: 3, height: 3 },
     shadowOpacity: 1,
     shadowRadius: 0,
-  },
-  authBtn: {
-    backgroundColor: '#10B981', // green for action
-    borderWidth: 3,
-    borderColor: '#000',
-    padding: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 4, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    marginTop: 10,
-    marginBottom: 15,
-    borderRadius: theme.borderRadius.md,
-  },
-  authBtnText: {
-    fontFamily: theme.fonts.headingBold,
-    color: '#fff',
   },
   dividerRow: {
     flexDirection: 'row',
@@ -415,7 +439,7 @@ const s = StyleSheet.create({
     backgroundColor: '#fff',
     borderWidth: 3,
     borderColor: '#000',
-    padding: 14,
+    padding: 12,
     alignItems: 'center',
     borderRadius: theme.borderRadius.md,
     shadowColor: '#000',
@@ -456,13 +480,13 @@ const s = StyleSheet.create({
   newsHeadline: {
     fontFamily: theme.fonts.headingBold,
     fontSize: 18,
-    marginBottom: 6,
     color: '#000',
+    marginBottom: 8,
   },
   newsBody: {
-    fontFamily: theme.fonts.body,
-    fontSize: 15,
-    color: '#4b5563',
-    lineHeight: 22,
+    fontFamily: theme.fonts.bodyRegular,
+    fontSize: 14,
+    color: '#333',
+    lineHeight: 20,
   },
 });
