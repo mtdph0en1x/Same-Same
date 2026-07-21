@@ -75,19 +75,22 @@ for (let i = 1; i <= NUM_BOTS; i++) {
         }, 1000); // Submit a word every second
     });
     
-    socket.on('round_ended', () => {
+    socket.on('round_ended', (data) => {
         console.log(`[${botName}] Round ended. Entering Review Phase...`);
-        setTimeout(() => {
-            socket.emit('vote_next_step', { roomId: currentRoomCode });
-            console.log(`[${botName}] Voted to advance review step.`);
-        }, Math.random() * 2000 + 1000);
-    });
-    
-    socket.on('review_step_advanced', (data) => {
-        setTimeout(() => {
-            socket.emit('vote_next_step', { roomId: currentRoomCode });
-            console.log(`[${botName}] Voted to advance review step ${data.step}.`);
-        }, Math.random() * 2000 + 2000); // 2-4 seconds to read the word
+        // The bot script doesn't have the global timeline length unless we extract it from data
+        const maxSteps = data.timeline ? Math.max(1, data.timeline.length) : 1;
+        
+        socket.once('review_step_advanced', function voteListener(stepData) {
+            if (stepData.step >= maxSteps) {
+                setTimeout(() => {
+                    socket.emit('vote_next_step', { roomId: currentRoomCode });
+                    console.log(`[${botName}] Voted to advance round on scoreboard.`);
+                }, Math.random() * 2000 + 1000);
+            } else {
+                // Re-attach if not done
+                socket.once('review_step_advanced', voteListener);
+            }
+        });
     });
     
     socket.on('game_over', () => {

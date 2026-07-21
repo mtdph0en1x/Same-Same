@@ -1,144 +1,214 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, ScrollView, SafeAreaView, TouchableOpacity, Animated, TextInput, Switch, useWindowDimensions, Image } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, SafeAreaView, TouchableOpacity, Animated, useWindowDimensions, Image } from 'react-native';
 import { theme } from '../styles/theme';
 import { socket } from '../socket';
 
-// Built-in stickers/gifs handled globally now
-
-const AnimatedStapledPlayer = ({ player, position }) => {
-  const scale = useRef(new Animated.Value(0)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.spring(scale, {
-      toValue: 1,
-      friction: 4,
-      tension: 100,
-      useNativeDriver: true,
-    }).start();
-    
-    Animated.timing(opacity, {
-      toValue: 1,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-  }, []);
-
-  return (
-    <Animated.View style={[
-      styles.playerBadgeStapled, 
-      position,
-      { transform: [...(position.transform || []), { scale }], opacity }
-    ]}>
-      <Text style={styles.playerName}>{player.name}</Text>
-    </Animated.View>
-  );
-};
-
-const AnimatedWord = ({ word, isRejected }) => {
-  const scale = useRef(new Animated.Value(0.5)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
-  const stampScale = useRef(new Animated.Value(3)).current;
-  const stampOpacity = useRef(new Animated.Value(0)).current;
+const BoardCard = ({ cardInfo, isRevealed, isResolved, roundType }) => {
+  const scale = useRef(new Animated.Value(0.8)).current;
+  const flip = useRef(new Animated.Value(0)).current;
+  const colorAnim = useRef(new Animated.Value(0)).current;
+  const hasAnimated = useRef(false);
+  const hasResolved = useRef(false);
 
   useEffect(() => {
-    Animated.spring(scale, {
-      toValue: 1,
-      friction: 5,
-      tension: 120,
-      useNativeDriver: true,
-    }).start();
-    Animated.timing(opacity, {
-      toValue: 1,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
-      // Stamp slams in 350ms after the word appears
-      if (isRejected) {
+    if (isRevealed && !hasAnimated.current) {
+      hasAnimated.current = true;
+      Animated.parallel([
+        Animated.spring(scale, { toValue: 1, friction: 6, useNativeDriver: false }),
+        Animated.spring(flip, { toValue: 180, friction: 8, tension: 40, useNativeDriver: false })
+      ]).start();
+    }
+  }, [isRevealed]);
+
+  useEffect(() => {
+    if (isResolved && !hasResolved.current && cardInfo.text) {
+        hasResolved.current = true;
+        
+        // Pop animation
         Animated.sequence([
-          Animated.delay(350),
-          Animated.timing(stampScale, {
-            toValue: 1,
-            duration: 120,
-            useNativeDriver: true,
-          }),
+            Animated.spring(scale, { toValue: 1.1, friction: 4, tension: 80, useNativeDriver: false }),
+            Animated.spring(scale, { toValue: 1, friction: 4, tension: 80, useNativeDriver: false })
         ]).start();
-        Animated.sequence([
-          Animated.delay(350),
-          Animated.timing(stampOpacity, {
+
+        // Color transition
+        Animated.timing(colorAnim, {
             toValue: 1,
-            duration: 80,
-            useNativeDriver: true,
-          }),
-        ]).start();
+            duration: 300,
+            useNativeDriver: false
+        }).start();
+    }
+  }, [isResolved, cardInfo.text]);
+
+  const frontOpacity = flip.interpolate({ inputRange: [0, 180], outputRange: [0, 1] });
+  const backOpacity = flip.interpolate({ inputRange: [0, 180], outputRange: [1, 0] });
+  const rotateX = flip.interpolate({ inputRange: [0, 180], outputRange: ['180deg', '0deg'] });
+
+  let targetBorderColor = '#000';
+  let targetBgColor = '#fff';
+
+  if (cardInfo.isRejected) { 
+      if (roundType === 'But Different') {
+          targetBorderColor = '#EF4444'; targetBgColor = '#FEE2E2'; // Red
+      } else {
+          targetBorderColor = '#10B981'; targetBgColor = '#D1FAE5'; // Green
       }
-    });
-  }, [word]);
+  } 
+  else if (cardInfo.matchState === 'success') { targetBorderColor = '#10B981'; targetBgColor = '#D1FAE5'; } 
+  else if (cardInfo.matchState === 'fail') { targetBorderColor = '#EF4444'; targetBgColor = '#FEE2E2'; } 
+
+  const finalBorder = isResolved 
+    ? colorAnim.interpolate({ inputRange: [0, 1], outputRange: ['#9CA3AF', targetBorderColor] })
+    : (isRevealed ? '#9CA3AF' : '#000');
+    
+  const finalBg = isResolved 
+    ? colorAnim.interpolate({ inputRange: [0, 1], outputRange: ['#F3F4F6', targetBgColor] })
+    : (isRevealed ? '#F3F4F6' : '#fff');
 
   return (
-    <View style={{ alignItems: 'center' }}>
-      <Animated.Text
-        style={[
-          styles.answerText,
-          isRejected && styles.textRejected,
-          { transform: [{ scale }], opacity },
-        ]}
-      >
-        {word.toUpperCase()}
-      </Animated.Text>
-
-      {isRejected && (
-        <Animated.Image
-          source={require('../../assets/rejected_stamp.png')}
-          style={[
-            styles.rejectedStamp,
-            {
-              opacity: stampOpacity,
-              transform: [{ rotate: '-25deg' }, { scale: stampScale }],
-            },
-          ]}
-          pointerEvents="none"
-          resizeMode="contain"
-        />
-      )}
+    <View style={styles.cardContainer}>
+      <Animated.View style={[styles.card, { transform: [{ scale }, { rotateX }] }]}>
+        <Animated.View style={[StyleSheet.absoluteFill, styles.cardFace, { opacity: frontOpacity, borderColor: finalBorder, backgroundColor: finalBg }]}>
+            <Text style={[styles.cardText, cardInfo.isRejected && styles.textRejected]}>
+                {cardInfo.text ? cardInfo.text.toUpperCase() : 'BLANK'}
+            </Text>
+            {isResolved && cardInfo.pointsStr && !cardInfo.isRejected ? (
+                <View style={[styles.pointsBubble, cardInfo.matchState === 'fail' && styles.pointsBubbleFail]}>
+                    <Text style={styles.pointsBubbleText}>{cardInfo.pointsStr}</Text>
+                </View>
+            ) : null}
+            {isResolved && cardInfo.isRejected && (
+                <Image
+                    source={require('../../assets/rejected_stamp.png')}
+                    style={styles.rejectedStampSmall}
+                    resizeMode="contain"
+                />
+            )}
+        </Animated.View>
+        <Animated.View style={[StyleSheet.absoluteFill, styles.cardBack, { opacity: backOpacity }]}>
+            <View style={styles.cardBackPattern} />
+            <Text style={styles.cardBackText}>?????</Text>
+        </Animated.View>
+      </Animated.View>
     </View>
   );
 };
 
-export default function ResultsScreen({ roundResults, roomCode, isHost, playerData }) {
-  const { groups, roundType, newScores, scoreUpdates, playerNames = {}, rejectedWords = [] } = roundResults;
+export default function ResultsScreen({ roundResults, roomCode, isHost, players = [] }) {
+  const { groups = [], roundType, newScores = {}, scoreUpdates = {}, playerNames = {}, playerAvatars = {}, rejectedWords = [], timeline = [], playerWords = {}, wordsPerRound = 5 } = roundResults;
+  
+  // Fallback to local players array if backend didn't send playerAvatars in roundResults
+  const avatars = { ...playerAvatars };
+  players.forEach(p => {
+    if (p.avatar && !avatars[p.id]) avatars[p.id] = p.avatar;
+  });
 
   const [step, setStep] = useState(-1);
-  const [subStep, setSubStep] = useState(0);
   const [votes, setVotes] = useState(0);
   const [voteThreshold, setVoteThreshold] = useState(1);
   const [hasVoted, setHasVoted] = useState(false);
+  const [revealedWords, setRevealedWords] = useState(new Set());
+  const [resolvedCards, setResolvedCards] = useState(new Set());
   
   const { width } = useWindowDimensions();
   const isDesktop = width > 800;
+  const maxSteps = Math.max(1, timeline.length);
 
-  const reviewGroups = groups;
-  const maxSteps = Math.max(1, reviewGroups.length);
+  // Pre-calculate card states
+  const cardData = {};
+  Object.keys(playerNames).forEach(pid => {
+    cardData[pid] = [];
+    for (let i = 0; i < wordsPerRound; i++) {
+        const w = playerWords[pid]?.words?.[i];
+        const text = w ? w.text : '';
+        
+        let matchState = 'none';
+        let pointsStr = null;
+        let isRejected = false;
+        
+        if (w) {
+            const group = groups.find(g => g.playerIds.some(p => p.id === pid && p.wordIndex === i));
+            isRejected = rejectedWords.some(rw => rw.playerId === pid && rw.word.toLowerCase() === text.toLowerCase());
+            
+            if (group) {
+                if (roundType === 'Same Same' || roundType === 'Rush' || roundType === 'Blitz') {
+                    if (group.playerIds.length > 1) {
+                        matchState = 'success';
+                        pointsStr = `+${group.playerIds.length}`;
+                    } else {
+                        // Not a match in Same Same
+                        matchState = 'fail';
+                    }
+                } else if (roundType === 'But Different') {
+                    if (group.playerIds.length === 1) {
+                        if (!isRejected) {
+                            matchState = 'success';
+                            pointsStr = '+3';
+                        } else {
+                            matchState = 'fail';
+                        }
+                    } else {
+                        matchState = 'fail';
+                        pointsStr = '0';
+                    }
+                }
+            }
+        }
+        
+        cardData[pid].push({
+            text,
+            matchState,
+            pointsStr,
+            isRejected
+        });
+    }
+  });
 
   useEffect(() => {
-    if (step >= 0 && step < reviewGroups.length) {
-      setSubStep(0);
-      const group = reviewGroups[step];
-      const maxSubSteps = group.playerIds.length;
-      
-      let currentSubStep = 0;
-      const interval = setInterval(() => {
-        currentSubStep++;
-        if (currentSubStep <= maxSubSteps) {
-          setSubStep(currentSubStep);
-        } else {
-          clearInterval(interval);
-        }
-      }, 800);
-      
-      return () => clearInterval(interval);
+    if (step >= 0 && step < timeline.length) {
+      const t = timeline[step];
+      if (t.type === 'reveal' && t.group) {
+        // Legacy fallback
+        setRevealedWords(prev => {
+          const next = new Set(prev);
+          t.group.playerIds.forEach(p => next.add(`${p.id}-${p.wordIndex}`));
+          return next;
+        });
+        setResolvedCards(prev => {
+          const next = new Set(prev);
+          t.group.playerIds.forEach(p => next.add(`${p.id}-${p.wordIndex}`));
+          return next;
+        });
+      } else if (t.type === 'reveal_word') {
+          setRevealedWords(prev => {
+              const next = new Set(prev);
+              next.add(`${t.playerId}-${t.wordIndex}`);
+              return next;
+          });
+      } else if (t.type === 'resolve_group' && t.group) {
+          setResolvedCards(prev => {
+              const next = new Set(prev);
+              t.group.playerIds.forEach(p => next.add(`${p.id}-${p.wordIndex}`));
+              return next;
+          });
+      }
+    } else if (step >= timeline.length) {
+      // Scoreboard phase: reveal AND resolve all missing ones (e.g. blanks)
+      setRevealedWords(prev => {
+         const next = new Set(prev);
+         Object.keys(playerNames).forEach(pid => {
+             for(let i=0; i < wordsPerRound; i++) next.add(`${pid}-${i}`);
+         });
+         return next;
+      });
+      setResolvedCards(prev => {
+         const next = new Set(prev);
+         Object.keys(playerNames).forEach(pid => {
+             for(let i=0; i < wordsPerRound; i++) next.add(`${pid}-${i}`);
+         });
+         return next;
+      });
     }
-  }, [step, groups]);
+  }, [step, timeline]);
 
   useEffect(() => {
     const handleStepAdvanced = ({ step: newStep }) => {
@@ -171,177 +241,74 @@ export default function ResultsScreen({ roundResults, roomCode, isHost, playerDa
     socket.emit('force_next_step', { roomId: roomCode });
   };
 
-
-
-  const getPointsDisplay = (group, isRejected) => {
-    if (roundType === 'Same Same' || roundType === 'Rush' || roundType === 'Blitz') {
-      return group.playerIds.length > 1 ? `+${group.playerIds.length}` : '0';
-    }
-    if (roundType === 'But Different') {
-      if (group.playerIds.length === 1) {
-        return isRejected ? '0' : '+3';
-      }
-      return '0';
-    }
-    return '';
-  };
-
-  const getWordColor = (word, playerId, isMatch) => {
-    const isRejected = rejectedWords.some(rw => rw.playerId === playerId && rw.word.toLowerCase() === word.toLowerCase());
-    if (isRejected) return styles.pillRejected;
-
-    if (roundType === 'Same Same' || roundType === 'Rush' || roundType === 'Blitz') {
-      return isMatch ? styles.pillGood : styles.pillNeutral;
-    } else if (roundType === 'But Different') {
-      return isMatch ? styles.pillBad : styles.pillGood;
-    }
-    return styles.pillNeutral;
-  };
-
-  const renderCurrentStep = () => {
-    if (step === -1) {
-      return (
-        <View style={styles.centerCard}>
-          <Text style={styles.introText}>Time to review!</Text>
-          <Text style={styles.introSubText}>Let's see the answers.</Text>
-        </View>
-      );
-    }
-
-    if (step >= maxSteps) {
-      // Player Summary & Scoreboard Phase
-      const sortedScores = Object.entries(newScores).sort((a, b) => b[1] - a[1]);
-      
-      // Group words by player for summary
-      const playerWords = {};
-      Object.keys(playerNames).forEach(pid => playerWords[pid] = []);
-      
-      groups.forEach(g => {
-        if (g.isTopicHeader) return;
-        const isMatch = g.playerIds.length > 1;
-        g.playerIds.forEach(p => {
-          if (playerWords[p.id]) {
-            playerWords[p.id].push({ word: g.canonical, isMatch });
-          }
-        });
-      });
-
-      return (
-        <ScrollView style={styles.scoreboardScroll}>
-          <Text style={styles.sectionLabel}>📋 Player Summary & Scores</Text>
-          {sortedScores.map(([pid, score], i) => (
-            <View key={pid} style={[styles.scoreRow, i === 0 && styles.scoreRowFirst]}>
-              <View style={styles.scoreRowHeader}>
-                <Text style={styles.scoreRank}>{i + 1}</Text>
-                <Text style={styles.scoreName}>{playerNames[pid]}</Text>
-                <View style={styles.pointsUpdateBubble}>
-                  <Text style={styles.pointsUpdateText}>
-                    {scoreUpdates[pid] > 0 ? '+' : ''}{scoreUpdates[pid] || 0}
-                  </Text>
-                </View>
-                <Text style={styles.scoreValue}>{score} pts</Text>
-              </View>
-              <View style={styles.playerWordsContainer}>
-                {playerWords[pid].map((w, j) => (
-                  <View key={j} style={[styles.wordPill, getWordColor(w.word, pid, w.isMatch)]}>
-                    <Text style={[styles.wordPillText, getWordColor(w.word, pid, w.isMatch) === styles.pillRejected && styles.textRejected]}>{w.word.toUpperCase()}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          ))}
-        </ScrollView>
-      );
-    }
-
-    // Matched Group Review Phase
-    const group = reviewGroups[step];
-    
-    if (group.isTopicHeader) {
-      return (
-        <View style={[styles.groupCard, styles.topicHeaderCard]}>
-          <Text style={styles.topicHeaderTitle}>TOPIC {group.topicIndex + 1}</Text>
-          <Text style={styles.topicHeaderText}>{group.title}</Text>
-        </View>
-      );
-    }
-
-    const firstPlayer = group.playerIds[0];
-    const otherPlayers = group.playerIds.slice(1);
-    
-    const isRejected = rejectedWords.some(rw => rw.playerId === firstPlayer.id && rw.word.toLowerCase() === group.canonical.toLowerCase());
-    const pts = getPointsDisplay(group, isRejected);
-    
-    let isSuccess = false;
-    if (roundType === 'Same Same' || roundType === 'Rush' || roundType === 'Blitz') {
-      isSuccess = group.playerIds.length > 1;
-    } else if (roundType === 'But Different') {
-      isSuccess = group.playerIds.length === 1 && !isRejected;
-    }
-
-    const cardStyle = isSuccess ? styles.groupCardSuccess : styles.groupCardFail;
-    const badgeStyle = isSuccess ? styles.pointsBadgeSuccess : styles.pointsBadgeFail;
-    
-    const STAPLE_POSITIONS = [
-      { top: -15, left: -10, transform: [{ rotate: '-12deg' }] },
-      { bottom: -15, right: -10, transform: [{ rotate: '15deg' }] },
-      { top: -5, right: -15, transform: [{ rotate: '8deg' }] },
-      { bottom: -5, left: -15, transform: [{ rotate: '-20deg' }] },
-      { top: 30, left: -25, transform: [{ rotate: '-25deg' }] },
-      { bottom: 30, right: -25, transform: [{ rotate: '25deg' }] },
-    ];
-
-    const isFullyRevealed = subStep >= group.playerIds.length;
-
-    return (
-      <View style={[styles.groupCard, cardStyle]}>
-        <Text style={styles.revealerText}>
-          {subStep === 0 ? `${firstPlayer.name} wrote...` : `${firstPlayer.name} wrote:`}
-        </Text>
-        
-        {subStep === 0 ? (
-          <Text style={styles.answerText}>?????</Text>
-        ) : (
-          <AnimatedWord word={group.canonical} isRejected={isRejected} />
-        )}
-
-        {/* Stapled matching players */}
-        <View style={StyleSheet.absoluteFill} pointerEvents="none">
-          {otherPlayers.map((p, j) => (
-            subStep > j + 1 && (
-              <AnimatedStapledPlayer 
-                key={p.id} 
-                player={p}
-                position={STAPLE_POSITIONS[j % STAPLE_POSITIONS.length]}
-              />
-            )
-          ))}
-        </View>
-
-        {/* Points display in the corner (only shows when all players are revealed) */}
-        {isFullyRevealed && pts !== '' && (
-          <View style={[styles.pointsCornerBadge, badgeStyle]}>
-            <Text style={styles.pointsCornerText}>{pts}</Text>
-          </View>
-        )}
-      </View>
-    );
-  };
+  const currentTimelineEvent = step >= 0 && step < timeline.length ? timeline[step] : null;
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={[styles.container, isDesktop && styles.containerDesktop]}>
         <View style={styles.headerRow}>
           <Text style={styles.title}>Round Results</Text>
+          {currentTimelineEvent?.type === 'topic' && (
+              <View style={styles.topicBadge}>
+                  <Text style={styles.topicBadgeText}>{currentTimelineEvent.title}</Text>
+              </View>
+          )}
         </View>
         
         <View style={{ flex: 1, width: '100%', flexDirection: 'column' }}>
-          <View style={styles.mainContent}>
-            {renderCurrentStep()}
-          </View>
+          
+          <ScrollView style={styles.boardScroll} contentContainerStyle={styles.boardContent}>
+            {step === -1 ? (
+                <View style={styles.centerCard}>
+                  <Text style={styles.introText}>Time to review!</Text>
+                  <Text style={styles.introSubText}>Let's see the answers.</Text>
+                </View>
+            ) : (
+                <View style={styles.playersGrid}>
+                    {Object.keys(playerNames).map((pid, pIdx) => (
+                        <View key={pid} style={styles.playerRow}>
+                            <View style={styles.playerLabelContainer}>
+                                <View style={styles.playerIdentityRow}>
+                                    {avatars[pid] && avatars[pid].startsWith('http') ? (
+                                        <Image source={{ uri: avatars[pid] }} style={styles.avatarImg} />
+                                    ) : (
+                                        <View style={styles.avatarPlaceholder}>
+                                            <Text style={styles.avatarText}>{playerNames[pid]?.charAt(0).toUpperCase()}</Text>
+                                        </View>
+                                    )}
+                                    <Text style={styles.playerLabelName}>{playerNames[pid]}</Text>
+                                </View>
+                                {step >= maxSteps && (
+                                    <View style={styles.finalScoreBubble}>
+                                        <Text style={styles.finalScoreText}>{newScores[pid]} pts</Text>
+                                        <Text style={styles.scoreUpdateText}>
+                                            ({scoreUpdates[pid] > 0 ? '+' : ''}{scoreUpdates[pid] || 0})
+                                        </Text>
+                                    </View>
+                                )}
+                            </View>
+                            <View style={styles.cardsContainer}>
+                                {cardData[pid].map((cardInfo, i) => {
+                                    const isRevealed = revealedWords.has(`${pid}-${i}`);
+                                    const isResolved = resolvedCards.has(`${pid}-${i}`);
+                                    return (
+                                        <BoardCard 
+                                            key={`${pid}-${i}`} 
+                                            cardInfo={cardInfo} 
+                                            isRevealed={isRevealed}
+                                            isResolved={isResolved} 
+                                            roundType={roundType}
+                                        />
+                                    );
+                                })}
+                            </View>
+                        </View>
+                    ))}
+                </View>
+            )}
+          </ScrollView>
 
           <View style={styles.bottomPanel}>
-            {/* Controls */}
             <View style={styles.controlsRow}>
               {step >= maxSteps ? (
                 <TouchableOpacity 
@@ -365,8 +332,6 @@ export default function ResultsScreen({ roundResults, roomCode, isHost, playerDa
           </View>
         </View>
 
-
-
       </View>
     </SafeAreaView>
   );
@@ -381,39 +346,26 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: '100%',
   },
-  desktopRow: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    gap: 40,
-  },
-  desktopColLeft: {
-    flex: 2,
-  },
-  desktopColRight: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
   headerRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.md
   },
   title: {
     fontSize: 28, fontFamily: theme.fonts.headingBold, color: theme.colors.primary,
   },
-  toggleRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 5
+  topicBadge: {
+    backgroundColor: theme.colors.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 2, borderColor: '#000'
   },
-  toggleLabel: {
-    fontFamily: theme.fonts.body, fontSize: 12, color: theme.colors.muted
+  topicBadgeText: {
+    color: '#000', fontFamily: theme.fonts.bodyBold, fontSize: 16
   },
-  mainContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  boardScroll: {
+    flex: 1, width: '100%'
+  },
+  boardContent: {
+    paddingBottom: 40,
   },
   centerCard: {
-    padding: theme.spacing.xl,
-    alignItems: 'center',
+    padding: theme.spacing.xl, alignItems: 'center', marginTop: 100
   },
   introText: {
     fontSize: 32, fontFamily: theme.fonts.headingBold, color: '#FFFFFF', textAlign: 'center'
@@ -421,124 +373,85 @@ const styles = StyleSheet.create({
   introSubText: {
     fontSize: 18, fontFamily: theme.fonts.body, color: '#D1D5DB', marginTop: 10, textAlign: 'center'
   },
-  groupCard: {
-    width: '100%',
-    padding: theme.spacing.xl,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 3,
-    borderColor: '#000',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    shadowColor: '#000', shadowOffset: { width:4, height:4 }, shadowOpacity: 1, shadowRadius: 0,
-    elevation: 0,
-    transform: [{ rotate: '1deg' }]
+  playersGrid: {
+    flexDirection: 'column', gap: 16
   },
-  groupCardSuccess: { borderColor: '#10B981' }, // Green
-  groupCardFail: { borderColor: '#EF4444' }, // Red
-  topicHeaderCard: {
-    backgroundColor: theme.colors.primary,
-    borderColor: '#000',
-    justifyContent: 'center',
-    paddingVertical: 40,
+  playerRow: {
+    backgroundColor: 'rgba(0,0,0,0.2)', padding: 12, borderRadius: theme.borderRadius.md, borderWidth: 2, borderColor: '#000',
   },
-  topicHeaderTitle: {
-    fontSize: 16, fontFamily: theme.fonts.bodyBold, color: '#FDA4AF', letterSpacing: 2, marginBottom: 10
+  playerLabelContainer: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8
   },
-  topicHeaderText: {
-    fontSize: 40, fontFamily: theme.fonts.headingBold, color: '#000', textAlign: 'center'
+  playerLabelName: {
+    fontSize: 20, fontFamily: theme.fonts.headingBold, color: '#fff'
   },
-  revealerText: {
-    fontSize: 20, fontFamily: theme.fonts.bodyBold, color: '#000', marginBottom: 10
+  playerIdentityRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10
   },
-  answerText: {
-    fontSize: 40, fontFamily: theme.fonts.headingBold, color: '#000', marginBottom: 20, textAlign: 'center'
+  avatarImg: {
+    width: 32, height: 32, borderRadius: 16, backgroundColor: '#CCC', borderWidth: 2, borderColor: '#000'
   },
-  playersRow: {
-    flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginBottom: 10
+  avatarPlaceholder: {
+    width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#000'
   },
-  playerBadgeStapled: {
-    position: 'absolute',
-    backgroundColor: theme.colors.primary, 
-    paddingHorizontal: 16, 
-    paddingVertical: 8, 
-    borderRadius: 8, 
-    borderWidth: 3,
-    borderColor: '#000',
-    shadowColor: '#000', shadowOffset: { width:2, height:2 }, shadowOpacity: 1, shadowRadius: 0,
-    elevation: 0,
+  avatarText: {
+    fontFamily: theme.fonts.headingBold, color: '#000', fontSize: 16
   },
-  playerName: {
-    color: '#000', fontFamily: theme.fonts.bodyBold, fontSize: 18
+  finalScoreBubble: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FCD34D', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 2, borderColor: '#000'
   },
-  pointsCornerBadge: {
-    position: 'absolute',
-    top: -20,
-    right: -20,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#000',
-    shadowColor: '#000', shadowOffset: { width:4, height:4 }, shadowOpacity: 1, shadowRadius: 0,
-    elevation: 0,
-    transform: [{ rotate: '15deg' }]
+  finalScoreText: {
+    fontSize: 16, fontFamily: theme.fonts.headingBold, color: '#000'
   },
-  pointsBadgeSuccess: { backgroundColor: '#10B981' },
-  pointsBadgeFail: { backgroundColor: '#EF4444' },
-  pointsCornerText: {
-    color: '#000', fontSize: 24, fontFamily: theme.fonts.headingBold
+  scoreUpdateText: {
+    fontSize: 14, fontFamily: theme.fonts.bodyBold, color: '#000'
   },
-  scoreboardScroll: {
-    flex: 1, width: '100%'
+  cardsContainer: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: 8
   },
-  sectionLabel: {
-    fontFamily: theme.fonts.headingBold, fontSize: 18, color: theme.colors.primary, marginBottom: 15, textAlign: 'center'
+  cardContainer: {
+    width: 110, height: 70, // Base size, can flex
+    flexGrow: 1,
+    flexBasis: 100,
+    maxWidth: 160,
   },
-  scoreRow: {
-    backgroundColor: '#fff', padding: 12, borderRadius: theme.borderRadius.md, marginBottom: 16, borderWidth: 3, borderColor: '#000',
-    shadowColor: '#000', shadowOffset: { width:4, height:4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 0
+  card: {
+    flex: 1, borderRadius: 8, borderWidth: 3, 
+    shadowColor: '#000', shadowOffset: { width:3, height:3 }, shadowOpacity: 1, shadowRadius: 0, elevation: 0
   },
-  scoreRowFirst: {
-    borderColor: theme.colors.primary, borderWidth: 3
+  cardFace: {
+    justifyContent: 'center', alignItems: 'center', padding: 4
   },
-  scoreRowHeader: {
-    flexDirection: 'row', alignItems: 'center', marginBottom: 10
+  cardText: {
+    fontFamily: theme.fonts.bodyBold, fontSize: 16, color: '#000', textAlign: 'center'
   },
-  scoreRank: { color: '#000', fontSize: 18, fontFamily: theme.fonts.headingBold, width: 24, textAlign: 'center' },
-  scoreName: { flex: 1, color: '#000', fontSize: 20, fontFamily: theme.fonts.bodyBold, marginLeft: 8 },
-  pointsUpdateBubble: { backgroundColor: theme.colors.secondary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, marginRight: 10, borderWidth: 2, borderColor: '#000' },
-  pointsUpdateText: { color: '#000', fontSize: 14, fontFamily: theme.fonts.bodyBold },
-  scoreValue: { color: theme.colors.primary, fontSize: 22, fontFamily: theme.fonts.headingBold },
-  playerWordsContainer: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingLeft: 32
+  textRejected: {
+    color: '#000'
   },
-  wordPill: {
-    paddingHorizontal: 10, paddingVertical: 5, borderRadius: theme.borderRadius.sm, borderWidth: 2, borderColor: '#000'
+  cardBack: {
+    justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.primary, borderRadius: 5, overflow: 'hidden'
   },
-  wordPillText: {
-    fontSize: 12, fontFamily: theme.fonts.bodyBold, color: '#000'
+  cardBackPattern: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.1, backgroundColor: '#000' // Simple pattern
   },
-  pillGood: { backgroundColor: '#10B981', borderColor: '#059669' }, // Green
-  pillBad: { backgroundColor: '#EF4444', borderColor: '#B91C1C' }, // Red
-  pillNeutral: { backgroundColor: '#9CA3AF', borderColor: '#6B7280' }, // Gray
-  pillRejected: { backgroundColor: '#000', borderColor: '#000' },
-  textRejected: { textDecorationLine: 'line-through', color: '#EF4444' },
-
-  // ── Rubber-stamp overlay ──────────────────────────────────────────────────────────────
-  rejectedStamp: {
-    position: 'absolute',
-    width: 450,
-    height: 220,
-    zIndex: 10,
+  cardBackText: {
+    fontFamily: theme.fonts.headingBold, fontSize: 24, color: '#000'
   },
-  
+  pointsBubble: {
+    position: 'absolute', top: -10, right: -10, backgroundColor: '#FCD34D', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10, borderWidth: 2, borderColor: '#000', transform: [{rotate: '10deg'}]
+  },
+  pointsBubbleFail: {
+    backgroundColor: '#EF4444'
+  },
+  pointsBubbleText: {
+    fontFamily: theme.fonts.bodyBold, fontSize: 14, color: '#000'
+  },
+  rejectedStampSmall: {
+    position: 'absolute', top: -20, right: -25, width: 90, height: 60, transform: [{rotate: '15deg'}]
+  },
   bottomPanel: {
-    width: '100%',
-    marginTop: 'auto',
-    paddingTop: 10,
-    position: 'relative',
+    width: '100%', marginTop: 'auto', paddingTop: 10,
   },
   controlsRow: {
     flexDirection: 'row', gap: 10
@@ -547,7 +460,7 @@ const styles = StyleSheet.create({
     flex: 1, backgroundColor: theme.colors.secondary, padding: 16, borderRadius: theme.borderRadius.md, alignItems: 'center', borderWidth: 3, borderColor: '#000', shadowColor: '#000', shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0
   },
   readyBtnActive: {
-    backgroundColor: '#10B981' // Green
+    backgroundColor: '#10B981'
   },
   readyBtnText: {
     color: '#000', fontFamily: theme.fonts.headingBold, fontSize: 18

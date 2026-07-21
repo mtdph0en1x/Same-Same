@@ -213,51 +213,82 @@ class GameSession {
 
         // Build a playerNames map so the client can display names in scores
         const playerNames = {};
-        this.players.forEach(p => { playerNames[p.id] = p.name; });
-
-        this.reviewGroups = [...groups].sort((a, b) => {
-            if (roundType === 'Blitz') {
-                if (a.topicIndex !== b.topicIndex) return a.topicIndex - b.topicIndex;
-                if (a.playerIds.length === 1 && b.playerIds.length > 1) return -1;
-                if (a.playerIds.length > 1 && b.playerIds.length === 1) return 1;
-                return a.playerIds.length - b.playerIds.length;
-            } else if (roundType === 'But Different') {
-                if (a.playerIds.length > 1 && b.playerIds.length === 1) return -1;
-                if (a.playerIds.length === 1 && b.playerIds.length > 1) return 1;
-            } else {
-                if (a.playerIds.length === 1 && b.playerIds.length > 1) return -1;
-                if (a.playerIds.length > 1 && b.playerIds.length === 1) return 1;
-            }
-            return a.playerIds.length - b.playerIds.length;
+        const playerAvatars = {};
+        this.players.forEach(p => { 
+            playerNames[p.id] = p.name; 
+            playerAvatars[p.id] = p.avatar;
         });
 
+        const timeline = [];
+        const revealed = new Set(); // store `${playerId}-${wordIndex}`
+
         if (roundType === 'Blitz') {
-            const newGroups = [];
-            let currentTopic = -1;
-            this.reviewGroups.forEach(g => {
-                if (g.topicIndex !== currentTopic) {
-                    currentTopic = g.topicIndex;
-                    newGroups.push({ 
-                        isTopicHeader: true, 
-                        topicIndex: currentTopic, 
-                        title: this.currentCategory[currentTopic] 
-                    });
+            for (let i = 0; i < this.config.wordsPerRound; i++) {
+                timeline.push({ type: 'topic', topicIndex: i, title: this.currentCategory[i] });
+                for (const p of this.players) {
+                    const wordObj = wordSnapshot[p.id]?.words[i];
+                    if (wordObj && !revealed.has(`${p.id}-${i}`)) {
+                        const group = groups.find(g => g.topicIndex === i && g.playerIds.some(pid => pid.id === p.id));
+                        if (group) {
+                            // Primary player reveals
+                            timeline.push({ type: 'reveal_word', playerId: p.id, wordIndex: i, text: group.canonical });
+                            revealed.add(`${p.id}-${i}`);
+                            
+                            // Sequential reveals for matching players
+                            const others = group.playerIds.filter(pid => !(pid.id === p.id && pid.wordIndex === i));
+                            for (const op of others) {
+                                timeline.push({ type: 'reveal_word', playerId: op.id, wordIndex: op.wordIndex, text: group.canonical });
+                                revealed.add(`${op.id}-${op.wordIndex}`);
+                            }
+                            
+                            // Resolve the group
+                            timeline.push({ type: 'resolve_group', group, isMatch: group.playerIds.length > 1 });
+                        }
+                    }
                 }
-                newGroups.push(g);
-            });
-            this.reviewGroups = newGroups;
+            }
+        } else {
+            // Normal game, reveal player by player
+            for (const p of this.players) {
+                const words = wordSnapshot[p.id]?.words || [];
+                for (let i = 0; i < words.length; i++) {
+                    if (!revealed.has(`${p.id}-${i}`)) {
+                        const group = groups.find(g => g.playerIds.some(pid => pid.id === p.id && pid.wordIndex === i));
+                        if (group) {
+                            // Primary player reveals
+                            timeline.push({ type: 'reveal_word', playerId: p.id, wordIndex: i, text: group.canonical });
+                            revealed.add(`${p.id}-${i}`);
+                            
+                            // Sequential reveals for matching players
+                            const others = group.playerIds.filter(pid => !(pid.id === p.id && pid.wordIndex === i));
+                            for (const op of others) {
+                                timeline.push({ type: 'reveal_word', playerId: op.id, wordIndex: op.wordIndex, text: group.canonical });
+                                revealed.add(`${op.id}-${op.wordIndex}`);
+                            }
+                            
+                            // Resolve the group
+                            timeline.push({ type: 'resolve_group', group, isMatch: group.playerIds.length > 1 });
+                        }
+                    }
+                }
+            }
         }
 
+        this.timeline = timeline;
         this.reviewVotes = new Set();
-        this.reviewMaxSteps = Math.max(1, this.reviewGroups.length);
+        this.reviewMaxSteps = Math.max(1, this.timeline.length);
         this.reviewCurrentStep = -1;
 
         this.io.to(this.roomId).emit('round_ended', {
-            groups:       this.reviewGroups,
+            timeline:     this.timeline,
+            playerWords:  wordSnapshot,
+            groups:       groups,
             roundType:    roundType,
+            wordsPerRound: this.config.wordsPerRound,
             scoreUpdates: scoreUpdates,
             newScores:    this.scores,
             playerNames:  playerNames,
+            playerAvatars: playerAvatars,
             teams:        this.teams,
             teamScores:   this.teamScores,
             rejectedWords: rejectedWordsList, // send to clients to display funny alert
@@ -272,15 +303,19 @@ class GameSession {
             return;
         }
 
-        let duration = 2800; // Default fast wait for 0th step or Perfect Round
-        if (this.reviewCurrentStep >= 0 && this.reviewCurrentStep < this.reviewGroups.length) {
-            const group = this.reviewGroups[this.reviewCurrentStep];
-            if (group.isTopicHeader) {
-                duration = 3000;
-            } else if (group.playerIds.length === 1) {
-                duration = 2800; // 800ms reveal + 2000ms wait
-            } else {
-                duration = (group.playerIds.length * 800) + 2000;
+        let duration = 2500; 
+        if (this.reviewCurrentStep >= 0 && this.reviewCurrentStep < this.timeline.length) {
+            const stepData = this.timeline[this.reviewCurrentStep];
+            if (stepData.type === 'topic') {
+                duration = 2000;
+            } else if (stepData.type === 'reveal_word') {
+                duration = 1000; // Fast pop
+            } else if (stepData.type === 'resolve_group') {
+                if (stepData.isMatch) {
+                    duration = 3000; // Time to celebrate a match
+                } else {
+                    duration = 1500; // Faster for a miss
+                }
             }
         }
 

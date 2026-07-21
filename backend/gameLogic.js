@@ -84,7 +84,7 @@ function calculateScores(playerWords, roundType, modifiers = [], teams = null) {
                 if (g.stem === stem || JaroWinklerDistance(g.canonical, w) > 0.85) {
                     // Only add this player once per group
                     if (!g.playerIds.find(p => p.id === playerId)) {
-                        g.playerIds.push({ id: playerId, name: data.name, time });
+                        g.playerIds.push({ id: playerId, name: data.name, time, wordIndex: i, text: w });
                     }
                     foundGroup = true;
                     break;
@@ -96,7 +96,7 @@ function calculateScores(playerWords, roundType, modifiers = [], teams = null) {
                     canonical: w,
                     stem:      stem,
                     topicIndex: roundType === 'Blitz' ? i : -1,
-                    playerIds: [{ id: playerId, name: data.name, time }],
+                    playerIds: [{ id: playerId, name: data.name, time, wordIndex: i, text: w }],
                 });
             }
         }

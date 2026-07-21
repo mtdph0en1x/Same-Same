@@ -258,6 +258,7 @@ function AppContent() {
                   roomCode={roomCode}
                   isHost={isHost}
                   playerData={playerData}
+                  players={players}
                 />
               )}
             </View>
