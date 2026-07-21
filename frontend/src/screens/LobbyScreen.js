@@ -297,8 +297,9 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
       socket.emit('join_room', { roomCode, playerData });
     } else if (lobbyIntent === 'matchmaking') {
       socket.emit('join_matchmaking', { name: playerData.name, avatar: playerData.avatar, mode: playerData.mode });
+    } else if (lobbyIntent === 'quick_play') {
+      socket.emit('quick_play', playerData);
     }
-    // 'quick_play' intent: the join was already triggered from HomeScreen, navigation handled via 'joined_room' in App.js
 
     socket.on('matchmaking_joined', () => setStatus('Finding a match...'));
 
@@ -1048,6 +1049,22 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   // ── Settings ────────────────────────────────────────────────────────────
+  textInput: {
+    backgroundColor: '#FFF',
+    color: '#000',
+    fontFamily: theme.fonts.bodyBold,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: theme.borderRadius.md,
+    fontSize: 16,
+    borderWidth: 3,
+    borderColor: '#000',
+    shadowColor: '#000',
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    marginBottom: theme.spacing.sm,
+  },
   settingLabel: {
     fontFamily: theme.fonts.bodyBold,
     color: '#000',

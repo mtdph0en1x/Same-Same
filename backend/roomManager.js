@@ -196,8 +196,13 @@ function findOrCreatePublicRoom(io, socket, playerData) {
 
     if (openRoom) {
         const [roomCode, room] = openRoom;
-        room.players.push(player);
-        room.teams[socket.id] = assignTeam(room.teams);
+        
+        const existingPlayer = room.players.find(p => p.id === socket.id);
+        if (!existingPlayer) {
+            room.players.push(player);
+            room.teams[socket.id] = assignTeam(room.teams);
+        }
+        
         socket.join(roomCode);
 
         const safePlayers = safePlayerList(room.players);
@@ -439,10 +444,13 @@ function joinRoom(io, socket, roomCode, playerData) {
     }
 
     const player = { id: socket.id, name: playerData.name || 'Player', level: playerData.level || 1, avatar: playerData.avatar, socket };
-    room.players.push(player);
-
-    // Auto-assign to the smaller team
-    room.teams[socket.id] = assignTeam(room.teams);
+    
+    const existingPlayer = room.players.find(p => p.id === socket.id);
+    if (!existingPlayer) {
+        room.players.push(player);
+        // Auto-assign to the smaller team
+        room.teams[socket.id] = assignTeam(room.teams);
+    }
 
     socket.join(roomCode);
 

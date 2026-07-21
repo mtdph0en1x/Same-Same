@@ -143,13 +143,11 @@ function PublicPanel({ getDisplayName, profileData, setScreen, setPlayerData, se
   const handleQuickPlay = () => {
     const displayName = getDisplayName();
     if (!displayName) return Alert.alert('Name required', 'Enter a name first!');
-    setIsSearching(true);
     const playerData = { name: displayName, avatar: profileData?.avatar, level: profileData?.level || 1 };
     setPlayerData(playerData);
     setIsHost(false);
     setLobbyIntent('quick_play');
-    socket.emit('quick_play', playerData);
-    setTimeout(() => setIsSearching(false), 3000);
+    setScreen('Lobby');
   };
 
   const handleCreatePublic = () => {
