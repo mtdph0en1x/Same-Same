@@ -18,6 +18,9 @@ const matchmaker = require('./matchmaker');
 const roomManager = require('./roomManager');
 const { supabase } = require('./supabase');
 
+// Seed the permanent default public lobbies
+roomManager.seedDefaultLobbies();
+
 io.use(async (socket, next) => {
     const token = socket.handshake.auth?.token;
     if (token) {
@@ -58,6 +61,10 @@ io.on('connection', (socket) => {
         roomManager.createRoom(io, socket, playerData);
     });
 
+    socket.on('create_custom_public_room', (playerData) => {
+        roomManager.createCustomPublicRoom(io, socket, playerData);
+    });
+
     socket.on('join_room', ({ roomCode, playerData }) => {
         roomManager.joinRoom(io, socket, roomCode, playerData);
     });
@@ -80,6 +87,56 @@ io.on('connection', (socket) => {
 
     socket.on('start_game', ({ roomCode }) => {
         roomManager.startGame(io, socket, roomCode);
+    });
+
+    socket.on('quick_play', (playerData) => {
+        roomManager.findOrCreatePublicRoom(io, socket, playerData);
+    });
+
+    socket.on('play_again', ({ roomCode }) => {
+        roomManager.playAgain(io, socket, roomCode);
+    });
+
+    socket.on('get_public_lobbies', () => {
+        const lobbies = [];
+        const seenPermanent = new Set();
+
+        // 1. Add all open public lobbies and open clones
+        for (const [code, room] of Object.entries(roomManager.rooms)) {
+            if (room.isPublic && !room.gameSession) {
+                lobbies.push({
+                    code,
+                    label:       room.config.roomName || room.label || code,
+                    playerCount: room.players.length,
+                    maxPlayers:  8,
+                    hasCountdown: !!room.countdown,
+                    roundTypes:  room.config.roundTypes,
+                    timeLimit:   room.config.timeLimit,
+                    isPermanent: !!room.isPermanent,
+                });
+                if (room.isPermanent) seenPermanent.add(code);
+                if (room.isOverflowFor) seenPermanent.add(room.isOverflowFor);
+            }
+        }
+
+        // 2. Guarantee permanent lobbies always appear, even if fully occupied
+        for (const [code, room] of Object.entries(roomManager.rooms)) {
+            if (room.isPermanent && room.isPublic && !seenPermanent.has(code)) {
+                lobbies.push({
+                    code,
+                    label:       room.config.roomName || room.label || code,
+                    playerCount: 0, // Since there are no open clones, the next player will start a fresh one
+                    maxPlayers:  8,
+                    hasCountdown: false,
+                    roundTypes:  room.config.roundTypes,
+                    timeLimit:   room.config.timeLimit,
+                    isPermanent: true,
+                });
+                seenPermanent.add(code);
+            }
+        }
+
+        socket.emit('public_lobbies', { lobbies });
     });
 
     // Gameplay actions

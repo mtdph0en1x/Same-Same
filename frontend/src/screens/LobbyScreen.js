@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
-  StyleSheet, Text, View, TouchableOpacity,
+  StyleSheet, Text, View, TouchableOpacity, TextInput,
   SafeAreaView, Animated, Alert, ScrollView, PanResponder, Image, useWindowDimensions
 } from 'react-native';
 import { socket } from '../socket';
@@ -148,7 +148,7 @@ function DraggablePlayerCard({ player, isSelf, myTeam, onDropToTeam, isHost }) {
 }
 
 // Animated player card (solo mode)
-function PlayerCard({ player, isHost, isSelf, onKick, isPublic }) {
+function PlayerCard({ player, isHost, isSelf, onKick, isHostless }) {
   const slideAnim   = useRef(new Animated.Value(60)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -169,7 +169,7 @@ function PlayerCard({ player, isHost, isSelf, onKick, isPublic }) {
         )}
       </View>
       <Text style={styles.playerText}>⭐{player.level || 1} {player.name}{isSelf ? ' (You)' : ''}</Text>
-      {isHost && !isSelf && !isPublic && (
+      {isHost && !isSelf && !isHostless && (
         <TouchableOpacity style={styles.kickButton} onPress={() => onKick(player.id)}>
           <Text style={styles.kickButtonText}>✕</Text>
         </TouchableOpacity>
@@ -222,6 +222,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
   const [pendingMatch, setPendingMatch] = useState(null); // { matchId, timeoutMs }
   const [matchStatus, setMatchStatus] = useState(null); // 'accepting' | 'accepted' | 'declined' | null
   const [isPublic, setIsPublic]     = useState(false);
+  const [isHostless, setIsHostless] = useState(false);
   const [votes, setVotes]           = useState({}); // { [packId]: count }
   const hostBannerTimer             = useRef(null);
   const { width } = useWindowDimensions();
@@ -282,7 +283,6 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
 
   const handleLeaveMatchmaking = () => {
     socket.emit('leave_matchmaking');
-    socket.disconnect();
     setScreen('Home');
   };
 
@@ -291,11 +291,14 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
 
     if (lobbyIntent === 'host_couch') {
       socket.emit('create_room', { name: playerData.name, avatar: playerData.avatar });
-    } else if (lobbyIntent === 'join_couch') {
+    } else if (lobbyIntent === 'create_public') {
+      socket.emit('create_custom_public_room', { name: playerData.name, avatar: playerData.avatar });
+    } else if (lobbyIntent === 'join_couch' || lobbyIntent === 'join_public') {
       socket.emit('join_room', { roomCode, playerData });
     } else if (lobbyIntent === 'matchmaking') {
       socket.emit('join_matchmaking', { name: playerData.name, avatar: playerData.avatar, mode: playerData.mode });
     }
+    // 'quick_play' intent: the join was already triggered from HomeScreen, navigation handled via 'joined_room' in App.js
 
     socket.on('matchmaking_joined', () => setStatus('Finding a match...'));
 
@@ -316,7 +319,8 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
       if (data.players) setPlayers(data.players);
       if (data.config)  setConfig(data.config);
       if (data.teams)   setTeams(data.teams);
-      if (data.isPublic) setIsPublic(true);
+      setIsPublic(!!data.isPublic);
+      setIsHostless(!!data.isHostless);
       setStatus('Waiting for players...');
     });
 
@@ -325,8 +329,9 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
       setPlayers(data.players);
       if (data.config) setConfig(data.config);
       if (data.teams)  setTeams(data.teams);
-      if (data.isPublic) setIsPublic(true);
-      setStatus(data.isPublic ? 'Match starting soon...' : 'Waiting for host to start...');
+      setIsPublic(!!data.isPublic);
+      setIsHostless(!!data.isHostless);
+      setStatus(data.isPublic && data.isHostless ? 'Match starting soon...' : 'Waiting for host to start...');
     });
 
     socket.on('player_joined', (data) => {
@@ -389,9 +394,8 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
 
   const handleStartGame = () => socket.emit('start_game', { roomCode });
   const handleKick      = (targetId) => socket.emit('kick_player', { roomCode, targetId });
-  const handleLeave     = () => {
+  const handleLeave = () => {
     socket.emit('leave_room', { roomCode });
-    socket.disconnect();
     setScreen('Home');
   };
 
@@ -444,7 +448,8 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
   // Couch Lobby UI
   return (
     <SafeAreaView style={styles.safeArea}>
-      {countdown !== null && !isPublic && <CountdownOverlay count={countdown} />}
+      {/* Full-screen countdown for private or hosted public rooms */}
+      {countdown !== null && (!isPublic || !isHostless) && <CountdownOverlay count={countdown} />}
 
       <ScrollView contentContainerStyle={[styles.container, isDesktop && styles.containerDesktop]} showsVerticalScrollIndicator={false}>
 
@@ -530,7 +535,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
                     isHost={isHost}
                     isSelf={p.id === socket.id}
                     onKick={handleKick}
-                    isPublic={isPublic}
+                    isHostless={isHostless}
                   />
                 ))}
               </>
@@ -542,9 +547,27 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
 
           <View style={isDesktop ? styles.desktopColRight : {}}>
           {/* ── Settings panel ─────────────────────────────────────────── */}
-          {roomCode && !isPublic && (
+          {roomCode && (!isPublic || !isHostless) && (
           <View style={styles.card}>
             <Text style={styles.cardLabel}>GAME SETTINGS{!isHost ? '  (set by host)' : ''}</Text>
+
+            {isPublic && (
+              <>
+                <Text style={styles.settingLabel}>Room Name</Text>
+                {isHost ? (
+                  <TextInput
+                    style={styles.textInput}
+                    value={config.roomName}
+                    onChangeText={(v) => handleConfigChange({ roomName: v })}
+                    placeholder="Enter room name"
+                    placeholderTextColor="#9CA3AF"
+                    maxLength={20}
+                  />
+                ) : (
+                  <Text style={styles.readOnlyValue}>{config.roomName || 'Unnamed Room'}</Text>
+                )}
+              </>
+            )}
 
             <Text style={styles.settingLabel}>Words per round</Text>
             {isHost ? (
@@ -650,7 +673,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
         )}
 
         {/* ── Public Voting Panel ────────────────────────────────────── */}
-        {roomCode && isPublic && (
+        {roomCode && isPublic && isHostless && (
           <View style={[styles.card, { borderColor: theme.colors.primary }]}>
             <Text style={[styles.cardLabel, { color: '#000', textAlign: 'center', fontSize: 16 }]}>
               VOTE FOR CATEGORY PACK {countdown !== null ? `(${countdown}s)` : ''}
@@ -676,7 +699,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
         )}
 
         {/* START button — host only */}
-        {isHost && !isPublic && (
+        {isHost && !isHostless && (
           <View style={styles.startSection}>
             {!canStart && (
               <Text style={styles.startHint}>
@@ -686,11 +709,11 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
               </Text>
             )}
             <TouchableOpacity
-              style={[styles.button, !canStart && styles.buttonDisabled]}
-              activeOpacity={canStart ? 0.8 : 1}
-              onPress={canStart ? handleStartGame : undefined}
+              style={[styles.button, (!canStart || countdown !== null) && styles.buttonDisabled]}
+              activeOpacity={canStart && countdown === null ? 0.8 : 1}
+              onPress={canStart && countdown === null ? handleStartGame : undefined}
             >
-              <Text style={styles.buttonText}>START GAME</Text>
+              <Text style={styles.buttonText}>{countdown !== null ? 'STARTING...' : 'START GAME'}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -791,6 +814,7 @@ const styles = StyleSheet.create({
     color: '#000',
     marginBottom: theme.spacing.sm,
   },
+
   matchFoundSubtitle: {
     fontFamily: theme.fonts.bodyBold,
     fontSize: 18,

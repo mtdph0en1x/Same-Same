@@ -321,6 +321,7 @@ export default function ResultsScreen({ roundResults, roomCode, isHost, players 
                 </TouchableOpacity>
               ) : null}
 
+
               {isHost && (
                 <TouchableOpacity style={styles.forceBtn} onPress={handleForceNext}>
                   <Text style={styles.forceBtnText}>

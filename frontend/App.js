@@ -6,8 +6,10 @@ import { useFonts, Fredoka_400Regular, Fredoka_500Medium, Fredoka_600SemiBold, F
 import { Nunito_300Light, Nunito_400Regular, Nunito_500Medium, Nunito_600SemiBold, Nunito_700Bold } from '@expo-google-fonts/nunito';
 import HomeScreen from './src/screens/HomeScreen';
 import LobbyScreen from './src/screens/LobbyScreen';
+import LobbyBrowserScreen from './src/screens/LobbyBrowserScreen';
 import GameScreen from './src/screens/GameScreen';
 import ResultsScreen from './src/screens/ResultsScreen';
+import GameOverScreen from './src/screens/GameOverScreen';
 import LandingScreen from './src/screens/LandingScreen';
 import ChatSidebar from './src/components/ChatSidebar';
 import LeaderboardSidebar from './src/components/LeaderboardSidebar';
@@ -57,6 +59,7 @@ function AppContent() {
   const [players, setPlayers] = useState([]);
   const [teams, setTeams] = useState(null);
   const [roundResults, setRoundResults] = useState(null);
+  const [gameResults, setGameResults] = useState(null);
 
   const { width } = useWindowDimensions();
   const isDesktop = width > 800;
@@ -82,8 +85,35 @@ function AppContent() {
       setRoundResults(data);
       setCurrentScreen('Results');
     });
-    socket.on('game_over', () => {
-      setCurrentScreen('Home');
+    socket.on('game_over', (data) => {
+      setGameResults(data);
+      setCurrentScreen('GameOver');
+    });
+    socket.on('force_lobby', (data) => {
+      // Server pulled us back to the lobby (host pressed Play Again)
+      setRoomCode(data.roomCode);
+      setIsHost(data.host === socket.id);
+      setPlayers(data.players || []);
+      setTeams(data.teams || null);
+      setRoundResults(null);
+      setGameResults(null);
+      setGameData(null);
+      setCurrentScreen('Lobby');
+    });
+    socket.on('joined_room', (data) => {
+      // Also handle quick_play joining a public room
+      setRoomCode(data.roomCode);
+      setIsHost(data.host);
+      setPlayers(data.players || []);
+      setTeams(data.teams || null);
+      setCurrentScreen('Lobby');
+    });
+    socket.on('room_created', (data) => {
+      setRoomCode(data.roomCode);
+      setIsHost(true);
+      setPlayers(data.players || []);
+      setTeams(data.teams || null);
+      setCurrentScreen('Lobby');
     });
     return () => {
       socket.off('game_started');
@@ -91,6 +121,9 @@ function AppContent() {
       socket.off('round_started');
       socket.off('round_ended');
       socket.off('game_over');
+      socket.off('force_lobby');
+      socket.off('joined_room');
+      socket.off('room_created');
     };
   }, []);
 
@@ -109,6 +142,7 @@ function AppContent() {
     if (currentScreen === 'Lobby') {
       setRoundResults(null);
       setGameData(null);
+      setGameResults(null);
     }
   }, [currentScreen]);
 
@@ -209,7 +243,7 @@ function AppContent() {
             <View style={styles.appWindowPattern} pointerEvents="none" />
             <MessyDeskBackground />
 
-            {['Lobby', 'Game', 'Results'].includes(currentScreen) && (
+            {['Lobby', 'Game', 'Results', 'GameOver'].includes(currentScreen) && (
               <LeaderboardSidebar 
                 players={players} 
                 roundResults={roundResults} 
@@ -232,6 +266,17 @@ function AppContent() {
               )}
               {currentScreen === 'Landing' && (
                 <LandingScreen setIsGuest={setIsGuest} guestName={guestName} setGuestName={setGuestName} />
+              )}
+              {currentScreen === 'LobbyBrowser' && (
+                <LobbyBrowserScreen
+                  setScreen={setCurrentScreen}
+                  getDisplayName={() => playerData?.name || user?.email?.split('@')[0] || guestName || 'Player'}
+                  profileData={{ avatar: playerData?.avatar, level: playerData?.level }}
+                  setPlayerData={setPlayerData}
+                  setRoomCode={setRoomCode}
+                  setIsHost={setIsHost}
+                  setLobbyIntent={setLobbyIntent}
+                />
               )}
               {currentScreen === 'Lobby' && (
                 <LobbyScreen
@@ -261,9 +306,17 @@ function AppContent() {
                   players={players}
                 />
               )}
+              {currentScreen === 'GameOver' && gameResults && (
+                <GameOverScreen
+                  gameResults={gameResults}
+                  roomCode={roomCode}
+                  isHost={isHost}
+                  players={players}
+                />
+              )}
             </View>
             
-            {['Lobby', 'Game', 'Results'].includes(currentScreen) && (
+            {['Lobby', 'Game', 'Results', 'GameOver'].includes(currentScreen) && (
               <ChatSidebar 
                 roomCode={roomCode} 
                 playerData={playerData} 

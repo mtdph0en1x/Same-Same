@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { 
   Swords, Users, Shield, User, PartyPopper, Zap, 
-  Gamepad2, Trophy, BarChart2, Flame, Home, Globe 
+  Gamepad2, Trophy, BarChart2, Flame, Home, Globe, Crown 
 } from 'lucide-react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
@@ -16,6 +16,7 @@ import * as Haptics from 'expo-haptics';
 import { theme } from '../styles/theme';
 import { AuthContext } from '../context/AuthContext';
 import { supabase } from '../supabase';
+import { socket } from '../socket';
 import Button from '../components/Button';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -130,6 +131,63 @@ function mmModal(visible, setVisible, onFindMatch) {
         </View>
       </View>
     </Modal>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PublicPanel — Quick Play, Create Custom, Browse Lobbies
+// ─────────────────────────────────────────────────────────────────────────────
+function PublicPanel({ getDisplayName, profileData, setScreen, setPlayerData, setRoomCode, setIsHost, setLobbyIntent }) {
+  const [isSearching, setIsSearching] = useState(false);
+
+  const handleQuickPlay = () => {
+    const displayName = getDisplayName();
+    if (!displayName) return Alert.alert('Name required', 'Enter a name first!');
+    setIsSearching(true);
+    const playerData = { name: displayName, avatar: profileData?.avatar, level: profileData?.level || 1 };
+    setPlayerData(playerData);
+    setIsHost(false);
+    setLobbyIntent('quick_play');
+    socket.emit('quick_play', playerData);
+    setTimeout(() => setIsSearching(false), 3000);
+  };
+
+  const handleCreatePublic = () => {
+    const displayName = getDisplayName();
+    if (!displayName) return Alert.alert('Name required', 'Enter a name first!');
+    const playerData = { name: displayName, avatar: profileData?.avatar, level: profileData?.level || 1 };
+    setPlayerData(playerData);
+    setIsHost(true);
+    setLobbyIntent('create_public');
+    setScreen('Lobby'); // Navigate first so LobbyScreen can emit and catch the response
+  };
+
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', gap: 20 }}>
+      <TouchableOpacity style={s.quickPlayBtn} onPress={handleQuickPlay} activeOpacity={0.8} disabled={isSearching}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+          <Flame size={24} color="#000" strokeWidth={3} />
+          <Text style={s.quickPlayBtnText}>{isSearching ? 'FINDING LOBBY...' : 'QUICK PLAY'}</Text>
+        </View>
+        <Text style={s.quickPlaySubText}>Join an open public lobby instantly</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={[s.quickPlayBtn, { backgroundColor: '#FBBF24' }]} onPress={handleCreatePublic} activeOpacity={0.8}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+          <Crown size={24} color="#000" strokeWidth={3} />
+          <Text style={s.quickPlayBtnText}>CREATE PUBLIC LOBBY</Text>
+        </View>
+        <Text style={s.quickPlaySubText}>Host a custom game for anyone to join</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={[s.quickPlayBtn, { backgroundColor: '#E5E7EB' }]} onPress={() => setScreen('LobbyBrowser')} activeOpacity={0.8}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+          <Globe size={24} color="#000" strokeWidth={3} />
+          <Text style={s.quickPlayBtnText}>BROWSE LOBBIES</Text>
+        </View>
+        <Text style={s.quickPlaySubText}>Find specific modes or hosted games</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -539,39 +597,15 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
             <View style={s.panelBody}>
               
               {(isDesktop || activeTab === 'public') && (
-                <>
-                  {/* QUICK PLAY BUTTON */}
-                  <Animated.View style={{ 
-                    transform: [
-                      { scale: animVal.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.8, 1.05, 1] }) }
-                    ] 
-                  }}>
-                    <TouchableOpacity 
-                      style={s.quickPlayBtn}
-                      onPress={() => handleFindMatch('team4v4')}
-                      activeOpacity={0.8}
-                    >
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-                        <Flame size={24} color="#000" strokeWidth={3} />
-                        <Text style={s.quickPlayBtnText}>QUICK MATCH</Text>
-                      </View>
-                      <Text style={s.quickPlaySubText}>Jump right into a 4v4 battle</Text>
-                    </TouchableOpacity>
-                  </Animated.View>
-
-                  {/* Online matchmaking scattered cards */}
-                  <Text style={[s.playSectionTitle, { marginTop: 20 }]}>ALL MODES</Text>
-                  <View style={s.modeRow}>
-                    {ONLINE_MODES.slice(0, 3).map((m, i) => (
-                      <AnimatedModeCard key={m.mode} m={m} rotation="0deg" onPress={() => handleFindMatch(m.mode)} />
-                    ))}
-                  </View>
-                  <View style={[s.modeRow, { marginBottom: 0 }]}>
-                    {ONLINE_MODES.slice(3, 6).map((m, i) => (
-                      <AnimatedModeCard key={m.mode} m={m} rotation="0deg" onPress={() => handleFindMatch(m.mode)} />
-                    ))}
-                  </View>
-                </>
+                <PublicPanel
+                  getDisplayName={getDisplayName}
+                  profileData={profileData}
+                  setScreen={setScreen}
+                  setPlayerData={setPlayerData}
+                  setRoomCode={setRoomCode}
+                  setIsHost={setIsHost}
+                  setLobbyIntent={setLobbyIntent}
+                />
               )}
 
               {isDesktop && (
@@ -1205,4 +1239,34 @@ const s = StyleSheet.create({
     fontSize: 18,
     textTransform: 'uppercase',
   },
+
+  // Lobby browser
+  noLobbiesBox: {
+    paddingVertical: 20, alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.15)',
+    borderRadius: theme.borderRadius.md, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)',
+  },
+  noLobbiesText: { fontFamily: theme.fonts.bodyBold, fontSize: 15, color: '#9CA3AF' },
+  noLobbiesSubText: { fontFamily: theme.fonts.body, fontSize: 13, color: '#6B7280', marginTop: 4 },
+  lobbyRow: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.2)', paddingHorizontal: 14, paddingVertical: 10,
+    borderRadius: theme.borderRadius.md, borderWidth: 2, borderColor: '#000', marginBottom: 8,
+    shadowColor: '#000', shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0,
+  },
+  lobbyRowTop:    { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
+  lobbyRowBottom: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+  lobbyLabel:     { fontFamily: theme.fonts.headingBold, fontSize: 15, color: '#fff' },
+  lobbyStatusDot: { width: 8, height: 8, borderRadius: 4 },
+  lobbyStatus:    { fontFamily: theme.fonts.body, fontSize: 12, color: '#D1D5DB' },
+  lobbyMeta:      { fontFamily: theme.fonts.body, fontSize: 11, color: '#9CA3AF' },
+  lobbyTag: {
+    backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 6, paddingVertical: 2,
+    borderRadius: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+  },
+  lobbyTagText:   { fontFamily: theme.fonts.body, fontSize: 10, color: '#D1D5DB' },
+  lobbyRight:     { alignItems: 'flex-end', gap: 4, marginLeft: 10 },
+  lobbyPlayers:   { fontFamily: theme.fonts.bodyBold, fontSize: 13, color: '#9CA3AF' },
+  lobbyJoin:      { fontFamily: theme.fonts.headingBold, fontSize: 14, color: '#FBBF24' },
 });
+
+

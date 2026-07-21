@@ -1,14 +1,37 @@
-# Same Same? 
+# Same Same?
 
-**Same Same?** is a real-time multiplayer word-association party game built for Web and Mobile. Players are shown a category and race to name words that either match everyone else (Same Same) or are completely unique (But Different). 
+**Same Same?** is a real-time multiplayer word-association party game built for Web and Mobile. Players are shown a category and race to name words that either match everyone else (**Same Same**) or are completely unique (**But Different**).
 
-The game uses **Groq's Llama 3** to act as a snarky AI Judge that ruthlessly validates players' unique answers!
+The game uses **Groq's Llama 3** as a snarky AI Judge that ruthlessly validates players' unique answers!
 
 ## Tech Stack
 * **Frontend:** React Native Web (Expo), deployed to Vercel. Features a highly styled app-shell architecture with neobrutalist and skeuomorphic "messy desk" aesthetics (ID cards, sticky notes, scattered polaroids).
 * **Backend:** Node.js, Express, Socket.io, deployed to Render
 * **Database:** Supabase (PostgreSQL, Auth, Storage)
 * **AI Provider:** Groq (`llama-3.1-8b-instant`)
+
+---
+
+## How to Play
+
+Same Same? uses a **Gartic.io-style public lobby system** — no long matchmaking queues.
+
+| Path | Description |
+|---|---|
+| **Quick Play** | Instantly joins the best available open public lobby (or creates one) |
+| **Browse Lobbies** | See all open public lobbies live, pick one by mode/config and join directly |
+| **Host Private Game** | Create a private room and share a 4-letter code with friends |
+| **Join by Code** | Enter a friend's 4-letter code to join their private lobby |
+
+### Default Public Lobbies (always available)
+| Code | Name | Timer | Modes |
+|---|---|---|---|
+| `PLAY` | Classic Mix | 60s | Same Same + But Different + Blitz |
+| `FAST` | Speed Round | 30s | Same Same + Blitz |
+| `LONG` | Marathon | 90s | Same Same + But Different + Blitz |
+| `TEAM` | Team Battle | 60s | Same Same + But Different (teams) |
+
+These lobbies auto-reset after a game ends and are always listed in the browser.
 
 ---
 
@@ -37,7 +60,7 @@ Run the backend:
 ```bash
 npm run start
 ```
-*(The backend will run on `http://localhost:3000`)*
+*(The backend will run on `http://localhost:3000` and immediately seed the 4 default public lobbies)*
 
 ### 2. Frontend Setup
 ```bash
@@ -72,4 +95,4 @@ The backend uses `@supabase/supabase-js` which requires the native `WebSocket` A
 ---
 
 ## 📜 Full Documentation
-For complete architectural details, game mechanics, and future roadmap, please read the [PROJECT.md](./PROJECT.md) file.
+For complete architectural details, game mechanics, socket events, and future roadmap, see [PROJECT.md](./PROJECT.md).

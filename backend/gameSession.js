@@ -50,10 +50,18 @@ class GameSession {
 
     nextRound() {
         if (this.currentRound >= this.config.maxRounds) {
+            const playerNames = {};
+            const playerAvatars = {};
+            this.players.forEach(p => { playerNames[p.id] = p.name; playerAvatars[p.id] = p.avatar; });
+
             this.io.to(this.roomId).emit('game_over', {
-                scores:     this.scores,
-                teams:      this.teams,
-                teamScores: this.teamScores,
+                scores:       this.scores,
+                teams:        this.teams,
+                teamScores:   this.teamScores,
+                playerNames,
+                playerAvatars,
+                isPublic:     this.config.isPublic || false,
+                roomCode:     this.roomId,
             });
             this.recordStatsToDatabase();
             return;

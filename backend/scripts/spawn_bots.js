@@ -1,15 +1,8 @@
 const { io } = require('socket.io-client');
-const { MODE_CONFIG } = require('../matchmaker');
 
 const SERVER_URL = 'http://localhost:3000';
-const mode = process.argv[2] || 'solo4';
-
-if (!MODE_CONFIG[mode]) {
-    console.error(`Invalid mode: ${mode}. Available modes: ${Object.keys(MODE_CONFIG).join(', ')}`);
-    process.exit(1);
-}
-
-const NUM_BOTS = Math.max(1, MODE_CONFIG[mode].minPlayers - 1); // Leave 1 spot for human
+const targetRoom = process.argv[2] || 'PLAY';
+const NUM_BOTS = parseInt(process.argv[3], 10) || 3;
 
 // A small dictionary of words for the bots to use.
 // We include some duplicates to ensure "Same Same" matches happen.
@@ -24,7 +17,7 @@ function getRandomWord() {
     return BOT_DICTIONARY[Math.floor(Math.random() * BOT_DICTIONARY.length)];
 }
 
-console.log(`🤖 Spawning ${NUM_BOTS} bots to connect to ${SERVER_URL} for mode '${mode}'...`);
+console.log(`🤖 Spawning ${NUM_BOTS} bots to connect to ${SERVER_URL} for room '${targetRoom}'...`);
 
 for (let i = 1; i <= NUM_BOTS; i++) {
     const socket = io(SERVER_URL);
@@ -32,13 +25,8 @@ for (let i = 1; i <= NUM_BOTS; i++) {
     let currentRoomCode = null;
 
     socket.on('connect', () => {
-        console.log(`[${botName}] Connected! Joining matchmaking for '${mode}'...`);
-        socket.emit('join_matchmaking', { name: botName, mode: mode });
-    });
-
-    socket.on('match_found', (data) => {
-        console.log(`[${botName}] Match found! Accepting...`);
-        socket.emit('accept_match', { matchId: data.matchId });
+        console.log(`[${botName}] Connected! Joining room '${targetRoom}'...`);
+        socket.emit('join_room', { roomCode: targetRoom, playerData: { name: botName, level: 1 } });
     });
 
     socket.on('joined_room', (data) => {

@@ -13,6 +13,7 @@ const VALID_WORDS_PER_ROUND = [3, 5, 7];
 const VALID_MODIFIERS      = ['Rush'];
 
 const DEFAULT_CONFIG = {
+    roomName:      '', // Used for Custom Public Lobbies
     maxRounds:     6,
     timeLimit:     60,
     wordsPerRound: 5,
@@ -21,6 +22,51 @@ const DEFAULT_CONFIG = {
     teamMode:      false,
     modifiers:     [],
 };
+
+// ── Default permanent public lobbies seeded on startup ────────────────────────
+const DEFAULT_LOBBIES = [
+    {
+        code: 'PLAY',
+        label: 'Classic Mix',
+        config: { ...DEFAULT_CONFIG, maxRounds: 6, timeLimit: 60, wordsPerRound: 5, roundTypes: ['Same Same', 'But Different', 'Blitz'] },
+    },
+    {
+        code: 'FAST',
+        label: 'Speed Round',
+        config: { ...DEFAULT_CONFIG, maxRounds: 6, timeLimit: 30, wordsPerRound: 3, roundTypes: ['Same Same', 'Blitz'] },
+    },
+    {
+        code: 'LONG',
+        label: 'Marathon',
+        config: { ...DEFAULT_CONFIG, maxRounds: 9, timeLimit: 90, wordsPerRound: 7, roundTypes: ['Same Same', 'But Different', 'Blitz'] },
+    },
+    {
+        code: 'TEAM',
+        label: 'Team Battle',
+        config: { ...DEFAULT_CONFIG, maxRounds: 6, timeLimit: 60, wordsPerRound: 5, roundTypes: ['Same Same', 'But Different'], teamMode: true },
+    },
+];
+
+function createDefaultLobby({ code, label, config }) {
+    if (rooms[code]) return; // Already exists
+    rooms[code] = {
+        host:        null,
+        players:     [],
+        teams:       {},
+        gameSession: null,
+        countdown:   null,
+        config:      { ...config },
+        isPublic:    true,
+        isHostless:  true,
+        isPermanent: true,
+        label,
+        votes:       {},
+    };
+}
+
+function seedDefaultLobbies() {
+    DEFAULT_LOBBIES.forEach(createDefaultLobby);
+}
 
 function validateConfig(incoming) {
     const config = { ...DEFAULT_CONFIG };
@@ -37,15 +83,19 @@ function validateConfig(incoming) {
     const validPacks = ['all', ...getPackNames()];
     if (validPacks.includes(incoming.categoryPack)) config.categoryPack = incoming.categoryPack;
     if (typeof incoming.teamMode === 'boolean') config.teamMode = incoming.teamMode;
+    if (typeof incoming.roomName === 'string') config.roomName = incoming.roomName.substring(0, 20); // Limit name length
     return config;
 }
 
 function generateRoomCode() {
-    let result = '';
+    let result;
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    for (let i = 0; i < 4; i++) {
-        result += characters.charAt(Math.floor(Math.random() * characters.length));
-    }
+    do {
+        result = '';
+        for (let i = 0; i < 4; i++) {
+            result += characters.charAt(Math.floor(Math.random() * characters.length));
+        }
+    } while (rooms[result]); // Ensure uniqueness
     return result;
 }
 
@@ -92,7 +142,141 @@ function createRoom(io, socket, playerData) {
         players: safePlayerList([player]),
         teams:   teams,
         config:  rooms[roomCode].config,
+        isPublic: false,
+        isHostless: false,
     });
+}
+
+// ── Custom Public Room ────────────────────────────────────────────────────────
+function createCustomPublicRoom(io, socket, playerData) {
+    const roomCode = generateRoomCode();
+    const player = { id: socket.id, name: playerData.name || 'Host', level: playerData.level || 1, avatar: playerData.avatar, socket };
+    const teams = { [socket.id]: 'A' };
+
+    rooms[roomCode] = {
+        host:        socket.id,
+        players:     [player],
+        teams:       teams,
+        gameSession: null,
+        countdown:   null,
+        config:      { ...DEFAULT_CONFIG },
+        isPublic:    true,
+        isHostless:  false, // Creator is host
+        votes:       {},
+    };
+
+    socket.join(roomCode);
+    socket.emit('room_created', {
+        roomCode,
+        host:    true,
+        players: safePlayerList([player]),
+        teams:   teams,
+        config:  rooms[roomCode].config,
+        isPublic: true,
+        isHostless: false,
+    });
+}
+
+// ── Quick Play: find an open public lobby or create a new one ────────────────
+function findOrCreatePublicRoom(io, socket, playerData) {
+    // Find an existing public room that hasn't started and has room
+    const openRoom = Object.entries(rooms).find(([code, room]) => {
+        return room.isPublic &&
+               !room.gameSession &&
+               room.players.length < MAX_PLAYERS;
+    });
+
+    const player = {
+        id: socket.id,
+        name: playerData.name || 'Player',
+        level: playerData.level || 1,
+        avatar: playerData.avatar,
+        socket
+    };
+
+    if (openRoom) {
+        const [roomCode, room] = openRoom;
+        room.players.push(player);
+        room.teams[socket.id] = assignTeam(room.teams);
+        socket.join(roomCode);
+
+        const safePlayers = safePlayerList(room.players);
+        io.to(roomCode).emit('player_joined', { players: safePlayers, teams: room.teams });
+        socket.emit('joined_room', {
+            roomCode,
+            players: safePlayers,
+            host: false,
+            config: room.config,
+            teams: room.teams,
+            isPublic: true,
+        });
+
+        // If enough players and no countdown yet, start one
+        if (room.players.length >= MIN_PLAYERS && !room.countdown) {
+            startPublicCountdown(io, roomCode);
+        }
+    } else {
+        // Create a new public room with this player as the first (and only)
+        const roomCode = generateRoomCode();
+        const teams = { [socket.id]: 'A' };
+
+        rooms[roomCode] = {
+            host: socket.id,
+            players: [player],
+            teams,
+            gameSession: null,
+            countdown: null,
+            config: { ...DEFAULT_CONFIG },
+            isPublic: true,
+            isHostless: true,
+            votes: {},
+        };
+
+        socket.join(roomCode);
+        socket.emit('joined_room', {
+            roomCode,
+            players: safePlayerList([player]),
+            host: true,
+            config: rooms[roomCode].config,
+            teams,
+            isPublic: true,
+            waitingForPlayers: true,
+        });
+    }
+}
+
+// ── Play Again: reset game session and return everyone to the lobby ────────────
+function playAgain(io, socket, roomCode) {
+    const room = rooms[roomCode];
+    if (!room) return;
+
+    // For private rooms or hosted public rooms, only the host can do this
+    if (!room.isHostless && room.host !== socket.id) return;
+
+    // Clear game state
+    if (room.gameSession) {
+        room.gameSession = null;
+    }
+    if (room.countdown) {
+        clearInterval(room.countdown);
+        room.countdown = null;
+    }
+    room.votes = {};
+
+    // Broadcast lobby return to all connected players
+    io.to(roomCode).emit('force_lobby', {
+        roomCode,
+        players: safePlayerList(room.players),
+        host: room.host,
+        config: room.config,
+        teams: room.teams,
+        isPublic: room.isPublic,
+    });
+
+    // For hostless public rooms, restart the countdown if enough players remain
+    if (room.isHostless && room.players.length >= MIN_PLAYERS) {
+        setTimeout(() => startPublicCountdown(io, roomCode), 2000);
+    }
 }
 
 function createPublicRoom(io, players, mmMode = 'solo4') {
@@ -118,6 +302,7 @@ function createPublicRoom(io, players, mmMode = 'solo4') {
         countdown:   null,
         config:      roomConfig,
         isPublic:    true,
+        isHostless:  true,
         votes:       {},
     };
 
@@ -185,6 +370,7 @@ function startPublicCountdown(io, roomCode) {
             const sessionConfig = {
                 ...room.config,
                 teams: room.config.teamMode ? { ...room.teams } : null,
+                isPublic: room.isPublic || false,
             };
             room.gameSession = new GameSession(io, roomCode, gamePlayers, sessionConfig);
             room.gameSession.start();
@@ -198,7 +384,52 @@ function joinRoom(io, socket, roomCode, playerData) {
         socket.emit('room_error', { message: 'Room not found.' });
         return;
     }
-    if (room.gameSession || room.countdown) {
+
+    // Overflow logic for permanent lobbies
+    if (room.isPermanent && (room.gameSession || room.players.length >= MAX_PLAYERS)) {
+        // Find existing overflow clone that is open
+        const openClone = Object.entries(rooms).find(([code, r]) => {
+            return r.isOverflowFor === roomCode && !r.gameSession && r.players.length < MAX_PLAYERS;
+        });
+
+        if (openClone) {
+            return joinRoom(io, socket, openClone[0], playerData);
+        } else {
+            // Create a new overflow clone
+            const newCode = generateRoomCode();
+            const player = { id: socket.id, name: playerData.name || 'Player', level: playerData.level || 1, avatar: playerData.avatar, socket };
+            const teams = { [socket.id]: 'A' };
+            
+            rooms[newCode] = {
+                host: socket.id, // technically hostless, but ID stored for migration
+                players: [player],
+                teams,
+                gameSession: null,
+                countdown: null,
+                config: { ...room.config },
+                isPublic: true,
+                isHostless: true,
+                isOverflowFor: roomCode,
+                label: room.label,
+                votes: {},
+            };
+            
+            socket.join(newCode);
+            socket.emit('joined_room', {
+                roomCode: newCode,
+                players: safePlayerList([player]),
+                host: false,
+                config: rooms[newCode].config,
+                teams,
+                isPublic: true,
+                isHostless: true,
+                waitingForPlayers: true,
+            });
+            return;
+        }
+    }
+
+    if (room.gameSession) {
         socket.emit('room_error', { message: 'Game has already started.' });
         return;
     }
@@ -220,15 +451,22 @@ function joinRoom(io, socket, roomCode, playerData) {
     socket.emit('joined_room', {
         roomCode,
         players: safePlayers,
-        host:    false,
+        host:    !room.isHostless && room.host === socket.id,
         config:  room.config,
         teams:   room.teams,
+        isPublic: room.isPublic,
+        isHostless: room.isHostless || false,
     });
+
+    // Auto-start for hostless public rooms
+    if (room.isPublic && room.isHostless && room.players.length >= MAX_PLAYERS && !room.countdown && !room.gameSession) {
+        startPublicCountdown(io, roomCode);
+    }
 }
 
 function updateConfig(io, socket, roomCode, incomingConfig) {
     const room = rooms[roomCode];
-    if (!room || room.host !== socket.id || room.gameSession || room.countdown || room.isPublic) return;
+    if (!room || room.host !== socket.id || room.gameSession || room.countdown || room.isHostless) return;
 
     room.config = validateConfig(incomingConfig);
     io.to(roomCode).emit('config_updated', { config: room.config });
@@ -236,7 +474,7 @@ function updateConfig(io, socket, roomCode, incomingConfig) {
 
 function updateTeams(io, socket, roomCode, incomingTeams) {
     const room = rooms[roomCode];
-    if (!room || room.host !== socket.id || room.gameSession || room.countdown || room.isPublic) return;
+    if (!room || room.host !== socket.id || room.gameSession || room.countdown || room.isHostless) return;
 
     // Validate: every key must be a current player, every value must be 'A' or 'B'
     const playerIds = new Set(room.players.map(p => p.id));
@@ -250,7 +488,7 @@ function updateTeams(io, socket, roomCode, incomingTeams) {
 
 function kickPlayer(io, socket, roomCode, targetId) {
     const room = rooms[roomCode];
-    if (!room || room.host !== socket.id || room.isPublic) return;
+    if (!room || room.host !== socket.id || room.isHostless) return;
     if (targetId === socket.id) return;
 
     const target = room.players.find(p => p.id === targetId);
@@ -275,7 +513,15 @@ function leaveRoom(io, socket, roomCode) {
     socket.leave(roomCode);
 
     if (room.players.length === 0) {
-        delete rooms[roomCode];
+        if (room.isPermanent) {
+            room.gameSession = null;
+            room.countdown   = null;
+            room.votes       = {};
+            room.teams       = {};
+            room.host        = null;
+        } else {
+            delete rooms[roomCode];
+        }
         return;
     }
 
@@ -291,7 +537,7 @@ function leaveRoom(io, socket, roomCode) {
 
 function startGame(io, socket, roomCode) {
     const room = rooms[roomCode];
-    if (!room || room.host !== socket.id || room.gameSession || room.countdown || room.isPublic) return;
+    if (!room || room.host !== socket.id || room.gameSession || room.countdown || room.isHostless) return;
 
     const minPlayers = room.config.teamMode ? MIN_TEAM_PLAYERS : MIN_PLAYERS;
     if (room.players.length < minPlayers) {
@@ -372,7 +618,16 @@ function handleDisconnect(io, socket) {
         room.teams   = pruneTeams(room.teams, room.players);
 
         if (room.players.length === 0) {
-            delete rooms[code];
+            if (room.isPermanent) {
+                // Recreate the lobby skeleton instead of deleting it
+                room.gameSession = null;
+                room.countdown   = null;
+                room.votes       = {};
+                room.teams       = {};
+                room.host        = null;
+            } else {
+                delete rooms[code];
+            }
             continue;
         }
 
@@ -414,18 +669,23 @@ function submitVote(io, socket, roomCode, packId) {
 
 module.exports = {
     createRoom,
+    createCustomPublicRoom,
     createPublicRoom,
+    findOrCreatePublicRoom,
     joinRoom,
     updateConfig,
     updateTeams,
     kickPlayer,
     leaveRoom,
     startGame,
+    playAgain,
     submitWord,
     voteNextStep,
     forceNextStep,
     handleDisconnect,
     submitVote,
+    seedDefaultLobbies,
+    rooms,
 };
 
 
