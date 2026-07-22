@@ -8,6 +8,7 @@ import { supabase } from '../supabase';
 import { AuthContext } from '../context/AuthContext';
 import { theme } from '../styles/theme';
 import FramedAvatar from '../components/FramedAvatar';
+import { useTranslation } from 'react-i18next';
 
 const UNLOCK_THRESHOLDS = [
   { level: 5, frame: 'bronze', label: 'Bronze Frame' },
@@ -18,6 +19,7 @@ const UNLOCK_THRESHOLDS = [
 ];
 
 export default function SettingsScreen({ setScreen, setIsGuest }) {
+  const { t, i18n } = useTranslation();
   const { user } = useContext(AuthContext);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);

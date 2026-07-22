@@ -5,10 +5,12 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { supabase } from '../supabase';
 import { theme } from '../styles/theme';
+import { useTranslation } from 'react-i18next';
 
 WebBrowser.maybeCompleteAuthSession();
 
 export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('guest'); // 'guest' | 'auth'
 
@@ -104,7 +106,7 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
     setNameError('');
     const newName = guestName.trim();
     if (!newName) {
-      setNameError('Please enter a guest name.');
+      setNameError(t('landing.pleaseEnterGuestName'));
       return;
     }
     
@@ -117,7 +119,7 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        setNameError(data.error || 'Failed to validate username');
+        setNameError(data.error || t('landing.failedToValidateUsername'));
         return;
       }
       // Note: we don't catch unique constraints here because guests aren't in Supabase profiles yet.
@@ -161,7 +163,7 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
         }
       }
     } catch (error) {
-      Alert.alert('Google Login Failed', error.message);
+      Alert.alert(t('landing.googleLoginFailed'), error.message);
     } finally {
       setLoading(false);
     }
@@ -186,13 +188,13 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
                 style={[s.tab, activeTab === 'guest' && s.activeTab]}
                 onPress={() => goToTab('guest')}
               >
-                <Text style={[s.tabText, activeTab === 'guest' && s.activeTabText]}>🎟️ VISITOR PASS</Text>
+                <Text style={[s.tabText, activeTab === 'guest' && s.activeTabText]}>{t('landing.visitorPassTab')}</Text>
               </NeoButton>
               <NeoButton
                 style={[s.tab, activeTab === 'auth' && s.activeTab, { borderRightWidth: 0 }]}
                 onPress={() => goToTab('auth')}
               >
-                <Text style={[s.tabText, activeTab === 'auth' && s.activeTabText]}>🪪 SAMESAME ID</Text>
+                <Text style={[s.tabText, activeTab === 'auth' && s.activeTabText]}>{t('landing.samesameidTab')}</Text>
               </NeoButton>
             </View>
 
@@ -225,7 +227,7 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
                           style={[s.input, { width: '85%', textAlign: 'center' }]}
                           onChangeText={(t) => { setGuestName(t); setNameError(''); }}
                           value={guestName}
-                          placeholder="ENTER GUEST NAME"
+                          placeholder={t('landing.enterGuestName')}
                           placeholderTextColor="#a0603a"
                         />
                         {nameError ? <Text style={{ color: '#EF4444', fontFamily: theme.fonts.bodyBold, fontSize: 12, marginTop: 4, textAlign: 'center' }}>{nameError}</Text> : null}
@@ -242,7 +244,7 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
                       {loading ? (
                         <ActivityIndicator color="#fff" />
                       ) : (
-                        <Text style={[s.guestBtnText, { fontSize: 16 * tScale }]}>ENTER AS GUEST →</Text>
+                        <Text style={[s.guestBtnText, { fontSize: 16 * tScale }]}>{t('landing.enterAsGuest')}</Text>
                       )}
                     </NeoButton>
                   </View>
@@ -265,7 +267,7 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
                       >
                         {loading
                           ? <ActivityIndicator color="#000" />
-                          : <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: 13, color: '#000' }}>🌐 CONTINUE WITH GOOGLE</Text>
+                          : <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: 13, color: '#000' }}>{t('landing.continueWithGoogle')}</Text>
                         }
                       </NeoButton>
                     </View>
@@ -273,7 +275,7 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
                   {/* Auth bottom action */}
                   <View style={{ height: 100, paddingHorizontal: 24, paddingVertical: 16, alignItems: 'center', justifyContent: 'center' }}>
                     <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: 11 * tScale, color: '#333', textAlign: 'center', paddingHorizontal: 10 }}>
-                      {"\"By linking an account, you legally agree that it's your fault when you lose.\""}
+                      {t('landing.legalDisclaimer')}
                     </Text>
                   </View>
                 </View>
@@ -287,27 +289,27 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
           {isDesktop && (
             <View style={[s.col, s.colNews, { backgroundColor: '#F3F4F6' }, { flex: 7 }]}>
               <View style={[s.colHeader, { backgroundColor: theme.colors.accent }]}>
-                <Text style={s.colTitle}>📻 TRANSMISSIONS</Text>
-                <Text style={s.colSubtitle}>SYSTEM UPDATES & RULES</Text>
+                <Text style={s.colTitle}>{t('landing.transmissions')}</Text>
+                <Text style={s.colSubtitle}>{t('landing.systemUpdates')}</Text>
               </View>
               <View style={s.colNewsBody}>
                 
                 <View style={s.newsItem}>
-                  <Text style={s.newsDate}>v0.9.4 — TODAY</Text>
-                  <Text style={s.newsHeadline}>Couch Royale is here!</Text>
-                  <Text style={s.newsBody}>Grab up to 8 friends on the same screen and battle it out in our chaotic new local mode.</Text>
+                  <Text style={s.newsDate}>{t('landing.news_v094_date')}</Text>
+                  <Text style={s.newsHeadline}>{t('landing.news_v094_headline')}</Text>
+                  <Text style={s.newsBody}>{t('landing.news_v094_body')}</Text>
                 </View>
 
                 <View style={s.newsItem}>
-                  <Text style={s.newsDate}>SERVER STATUS</Text>
-                  <Text style={s.newsHeadline}>All Systems Operational</Text>
-                  <Text style={s.newsBody}>Current matchmaking wait times are under 10 seconds.</Text>
+                  <Text style={s.newsDate}>{t('landing.news_server_date')}</Text>
+                  <Text style={s.newsHeadline}>{t('landing.news_server_headline')}</Text>
+                  <Text style={s.newsBody}>{t('landing.news_server_body')}</Text>
                 </View>
 
                 <View style={s.newsItem}>
-                  <Text style={s.newsDate}>QUICK RULES</Text>
-                  <Text style={s.newsHeadline}>How to play</Text>
-                  <Text style={s.newsBody}>1. Answer the prompt.{'\n'}2. Try to match the majority.{'\n'}3. Survive the longest!</Text>
+                  <Text style={s.newsDate}>{t('landing.news_rules_date')}</Text>
+                  <Text style={s.newsHeadline}>{t('landing.news_rules_headline')}</Text>
+                  <Text style={s.newsBody}>{t('landing.news_rules_body')}</Text>
                 </View>
 
               </View>

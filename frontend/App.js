@@ -22,6 +22,7 @@ import { AuthProvider, AuthContext } from './src/context/AuthContext';
 import { socket } from './src/socket';
 import { theme } from './src/styles/theme';
 import { supabase } from './src/supabase';
+import './src/i18n';
 
 SplashScreen.preventAutoHideAsync();
 

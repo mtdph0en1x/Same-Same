@@ -18,6 +18,7 @@ import { theme } from '../styles/theme';
 import { AuthContext } from '../context/AuthContext';
 import { supabase } from '../supabase';
 import { socket } from '../socket';
+import { useTranslation } from 'react-i18next';
 import Button from '../components/Button';
 import FramedAvatar from '../components/FramedAvatar';
 
@@ -69,7 +70,7 @@ function AnimatedModeCard({ m, onPress, rotation }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared modal renderers
 // ─────────────────────────────────────────────────────────────────────────────
-function joinModal(visible, setVisible, code, setCode, onJoin) {
+function joinModal(visible, setVisible, code, setCode, onJoin, t) {
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={() => setVisible(false)}>
       <View style={s.modalOverlay}>
@@ -77,10 +78,10 @@ function joinModal(visible, setVisible, code, setCode, onJoin) {
           <NeoButton style={s.closeBtn} onPress={() => setVisible(false)}>
             <Text style={s.closeBtnText}>✕</Text>
           </NeoButton>
-          <Text style={s.modalTitle}>Join Game</Text>
+          <Text style={s.modalTitle}>{t('home.joinGameModal')}</Text>
           <TextInput
             style={[s.panelInput, s.codeInput]}
-            placeholder="ENTER 4-LETTER CODE"
+            placeholder={t('home.enter4LetterCode')}
             placeholderTextColor="#9ca3af"
             value={code}
             onChangeText={setCode}
@@ -88,14 +89,14 @@ function joinModal(visible, setVisible, code, setCode, onJoin) {
             autoCapitalize="characters"
             autoCorrect={false}
           />
-          <Button title="Join Room" onPress={onJoin} type="primary" />
+          <Button title={t('home.joinRoom')} onPress={onJoin} type="primary" />
         </View>
       </View>
     </Modal>
   );
 }
 
-function mmModal(visible, setVisible, onFindMatch) {
+function mmModal(visible, setVisible, onFindMatch, t) {
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={() => setVisible(false)}>
       <View style={s.modalOverlay}>
@@ -103,8 +104,8 @@ function mmModal(visible, setVisible, onFindMatch) {
           <NeoButton style={s.closeBtn} onPress={() => setVisible(false)}>
             <Text style={s.closeBtnText}>✕</Text>
           </NeoButton>
-          <Text style={s.modalTitle}>Select Mode</Text>
-          <Text style={s.mmSectionTitle}>Teams</Text>
+          <Text style={s.modalTitle}>{t('home.selectMode')}</Text>
+          <Text style={s.mmSectionTitle}>{t('home.teams')}</Text>
           <View style={s.mmRow}>
             <NeoButton style={s.mmBtn} onPress={() => onFindMatch('team2v2')}>
               <Text style={s.mmBtnText}>🤝 2v2</Text>
@@ -113,7 +114,7 @@ function mmModal(visible, setVisible, onFindMatch) {
               <Text style={s.mmBtnText}>🛡️ 4v4</Text>
             </NeoButton>
           </View>
-          <Text style={s.mmSectionTitle}>Solo</Text>
+          <Text style={s.mmSectionTitle}>{t('home.solo')}</Text>
           <View style={s.mmRow}>
             <NeoButton style={s.mmBtn} onPress={() => onFindMatch('duel')}>
               <Text style={s.mmBtnText}>⚔️ 1v1</Text>
@@ -136,17 +137,57 @@ function mmModal(visible, setVisible, onFindMatch) {
   );
 }
 
+function langModal(visible, setVisible, i18n, t) {
+  const languages = [
+    { code: 'en', label: 'English', emoji: '🇬🇧' },
+    { code: 'es', label: 'Español', emoji: '🇪🇸' }
+  ];
+
+  return (
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={() => setVisible(false)}>
+      <View style={s.modalOverlay}>
+        <View style={s.modalContent}>
+          <NeoButton style={s.closeBtn} onPress={() => setVisible(false)}>
+            <Text style={s.closeBtnText}>✕</Text>
+          </NeoButton>
+          <Text style={s.modalTitle}>{t('settings.language', 'Select Language')}</Text>
+          <View style={{ gap: 12, marginTop: 10 }}>
+            {languages.map((l) => (
+              <NeoButton 
+                key={l.code}
+                style={[
+                  { padding: 16, borderRadius: theme.borderRadius.md, borderWidth: 3, borderColor: '#000', alignItems: 'center' },
+                  i18n.language.startsWith(l.code) ? { backgroundColor: theme.colors.primary } : { backgroundColor: '#f3f4f6' }
+                ]} 
+                onPress={() => {
+                  i18n.changeLanguage(l.code);
+                  setVisible(false);
+                }}
+              >
+                <Text style={{ fontFamily: theme.fonts.headingBold, fontSize: 18, color: '#000' }}>
+                  {l.emoji} {l.label}
+                </Text>
+              </NeoButton>
+            ))}
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main HomeScreen
 // ─────────────────────────────────────────────────────────────────────────────
 export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setIsHost, setLobbyIntent, setIsGuest, guestName }) {
+  const { t, i18n } = useTranslation();
   const { user } = useContext(AuthContext);
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [profileData, setProfileData] = useState(null);
   const [joinModalVisible, setJoinModalVisible] = useState(false);
   const [mmModalVisible, setMmModalVisible] = useState(false);
+  const [langModalVisible, setLangModalVisible] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
   const [activeTab, setActiveTab] = useState('play');
 
@@ -190,7 +231,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
   };
 
   const handleOpenMmModal = () => {
-    if (!getDisplayName()) return Alert.alert('Name required', 'Enter a name to continue!');
+    if (!getDisplayName()) return Alert.alert(t('home.nameRequired'), t('home.enterNameToContinue'));
     setMmModalVisible(true);
   };
 
@@ -204,7 +245,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
 
   const handleQuickPlay = () => {
     const displayName = getDisplayName();
-    if (!displayName) return Alert.alert('Name required', 'Enter a name first!');
+    if (!displayName) return Alert.alert(t('home.nameRequired'), t('home.enterNameFirst'));
     const playerData = { name: displayName, avatar: profileData?.avatar, level: profileData?.level || 1, frame: profileData?.active_frame || 'none' };
     setPlayerData(playerData);
     setIsHost(false);
@@ -214,7 +255,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
 
   const handleHostGame = () => {
     const displayName = getDisplayName();
-    if (!displayName) return Alert.alert('Name required', 'Enter a name to continue!');
+    if (!displayName) return Alert.alert(t('home.nameRequired'), t('home.enterNameToContinue'));
     setPlayerData({ name: displayName, avatar: profileData?.avatar || 'alien', frame: profileData?.active_frame || 'none' });
     setIsHost(true);
     setLobbyIntent('host_game');
@@ -224,7 +265,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
   const handleJoinCouch = () => {
     const displayName = getDisplayName();
     if (!displayName || !code || code.length < 4)
-      return Alert.alert('Oops', 'Enter a valid 4-letter code!');
+      return Alert.alert(t('home.oops'), t('home.enterValidCode'));
     setJoinModalVisible(false);
     setPlayerData({ name: displayName, avatar: profileData?.avatar || 'alien', frame: profileData?.active_frame || 'none' });
     setRoomCode(code.toUpperCase());
@@ -254,7 +295,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
             onPress={() => setActiveTab('profile')}
             activeOpacity={0.8}
           >
-            <Text style={[s.tabText, activeTab === 'profile' && s.tabTextActive]}>PROFILE</Text>
+            <Text style={[s.tabText, activeTab === 'profile' && s.tabTextActive]}>{t('home.tabProfile')}</Text>
           </NeoButton>
           <View style={s.tabDivider} />
           <NeoButton 
@@ -262,7 +303,15 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
             onPress={() => setActiveTab('play')}
             activeOpacity={0.8}
           >
-            <Text style={[s.tabText, activeTab === 'play' && s.tabTextActive]}>PLAY</Text>
+            <Text style={[s.tabText, activeTab === 'play' && s.tabTextActive]}>{t('home.tabPlay')}</Text>
+          </NeoButton>
+          <View style={s.tabDivider} />
+          <NeoButton 
+            style={[s.tabBtn, { maxWidth: 80, backgroundColor: '#fff' }]} 
+            onPress={() => setLangModalVisible(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={[s.tabText, { fontSize: 16, color: '#000' }]}>🌐 {i18n.language.startsWith('en') ? 'EN' : 'ES'}</Text>
           </NeoButton>
         </View>
       )}
@@ -286,8 +335,8 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
               ]}
             >
             <View style={[s.panelHeader, user ? s.panelHeaderLeft : { backgroundColor: '#FBBF24' }]}>
-              <Text style={s.panelHeaderText}>{user ? 'SAMESAME ID' : 'VISITOR PASS'}</Text>
-              <Text style={s.panelSubText}>{user ? 'OFFICIAL PLAYER BADGE' : 'TEMPORARY ACCESS'}</Text>
+              <Text style={s.panelHeaderText}>{user ? t('home.samesameid') : t('home.visitorPass')}</Text>
+              <Text style={s.panelSubText}>{user ? t('home.officialPlayerBadge') : t('home.temporaryAccess')}</Text>
             </View>
 
             <View style={[s.panelBody, s.panelBodyLeft]}>
@@ -340,10 +389,10 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
                       {user ? (
                         <View style={[s.statsList, { marginTop: 0, paddingHorizontal: 0 }]}>
                           {[
-                            { label: 'GAMES PLAYED', value: profileData?.games_played || 0 },
-                            { label: 'MATCH WINS', value: profileData?.wins || 0 },
-                            { label: 'WIN RATE', value: (profileData?.games_played > 0 ? Math.round((profileData.wins / profileData.games_played) * 100) : 0) + '%' },
-                            { label: 'LEVEL', value: profileData?.level || 1 },
+                            { label: t('home.gamesPlayed'), value: profileData?.games_played || 0 },
+                            { label: t('home.matchWins'), value: profileData?.wins || 0 },
+                            { label: t('home.winRate'), value: (profileData?.games_played > 0 ? Math.round((profileData.wins / profileData.games_played) * 100) : 0) + '%' },
+                            { label: t('home.levelStat'), value: profileData?.level || 1 },
                           ].map((stat) => (
                             <View key={stat.label} style={s.statListItem}>
                               <Text style={[s.statListLabel, { fontSize: (!isDesktop ? 10 : 11) * tScale }]}>{stat.label}</Text>
@@ -354,7 +403,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
                         </View>
                       ) : (
                         <View style={[s.statsList, { marginTop: 0, paddingHorizontal: 0 }]}>
-                           <Text style={[s.statListLabel, { fontSize: (!isDesktop ? 10 : 11) * tScale, color: '#9ca3af' }]}>NO STATS FOR GUESTS</Text>
+                           <Text style={[s.statListLabel, { fontSize: (!isDesktop ? 10 : 11) * tScale, color: '#9ca3af' }]}>{t('home.noStatsForGuests')}</Text>
                         </View>
                       )}
                     </View>
@@ -369,7 +418,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
                     onPress={() => setScreen('Settings')}
                   >
                     <Text style={{ fontSize: 20 }}>⚙️</Text>
-                    <Text style={[s.signOutBtnText, { color: '#000' }]}>{user ? 'PROFILE SETTINGS' : 'GUEST SETTINGS'}</Text>
+                    <Text style={[s.signOutBtnText, { color: '#000' }]}>{user ? t('home.profileSettings') : t('home.guestSettings')}</Text>
                   </NeoButton>
                 </View>
               </View>
@@ -403,46 +452,56 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
                 }
               ]}
             >
-            <View style={[s.panelHeader, s.panelHeaderRight]}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <Text style={s.panelHeaderText}>PLAY</Text>
+            <View style={[s.panelHeader, s.panelHeaderRight, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }]}>
+              <View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <Text style={s.panelHeaderText}>{t('home.play')}</Text>
+                </View>
+                <Text style={s.panelSubText}>{t('home.chooseHowToPlay')}</Text>
               </View>
-              <Text style={s.panelSubText}>Choose how you want to play</Text>
+              {isDesktop && (
+                <NeoButton 
+                  style={{ backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 2, borderColor: '#000' }}
+                  onPress={() => setLangModalVisible(true)}
+                >
+                  <Text style={{ fontFamily: theme.fonts.headingBold, fontSize: 14, color: '#000' }}>🌐 {i18n.language.startsWith('en') ? 'EN' : 'ES'}</Text>
+                </NeoButton>
+              )}
             </View>
 
             <View style={[s.panelBody, { gap: 16 }]}>
               
               <Button
-                title="HOST GAME"
-                subtext="Create a room for friends or open it to the public"
+                title={t('home.hostGame')}
+                subtext={t('home.hostGameSub')}
                 onPress={handleHostGame}
                 type="secondary"
               />
 
               <Button
-                title="QUICK PLAY"
-                subtext="Join an open public lobby instantly"
+                title={t('home.quickPlay')}
+                subtext={t('home.quickPlaySub')}
                 onPress={handleQuickPlay}
                 type="primary"
               />
 
               <Button
-                title="BROWSE LOBBIES"
-                subtext="Find specific modes or hosted games"
+                title={t('home.browseLobbies')}
+                subtext={t('home.browseLobbiesSub')}
                 onPress={() => setScreen('LobbyBrowser')}
                 type="tertiary"
               />
 
               <Button
-                title="LEADERBOARDS"
-                subtext="Global Rankings"
+                title={t('home.leaderboards')}
+                subtext={t('home.leaderboardsSub')}
                 onPress={() => setScreen('GlobalLeaderboard')}
                 type="tertiary"
               />
 
               <View style={[s.dividerRow, { marginTop: 24, marginBottom: 10 }]}>
                 <View style={s.divider} />
-                <Text style={s.dividerText}>OR JOIN VIA CODE</Text>
+                <Text style={s.dividerText}>{t('home.orJoinViaCode')}</Text>
                 <View style={s.divider} />
               </View>
 
@@ -459,7 +518,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
                     autoCorrect={false}
                   />
                   <Button
-                    title="Join →"
+                    title={t('home.joinArrow')}
                     onPress={handleJoinCouch}
                     type="primary"
                     style={s.joinBtn}
@@ -488,7 +547,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
                     autoCorrect={false}
                   />
                   <Button
-                    title="JOIN GAME"
+                    title={t('home.joinGame')}
                     onPress={handleJoinCouch}
                     type="primary"
                   />
@@ -501,8 +560,9 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
 
       </View>
       </ScrollView>
-      {joinModal(joinModalVisible, setJoinModalVisible, code, setCode, handleJoinCouch)}
-      {mmModal(mmModalVisible, setMmModalVisible, handleFindMatch)}
+      {joinModal(joinModalVisible, setJoinModalVisible, code, setCode, handleJoinCouch, t)}
+      {mmModal(mmModalVisible, setMmModalVisible, handleFindMatch, t)}
+      {langModal(langModalVisible, setLangModalVisible, i18n, t)}
     </View>
   );
 }
