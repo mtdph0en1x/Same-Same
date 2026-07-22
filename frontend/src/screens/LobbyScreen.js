@@ -406,13 +406,33 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
       {/* Full-screen countdown for private or hosted public rooms */}
       {countdown !== null && (!isPublic || !isHostless) && <CountdownOverlay count={countdown} />}
 
-      <ScrollView contentContainerStyle={[styles.container, isDesktop && styles.containerDesktop]} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.container, !isDesktop && { padding: 16 }, isDesktop && styles.containerDesktop]} showsVerticalScrollIndicator={false}>
 
-        {/* Header */}
-        <View style={styles.header}>
-          <NeoButton style={styles.leaveButton} onPress={handleLeave}>
-            <AppText style={styles.leaveButtonText}>{t('lobby.leave', '← Leave')}</AppText>
-          </NeoButton>
+        {/* Unified Header */}
+        <View style={[
+          { width: '100%', marginBottom: isDesktop ? 16 : 24 },
+          isDesktop ? { flexDirection: 'row', alignItems: 'center' } : { flexDirection: 'column', alignItems: 'center', gap: 16 }
+        ]}>
+          <View style={!isDesktop ? { width: '100%', flexDirection: 'row', justifyContent: 'flex-start' } : {}}>
+            <NeoButton style={styles.leaveButton} onPress={handleLeave}>
+              <AppText style={styles.leaveButtonText}>{t('lobby.leave', '← Leave')}</AppText>
+            </NeoButton>
+          </View>
+          
+          {/* ONLY ON MOBILE: Show Room Code/Title below the leave button */}
+          {!isDesktop && (
+            <View style={{ alignItems: 'center' }}>
+              {roomCode ? (
+                <View style={styles.codeContainer}>
+                  <AppText style={styles.codeLabel}>{t('lobby.roomCode', 'ROOM CODE')}</AppText>
+                  <AppText style={[styles.roomCode, { fontSize: 48, letterSpacing: 4 }]}>{roomCode}</AppText>
+                </View>
+              ) : (
+                <AppText style={[styles.title, { fontSize: 28, marginBottom: 12 }]}>{isHost ? t('lobby.creatingRoom', 'Creating Room...') : t('lobby.matchmakingTitle', 'Matchmaking')}</AppText>
+              )}
+              <AppText style={styles.status}>{status}</AppText>
+            </View>
+          )}
         </View>
 
         <View style={isDesktop ? styles.desktopRow : {}}>
@@ -425,21 +445,24 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
           </View>
         )}
 
-        {/* Room code */}
-        {roomCode ? (
-          <View style={styles.codeContainer}>
-            <AppText style={styles.codeLabel}>{t('lobby.roomCode', 'ROOM CODE')}</AppText>
-            <AppText style={styles.roomCode}>{roomCode}</AppText>
+        {/* ONLY ON DESKTOP: Show Room Code/Title in the left column */}
+        {isDesktop && (
+          <View style={{ alignItems: 'flex-start' }}>
+            {roomCode ? (
+              <View style={[styles.codeContainer, { alignItems: 'flex-start' }]}>
+                <AppText style={styles.codeLabel}>{t('lobby.roomCode', 'ROOM CODE')}</AppText>
+                <AppText style={styles.roomCode}>{roomCode}</AppText>
+              </View>
+            ) : (
+              <AppText style={styles.title}>{isHost ? t('lobby.creatingRoom', 'Creating Room...') : t('lobby.matchmakingTitle', 'Matchmaking')}</AppText>
+            )}
+            <AppText style={[styles.status, { textAlign: 'left' }]}>{status}</AppText>
           </View>
-        ) : (
-          <AppText style={styles.title}>{isHost ? t('lobby.creatingRoom', 'Creating Room...') : t('lobby.matchmakingTitle', 'Matchmaking')}</AppText>
         )}
-
-        <AppText style={styles.status}>{status}</AppText>
 
         {/* ── Player list ────────────────────────────────────────────── */}
         {players.length > 0 && (
-          <View style={styles.card}>
+          <View style={[styles.card, !isDesktop && { padding: 16 }]}>
             {config.teamMode ? (
               /* Two-column team board */
               <>
@@ -503,8 +526,8 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
           <View style={isDesktop ? styles.desktopColRight : {}}>
           {/* ── Settings panel ─────────────────────────────────────────── */}
           {roomCode && (!isPublic || !isHostless) && (
-          <View style={styles.card}>
-            <AppText style={styles.cardLabel}>{!isHost ? t('lobby.gameSettingsReadOnly', 'GAME SETTINGS  (set by host)') : t('lobby.gameSettings', 'GAME SETTINGS')}</AppText>
+          <View style={[styles.card, !isDesktop && { padding: 16 }]}>
+            <AppText style={[styles.cardLabel, !isDesktop && { marginBottom: 12 }]}>{!isHost ? t('lobby.gameSettingsReadOnly', 'GAME SETTINGS  (set by host)') : t('lobby.gameSettings', 'GAME SETTINGS')}</AppText>
 
             {/* Room Privacy toggle */}
             <AppText style={styles.settingLabel}>{t('lobby.roomPrivacy', 'Room Privacy')}</AppText>
@@ -652,8 +675,8 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
 
         {/* ── Public Voting Panel ────────────────────────────────────── */}
         {roomCode && isPublic && isHostless && (
-          <View style={[styles.card, { borderColor: theme.colors.primary }]}>
-            <AppText style={[styles.cardLabel, { color: '#000', textAlign: 'center', fontSize: 16 }]}>
+          <View style={[styles.card, { borderColor: theme.colors.primary }, !isDesktop && { padding: 16 }]}>
+            <AppText style={[styles.cardLabel, { color: '#000', textAlign: 'center', fontSize: 16 }, !isDesktop && { marginBottom: 12 }]}>
               {t('lobby.voteForPack', { countdown: countdown !== null ? `(${countdown}s)` : '' })}
             </AppText>
             <View style={styles.voteList}>

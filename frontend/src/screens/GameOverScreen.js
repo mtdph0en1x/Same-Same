@@ -9,6 +9,7 @@ import NeoButton from '../components/NeoButton';
 import { socket } from '../socket';
 import { theme } from '../styles/theme';
 import FramedAvatar from '../components/FramedAvatar';
+import ConfettiCannon from 'react-native-confetti-cannon';
 
 const MEDAL = { 0: '🥇', 1: '🥈', 2: '🥉' };
 const PODIUM_COLORS = {
@@ -75,7 +76,7 @@ export default function GameOverScreen({ gameResults, roomCode, isHost, players 
   const podium = sorted.slice(0, 3);
   const rest   = sorted.slice(3);
 
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const isDesktop = width > 800;
 
   // Winning team banner
@@ -160,6 +161,16 @@ export default function GameOverScreen({ gameResults, roomCode, isHost, players 
         </View>
 
       </ScrollView>
+
+      {/* Confetti Celebration overlay */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <ConfettiCannon
+          count={250}
+          origin={{ x: width / 2, y: -20 }}
+          fadeOut={true}
+          fallSpeed={3000}
+        />
+      </View>
     </SafeAreaView>
   );
 }

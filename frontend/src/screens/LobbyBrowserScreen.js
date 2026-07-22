@@ -57,10 +57,10 @@ export default function LobbyBrowserScreen({ setScreen, getDisplayName, profileD
 
   return (
     <SafeAreaView style={s.safeArea}>
-      <View style={[s.container, isDesktop && s.containerDesktop]}>
+      <View style={[s.container, !isDesktop && { padding: 12 }, isDesktop && s.containerDesktop]}>
         
         {/* Header */}
-        <View style={s.header}>
+        <View style={[s.header, !isDesktop && { marginBottom: 16, padding: 12 }]}>
           <NeoButton style={s.backBtn} onPress={() => setScreen('Home')}>
             <ArrowLeft size={24} color="#000" strokeWidth={3} />
           </NeoButton>
