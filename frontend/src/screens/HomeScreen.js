@@ -452,20 +452,22 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
                 }
               ]}
             >
-            <View style={[s.panelHeader, s.panelHeaderRight, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }]}>
-              <View>
+            <View style={[s.panelHeader, s.panelHeaderRight, { justifyContent: 'center', position: 'relative' }]}>
+              <View style={{ alignItems: 'center' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <Text style={s.panelHeaderText}>{t('home.play')}</Text>
                 </View>
                 <Text style={s.panelSubText}>{t('home.chooseHowToPlay')}</Text>
               </View>
               {isDesktop && (
-                <NeoButton 
-                  style={{ backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 2, borderColor: '#000' }}
-                  onPress={() => setLangModalVisible(true)}
-                >
-                  <Text style={{ fontFamily: theme.fonts.headingBold, fontSize: 14, color: '#000' }}>🌐 {i18n.language.startsWith('en') ? 'EN' : 'ES'}</Text>
-                </NeoButton>
+                <View style={{ position: 'absolute', right: 32 }}>
+                  <NeoButton 
+                    style={{ backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 2, borderColor: '#000' }}
+                    onPress={() => setLangModalVisible(true)}
+                  >
+                    <Text style={{ fontFamily: theme.fonts.headingBold, fontSize: 14, color: '#000' }}>🌐 {i18n.language.startsWith('en') ? 'EN' : 'ES'}</Text>
+                  </NeoButton>
+                </View>
               )}
             </View>
 

@@ -3,6 +3,7 @@ import {
   StyleSheet, Text, View, ScrollView, TouchableOpacity,
   Animated, Image, SafeAreaView, useWindowDimensions
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import NeoButton from '../components/NeoButton';
 import { socket } from '../socket';
 import { theme } from '../styles/theme';
@@ -54,6 +55,7 @@ function PodiumPlayer({ player, rank, avatars, names, frames, delay }) {
 }
 
 export default function GameOverScreen({ gameResults, roomCode, isHost, players = [] }) {
+  const { t } = useTranslation();
   const { scores = {}, playerNames = {}, playerAvatars = {}, playerFrames = {}, teams, teamScores, isPublic } = gameResults;
 
   // Merge local player avatars as fallback
@@ -81,8 +83,8 @@ export default function GameOverScreen({ gameResults, roomCode, isHost, players 
     const winner = teamScores.A > teamScores.B ? 'A' : teamScores.B > teamScores.A ? 'B' : null;
     const bg = winner === 'A' ? '#E11D48' : winner === 'B' ? '#2563EB' : '#6B7280';
     const bannerText = winner
-      ? `🏆 Team ${winner} Wins!  ${teamScores[winner]} – ${teamScores[winner === 'A' ? 'B' : 'A']}`
-      : `🤝 It's a Tie!  ${teamScores.A} – ${teamScores.B}`;
+      ? t('gameOver.teamWins', { team: t(`lobby.team${winner}`, winner), score1: teamScores[winner], score2: teamScores[winner === 'A' ? 'B' : 'A'] })
+      : t('gameOver.itsATie', { score1: teamScores.A, score2: teamScores.B });
     winnerBanner = (
       <View style={[s.teamBanner, { backgroundColor: bg }]}>
         <Text style={s.teamBannerText}>{bannerText}</Text>
@@ -99,7 +101,7 @@ export default function GameOverScreen({ gameResults, roomCode, isHost, players 
     <SafeAreaView style={s.safeArea}>
       <ScrollView contentContainerStyle={[s.container, isDesktop && s.containerDesktop]}>
 
-        <Text style={s.title}>Game Over!</Text>
+        <Text style={s.title}>{t('gameOver.title', 'Game Over!')}</Text>
 
         {winnerBanner}
 
@@ -125,7 +127,7 @@ export default function GameOverScreen({ gameResults, roomCode, isHost, players 
                   size={32} 
                 />
                 <Text style={s.restName}>{playerNames[player.id]}</Text>
-                <Text style={s.restScore}>{player.score} pts</Text>
+                <Text style={s.restScore}>{t('common.pts', { count: player.score })}</Text>
               </View>
             ))}
           </View>
@@ -135,24 +137,24 @@ export default function GameOverScreen({ gameResults, roomCode, isHost, players 
         <View style={s.controls}>
           {isPublic ? (
             <NeoButton style={s.btnPrimary} onPress={handlePlayAgain}>
-              <Text style={s.btnPrimaryText}>🔄 Play Again with Group</Text>
+              <Text style={s.btnPrimaryText}>{t('gameOver.playAgainGroup', '🔄 Play Again with Group')}</Text>
             </NeoButton>
           ) : isHost ? (
             <NeoButton style={s.btnPrimary} onPress={handlePlayAgain}>
-              <Text style={s.btnPrimaryText}>🔄 Play Again</Text>
+              <Text style={s.btnPrimaryText}>{t('gameOver.playAgain', '🔄 Play Again')}</Text>
             </NeoButton>
           ) : (
             <View style={s.waitingRow}>
-              <Text style={s.waitingText}>Waiting for host to restart…</Text>
+              <Text style={s.waitingText}>{t('gameOver.waitingForHost', 'Waiting for host to restart…')}</Text>
             </View>
           )}
 
           <NeoButton style={s.btnSecondary} onPress={handleQuickPlay}>
-            <Text style={s.btnSecondaryText}>⚡ Quick Play (New Group)</Text>
+            <Text style={s.btnSecondaryText}>{t('gameOver.quickPlay', '⚡ Quick Play (New Group)')}</Text>
           </NeoButton>
 
           <NeoButton style={s.btnGhost} onPress={handleLeave}>
-            <Text style={s.btnGhostText}>Leave Room</Text>
+            <Text style={s.btnGhostText}>{t('gameOver.leaveRoom', 'Leave Room')}</Text>
           </NeoButton>
         </View>
 

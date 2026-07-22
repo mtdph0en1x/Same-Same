@@ -139,6 +139,17 @@ export default {
       needTeamPlayers: 'Team mode needs at least {{min}} players',
       removedTitle: 'Removed',
       matchCancelled: 'Match Cancelled',
+      teamA: '🔴 Team A',
+      teamB: '🔵 Team B',
+    },
+
+    packs: {
+      all: '🌍 All',
+      classic: '⭐ Classic',
+      food: '🍕 Food',
+      nature: '🌿 Nature',
+      pop_culture: '🎬 Pop Culture',
+      challenge: '🔥 Challenge',
     },
 
     // ── GameScreen ────────────────────────────────────────────────────────────

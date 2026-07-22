@@ -139,6 +139,17 @@ export default {
       needTeamPlayers: 'El modo de equipo necesita al menos {{min}} jugadores',
       removedTitle: 'Eliminado',
       matchCancelled: 'Partida Cancelada',
+      teamA: '🔴 Equipo A',
+      teamB: '🔵 Equipo B',
+    },
+
+    packs: {
+      all: '🌍 Todo',
+      classic: '⭐ Clásico',
+      food: '🍕 Comida',
+      nature: '🌿 Naturaleza',
+      pop_culture: '🎬 Cultura Pop',
+      challenge: '🔥 Desafío',
     },
 
     // ── GameScreen ────────────────────────────────────────────────────────────

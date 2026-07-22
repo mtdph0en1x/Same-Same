@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, Animated, ScrollView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { socket } from '../socket';
 import { theme } from '../styles/theme';
 
@@ -38,6 +39,7 @@ const FloatingReaction = ({ reaction, onComplete }) => {
 };
 
 export default function ChatSidebar({ roomCode, playerData, isSidebarOpen, setIsSidebarOpen, isDesktop = true }) {
+  const { t } = useTranslation();
   const [reactions, setReactions] = useState([]);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
@@ -130,14 +132,14 @@ export default function ChatSidebar({ roomCode, playerData, isSidebarOpen, setIs
                 <View style={styles.chatInputRow}>
                   <TextInput 
                     style={styles.chatInput}
-                    placeholder="Chat..."
+                    placeholder={t('chat.chatPlaceholder', 'Chat...')}
                     value={chatInput}
                     onChangeText={setChatInput}
                     onSubmitEditing={sendChat}
                     placeholderTextColor={theme.colors.muted}
                   />
                   <TouchableOpacity style={styles.sendChatBtn} onPress={sendChat}>
-                    <Text style={styles.sendChatBtnText}>Send</Text>
+                    <Text style={styles.sendChatBtnText}>{t('chat.send', 'Send')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -159,7 +161,7 @@ export default function ChatSidebar({ roomCode, playerData, isSidebarOpen, setIs
             onPress={() => setIsSidebarOpen(!isSidebarOpen)}
           >
             <Text style={{fontFamily: theme.fonts.bodyBold}}>
-               {isSidebarOpen ? '▼ Hide Chat & Emojis' : '▲ Show Chat & Emojis'}
+               {isSidebarOpen ? t('chat.hideChat', '▼ Hide Chat & Emojis') : t('chat.showChat', '▲ Show Chat & Emojis')}
             </Text>
           </TouchableOpacity>
 
@@ -187,14 +189,14 @@ export default function ChatSidebar({ roomCode, playerData, isSidebarOpen, setIs
                 <View style={styles.chatInputRow}>
                   <TextInput 
                     style={styles.chatInput}
-                    placeholder="Chat..."
+                    placeholder={t('chat.chatPlaceholder', 'Chat...')}
                     value={chatInput}
                     onChangeText={setChatInput}
                     onSubmitEditing={sendChat}
                     placeholderTextColor={theme.colors.muted}
                   />
                   <TouchableOpacity style={styles.sendChatBtn} onPress={sendChat}>
-                    <Text style={styles.sendChatBtnText}>Send</Text>
+                    <Text style={styles.sendChatBtnText}>{t('chat.send', 'Send')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>

@@ -3,13 +3,13 @@ import {
   StyleSheet, Text, View, TextInput, TouchableOpacity,
   SafeAreaView, ScrollView, Animated, Image, useWindowDimensions
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import NeoButton from '../components/NeoButton';
 import { socket } from '../socket';
 import { theme } from '../styles/theme';
 import FramedAvatar from '../components/FramedAvatar';
 
 const TEAM_COLORS = { A: '#E11D48', B: '#2563EB' };
-const TEAM_LABELS = { A: '🔴 Team A', B: '🔵 Team B' };
 
 function WordChip({ word }) {
   const scaleAnim = useRef(new Animated.Value(0.6)).current;
@@ -30,6 +30,7 @@ function WordChip({ word }) {
 }
 
 export default function GameScreen({ roomCode, gameData, players, teams }) {
+  const { t } = useTranslation();
   const [currentWord, setCurrentWord]       = useState('');
   const [submittedWords, setSubmittedWords] = useState([]);
   const [isDone, setIsDone]                 = useState(false);
@@ -38,6 +39,7 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
 
   const wordsPerRound = gameData.wordsPerRound || 5;
   const myTeam = teams ? teams[socket.id] : null;
+  const teamLabels = { A: t('lobby.teamA', '🔴 Team A'), B: t('lobby.teamB', '🔵 Team B') };
   const inputRef = useRef(null);
   const { width } = useWindowDimensions();
   const isDesktop = width > 800;
@@ -85,7 +87,7 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
   
   const isBlitz = Array.isArray(gameData.category);
   const currentCategory = isBlitz 
-      ? (progress < wordsPerRound ? gameData.category[progress] : 'Blitz Complete!') 
+      ? (progress < wordsPerRound ? gameData.category[progress] : t('game.blitzComplete', 'Blitz Complete!')) 
       : gameData.category;
 
   return (
@@ -98,7 +100,7 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
         {/* Team badge */}
         {myTeam && (
           <View style={[styles.teamBadge, { backgroundColor: TEAM_COLORS[myTeam] }]}>
-            <Text style={styles.teamBadgeText}>{TEAM_LABELS[myTeam]}</Text>
+            <Text style={styles.teamBadgeText}>{teamLabels[myTeam]}</Text>
           </View>
         )}
 
@@ -126,7 +128,11 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
 
         {/* Header: Round info */}
         <Text style={styles.headerText}>
-          Round {gameData.roundNumber}/{gameData.totalRounds} · {gameData.roundType}
+          {t('game.roundHeader', { 
+            current: gameData.roundNumber, 
+            total: gameData.totalRounds, 
+            type: t(`lobby.${gameData.roundType.replace(' ', '').toLowerCase()}`, gameData.roundType)
+          })}
         </Text>
 
         {/* Timer + progress row */}
@@ -135,7 +141,7 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
             <Text style={[styles.timerText, !isDesktop && styles.timerTextMobile, isWarning && styles.timerTextWarning]}>{timeLeft}</Text>
           </View>
           <View style={styles.progressContainer}>
-            <Text style={styles.progressLabel}>WORDS</Text>
+            <Text style={styles.progressLabel}>{t('game.words', 'WORDS')}</Text>
             <Text style={styles.progressValue}>{progress} / {wordsPerRound}</Text>
             <View style={styles.progressBar}>
               <View style={[styles.progressFill, { width: `${(progress / wordsPerRound) * 100}%` }]} />
@@ -149,7 +155,7 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
 
         {/* Category */}
         <View style={[styles.categoryCard, !isDesktop && styles.categoryCardMobile]}>
-          {isBlitz && <Text style={[styles.blitzHeader, !isDesktop && styles.blitzHeaderMobile]}>⚡ BLITZ TOPIC {progress + 1} ⚡</Text>}
+          {isBlitz && <Text style={[styles.blitzHeader, !isDesktop && styles.blitzHeaderMobile]}>{t('game.blitzTopic', { num: progress + 1 })}</Text>}
           <Text style={[styles.categoryTitle, !isDesktop && styles.categoryTitleMobile]}>{currentCategory}</Text>
         </View>
 
@@ -168,7 +174,7 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
             <TextInput
               ref={inputRef}
               style={[styles.input, !isDesktop && styles.inputMobile]}
-              placeholder={`Name something... (${wordsPerRound - progress} left)`}
+              placeholder={t('game.nameSomething', { left: wordsPerRound - progress })}
               placeholderTextColor={theme.colors.muted}
               value={currentWord}
               onChangeText={setCurrentWord}
@@ -179,15 +185,15 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
               autoCapitalize="none"
             />
             <NeoButton style={[styles.button, !isDesktop && styles.buttonMobile]} activeOpacity={0.8} onPress={handleSubmit}>
-              <Text style={[styles.buttonText, !isDesktop && styles.buttonTextMobile]}>Submit ↵</Text>
+              <Text style={[styles.buttonText, !isDesktop && styles.buttonTextMobile]}>{t('game.submit', 'Submit ↵')}</Text>
             </NeoButton>
           </View>
         ) : (
           <View style={styles.waitingContainer}>
             <Text style={styles.waitingEmoji}>✅</Text>
-            <Text style={styles.waitingText}>All done!</Text>
+            <Text style={styles.waitingText}>{t('game.allDone', 'All done!')}</Text>
             <Text style={styles.waitingSubtext}>
-              Waiting for others{finishedPlayers.size > 0 ? ` · ${finishedPlayers.size} finished` : ''}...
+              {t('game.waitingForOthers', { finished: finishedPlayers.size > 0 ? t('game.finished', { count: finishedPlayers.size }) : '' })}
             </Text>
           </View>
         )}

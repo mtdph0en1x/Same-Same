@@ -11,11 +11,11 @@ import FramedAvatar from '../components/FramedAvatar';
 import { useTranslation } from 'react-i18next';
 
 const UNLOCK_THRESHOLDS = [
-  { level: 5, frame: 'bronze', label: 'Bronze Frame' },
-  { level: 10, frame: 'silver', label: 'Silver Frame' },
-  { level: 20, frame: 'gold', label: 'Gold Frame' },
-  { level: 35, frame: 'neon', label: 'Neon Frame' },
-  { level: 50, frame: 'glitch', label: 'Glitch Frame' }
+  { level: 5, frame: 'bronze', labelKey: 'bronze' },
+  { level: 10, frame: 'silver', labelKey: 'silver' },
+  { level: 20, frame: 'gold', labelKey: 'gold' },
+  { level: 35, frame: 'neon', labelKey: 'neon' },
+  { level: 50, frame: 'glitch', labelKey: 'glitch' }
 ];
 
 export default function SettingsScreen({ setScreen, setIsGuest }) {
@@ -59,7 +59,7 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        setNameError(data.error || 'Failed to validate username');
+        setNameError(data.error || t('settings.failedToValidateUsername', 'Failed to validate username'));
         return;
       }
     } catch (err) {
@@ -73,8 +73,8 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
         .eq('id', user.id);
       
       if (error) {
-        if (error.code === '23505') throw new Error('Username is already taken.');
-        throw new Error(error.message || 'Failed to update username');
+        if (error.code === '23505') throw new Error(t('settings.usernameAlreadyTaken', 'Username is already taken.'));
+        throw new Error(error.message || t('settings.failedToUpdateUsername', 'Failed to update username'));
       }
       setProfile({ ...profile, username: newName });
       setIsEditingName(false);
@@ -128,7 +128,7 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(()=>{});
       }
     } catch (err) {
-      Alert.alert('Upload Error', err.message);
+      Alert.alert(t('settings.uploadError', 'Upload Error'), err.message);
     } finally {
       setIsUploading(false);
     }
@@ -157,13 +157,13 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
   if (!profile) {
     return (
       <View style={s.container}>
-        <Text style={s.title}>Guest Profile</Text>
-        <Text style={s.desc}>Create an account to track stats and unlock frames!</Text>
+        <Text style={s.title}>{t('settings.guestTitle', 'Guest Profile')}</Text>
+        <Text style={s.desc}>{t('settings.guestDesc', 'Create an account to track stats and unlock frames!')}</Text>
         <NeoButton style={s.backBtn} onPress={() => setScreen('Home')}>
-          <Text style={s.backBtnText}>Back to Home</Text>
+          <Text style={s.backBtnText}>{t('settings.backToHome', 'Back to Home')}</Text>
         </NeoButton>
         <NeoButton style={s.logoutBtn} onPress={handleLogout}>
-          <Text style={s.logoutBtnText}>Sign Out / Change Name</Text>
+          <Text style={s.logoutBtnText}>{t('settings.signOutChangeName', 'Sign Out / Change Name')}</Text>
         </NeoButton>
       </View>
     );
@@ -182,11 +182,11 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
         {/* Header */}
         <View style={s.headerRow}>
           <NeoButton style={s.backBtn} onPress={() => setScreen('Home')}>
-            <Text style={s.backBtnText}>← Back</Text>
+            <Text style={s.backBtnText}>{t('common.back', '← Back')}</Text>
           </NeoButton>
-          <Text style={s.title}>Profile Settings</Text>
+          <Text style={s.title}>{t('settings.title', 'Profile Settings')}</Text>
           <NeoButton style={s.logoutBtn} onPress={handleLogout}>
-            <Text style={s.logoutBtnText}>Logout</Text>
+            <Text style={s.logoutBtnText}>{t('common.logout', 'Logout')}</Text>
           </NeoButton>
         </View>
 
@@ -219,7 +219,7 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
                       onSubmitEditing={handleSaveName}
                     />
                     <NeoButton onPress={handleSaveName} style={{ backgroundColor: '#10B981', paddingHorizontal: 16, paddingVertical: 8, borderRadius: theme.borderRadius.md, borderWidth: 2, borderColor: '#000' }}>
-                      <Text style={{ fontSize: 16, color: '#fff', fontFamily: theme.fonts.headingBold }}>SAVE</Text>
+                      <Text style={{ fontSize: 16, color: '#fff', fontFamily: theme.fonts.headingBold }}>{t('common.save', 'SAVE')}</Text>
                     </NeoButton>
                     <NeoButton onPress={() => { setIsEditingName(false); setEditName(profile.username); setNameError(''); }} style={{ backgroundColor: '#EF4444', paddingHorizontal: 16, paddingVertical: 8, borderRadius: theme.borderRadius.md, borderWidth: 2, borderColor: '#000' }}>
                       <Text style={{ fontSize: 16, color: '#fff', fontFamily: theme.fonts.headingBold }}>X</Text>
@@ -233,19 +233,19 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
                   <Text style={{ fontSize: 16, marginLeft: 8 }}>✏️</Text>
                 </NeoButton>
               )}
-              <Text style={s.levelText}>⭐ Level {level}</Text>
+              <Text style={s.levelText}>⭐ {t('common.level', { level })}</Text>
             </View>
           </View>
 
           <View style={s.xpBarContainer}>
             <View style={[s.xpBarFill, { width: `${progressPercent}%` }]} />
           </View>
-          <Text style={s.xpText}>{Math.floor(xp)} / {nextLevelXp} XP</Text>
+          <Text style={s.xpText}>{t('settings.xpProgress', { current: Math.floor(xp), next: nextLevelXp })}</Text>
         </View>
 
         {/* Frame Selection */}
         <View style={s.card}>
-          <Text style={s.sectionTitle}>Equip Frame</Text>
+          <Text style={s.sectionTitle}>{t('settings.equipFrame', 'Equip Frame')}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.frameScroll}>
             {unlocked_frames && unlocked_frames.map(f => (
               <NeoButton key={f} style={s.frameOpt} onPress={() => setFrame(f)}>
@@ -260,8 +260,8 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
 
         {/* Progression Timeline */}
         <View style={s.card}>
-          <Text style={s.sectionTitle}>Progression</Text>
-          <Text style={s.desc}>Keep playing to earn XP, level up, and unlock new cosmetic frames!</Text>
+          <Text style={s.sectionTitle}>{t('settings.progression', 'Progression')}</Text>
+          <Text style={s.desc}>{t('settings.progressionDesc', 'Keep playing to earn XP, level up, and unlock new cosmetic frames!')}</Text>
 
           <View style={s.timeline}>
             {UNLOCK_THRESHOLDS.map(item => {
@@ -270,15 +270,15 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
                 <View key={item.level} style={[s.timelineRow, isUnlocked && s.timelineRowUnlocked]}>
                   <View style={[s.timelineLevel, isUnlocked ? s.timelineLevelUnlocked : null]}>
                     <Text style={[s.timelineLevelText, isUnlocked ? s.timelineLevelTextUnlocked : null]}>
-                      Lvl {item.level}
+                      {t('common.levelShort', { level: item.level })}
                     </Text>
                   </View>
                   <View style={s.timelineContent}>
-                    <Text style={[s.timelineLabel, isUnlocked && s.timelineLabelUnlocked]}>{item.label}</Text>
+                    <Text style={[s.timelineLabel, isUnlocked && s.timelineLabelUnlocked]}>{t(`settings.${item.labelKey}`)}</Text>
                     {isUnlocked ? (
-                      <Text style={s.timelineStatusUnlocked}>Unlocked!</Text>
+                      <Text style={s.timelineStatusUnlocked}>{t('settings.unlocked', 'Unlocked!')}</Text>
                     ) : (
-                      <Text style={s.timelineStatusLocked}>🔒 Locked</Text>
+                      <Text style={s.timelineStatusLocked}>{t('settings.locked', '🔒 Locked')}</Text>
                     )}
                   </View>
                   <FramedAvatar fallbackName="?" frame={item.frame} size={40} />

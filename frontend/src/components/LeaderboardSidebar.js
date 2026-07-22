@@ -1,8 +1,10 @@
 import React from 'react';
 import { StyleSheet, Text, View, Image, ScrollView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { theme } from '../styles/theme';
 
 export default function LeaderboardSidebar({ players, roundResults, currentScreen, isDesktop = true }) {
+  const { t } = useTranslation();
   // players is an array of player objects: { id, name, avatar, score, level }
   
   // If we have new scores from ResultsScreen, we can show them, otherwise show base score
@@ -19,7 +21,7 @@ export default function LeaderboardSidebar({ players, roundResults, currentScree
   return (
     <View style={[styles.sidebar, !isDesktop && styles.sidebarMobile]}>
       <View style={[styles.header, !isDesktop && styles.headerMobile]}>
-        <Text style={[styles.headerTitle, !isDesktop && styles.headerTitleMobile]}>Leaderboard</Text>
+        <Text style={[styles.headerTitle, !isDesktop && styles.headerTitleMobile]}>{t('leaderboardSidebar.title', 'Leaderboard')}</Text>
       </View>
       <ScrollView 
         style={[styles.list, !isDesktop && styles.listMobile]}
@@ -41,12 +43,12 @@ export default function LeaderboardSidebar({ players, roundResults, currentScree
             </View>
             <View style={styles.info}>
               <Text style={styles.name} numberOfLines={1}>{p.name}</Text>
-              <Text style={styles.score}>{getPlayerScore(p.id)} pts</Text>
+              <Text style={styles.score}>{t('leaderboardSidebar.pts', { count: getPlayerScore(p.id) })}</Text>
             </View>
           </View>
         ))}
         {players.length === 0 && (
-          <Text style={styles.emptyText}>Waiting for players...</Text>
+          <Text style={styles.emptyText}>{t('leaderboardSidebar.waitingForPlayers', 'Waiting for players...')}</Text>
         )}
       </ScrollView>
     </View>

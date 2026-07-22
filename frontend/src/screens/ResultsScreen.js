@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, Text, View, ScrollView, SafeAreaView, TouchableOpacity, Animated, useWindowDimensions, Image } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import NeoButton from '../components/NeoButton';
 import { theme } from '../styles/theme';
 import { socket } from '../socket';
 import FramedAvatar from '../components/FramedAvatar';
 
 const BoardCard = ({ cardInfo, isRevealed, isResolved, roundType, isDesktop }) => {
+  const { t } = useTranslation();
   const scale = useRef(new Animated.Value(0.8)).current;
   const flip = useRef(new Animated.Value(0)).current;
   const colorAnim = useRef(new Animated.Value(0)).current;
@@ -71,7 +73,7 @@ const BoardCard = ({ cardInfo, isRevealed, isResolved, roundType, isDesktop }) =
       <Animated.View style={[styles.card, { transform: [{ scale }, { rotateX }] }]}>
         <Animated.View style={[StyleSheet.absoluteFill, styles.cardFace, { opacity: frontOpacity, borderColor: finalBorder, backgroundColor: finalBg }]}>
             <Text style={[styles.cardText, cardInfo.isRejected && styles.textRejected, !isDesktop && styles.cardTextMobile]}>
-                {cardInfo.text ? cardInfo.text.toUpperCase() : 'BLANK'}
+                {cardInfo.text ? cardInfo.text.toUpperCase() : t('results.blank', 'BLANK')}
             </Text>
             {isResolved && cardInfo.pointsStr && !cardInfo.isRejected ? (
                 <View style={[styles.pointsBubble, cardInfo.matchState === 'fail' && styles.pointsBubbleFail]}>
@@ -96,6 +98,7 @@ const BoardCard = ({ cardInfo, isRevealed, isResolved, roundType, isDesktop }) =
 };
 
 export default function ResultsScreen({ roundResults, roomCode, isHost, players = [] }) {
+  const { t } = useTranslation();
   const { groups = [], roundType, newScores = {}, scoreUpdates = {}, playerNames = {}, playerAvatars = {}, playerFrames = {}, rejectedWords = [], timeline = [], playerWords = {}, wordsPerRound = 5 } = roundResults;
   
   // Fallback to local players array if backend didn't send playerAvatars in roundResults
@@ -268,7 +271,7 @@ export default function ResultsScreen({ roundResults, roomCode, isHost, players 
     <SafeAreaView style={styles.safeArea}>
       <View style={[styles.container, isDesktop && styles.containerDesktop]}>
         <View style={styles.headerRow}>
-          <Text style={styles.title}>Round Results</Text>
+          <Text style={styles.title}>{t('results.title', 'Round Results')}</Text>
           {currentTimelineEvent?.type === 'topic' && (
               <View style={styles.topicBadge}>
                   <Text style={styles.topicBadgeText}>{currentTimelineEvent.title}</Text>
@@ -286,8 +289,8 @@ export default function ResultsScreen({ roundResults, roomCode, isHost, players 
           >
             {step === -1 ? (
                 <View style={styles.centerCard}>
-                  <Text style={styles.introText}>Time to review!</Text>
-                  <Text style={styles.introSubText}>Let's see the answers.</Text>
+                  <Text style={styles.introText}>{t('results.timeToReview', 'Time to review!')}</Text>
+                  <Text style={styles.introSubText}>{t('results.letsSeAnswers', "Let's see the answers.")}</Text>
                 </View>
             ) : (
                 <View style={styles.playersGrid}>
@@ -309,7 +312,7 @@ export default function ResultsScreen({ roundResults, roomCode, isHost, players 
                                 </View>
                                 {step >= maxSteps && (
                                     <View style={styles.finalScoreBubble}>
-                                        <Text style={styles.finalScoreText}>{newScores[pid]} pts</Text>
+                                        <Text style={styles.finalScoreText}>{t('common.pts', { count: newScores[pid] })}</Text>
                                         <Text style={styles.scoreUpdateText}>
                                             ({scoreUpdates[pid] > 0 ? '+' : ''}{scoreUpdates[pid] || 0})
                                         </Text>
@@ -346,7 +349,7 @@ export default function ResultsScreen({ roundResults, roomCode, isHost, players 
                   onPress={handleVoteNext}
                 >
                   <Text style={styles.readyBtnText}>
-                    {hasVoted ? `Ready (${votes}/${voteThreshold})` : `Ready for Next Round`}
+                    {hasVoted ? t('results.readyCount', { votes, threshold: voteThreshold }) : t('results.readyForNext', 'Ready for Next Round')}
                   </Text>
                 </NeoButton>
               ) : null}
@@ -355,7 +358,7 @@ export default function ResultsScreen({ roundResults, roomCode, isHost, players 
               {isHost && (
                 <NeoButton style={styles.forceBtn} onPress={handleForceNext}>
                   <Text style={styles.forceBtnText}>
-                    {step >= maxSteps ? 'Force Next Round' : 'Skip to Scoreboard'}
+                    {step >= maxSteps ? t('results.forceNextRound', 'Force Next Round') : t('results.skipToScoreboard', 'Skip to Scoreboard')}
                   </Text>
                 </NeoButton>
               )}

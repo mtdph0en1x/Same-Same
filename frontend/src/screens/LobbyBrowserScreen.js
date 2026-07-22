@@ -3,12 +3,14 @@ import {
   StyleSheet, Text, View, TouchableOpacity, ScrollView,
   SafeAreaView, useWindowDimensions
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import NeoButton from '../components/NeoButton';
 import { ArrowLeft, RefreshCw, Flame, Crown } from 'lucide-react-native';
 import { socket } from '../socket';
 import { theme } from '../styles/theme';
 
 export default function LobbyBrowserScreen({ setScreen, getDisplayName, profileData, setPlayerData, setRoomCode, setIsHost, setLobbyIntent }) {
+  const { t } = useTranslation();
   const [lobbies, setLobbies] = useState([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -61,7 +63,7 @@ export default function LobbyBrowserScreen({ setScreen, getDisplayName, profileD
           <NeoButton style={s.backBtn} onPress={() => setScreen('Home')}>
             <ArrowLeft size={24} color="#000" strokeWidth={3} />
           </NeoButton>
-          <Text style={s.title}>Public Lobbies</Text>
+          <Text style={s.title}>{t('lobbyBrowser.title', 'Public Lobbies')}</Text>
           <NeoButton style={s.refreshBtn} onPress={fetchLobbies} disabled={isRefreshing}>
             <RefreshCw size={24} color="#000" strokeWidth={3} style={isRefreshing ? s.spin : {}} />
           </NeoButton>
@@ -70,8 +72,8 @@ export default function LobbyBrowserScreen({ setScreen, getDisplayName, profileD
         <ScrollView style={s.list} contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
           {lobbies.length === 0 ? (
             <View style={s.noLobbiesBox}>
-              <Text style={s.noLobbiesText}>No open lobbies right now.</Text>
-              <Text style={s.noLobbiesSubText}>Go back and create one!</Text>
+              <Text style={s.noLobbiesText}>{t('lobbyBrowser.noLobbies', 'No open lobbies right now.')}</Text>
+              <Text style={s.noLobbiesSubText}>{t('lobbyBrowser.noLobbiesSub', 'Go back and create one!')}</Text>
             </View>
           ) : (
             lobbies.map(lobby => {
@@ -83,29 +85,29 @@ export default function LobbyBrowserScreen({ setScreen, getDisplayName, profileD
                       <Text style={s.lobbyLabel}>{lobby.label || lobby.code}</Text>
                       {isCustom && <Crown size={16} color="#FBBF24" strokeWidth={3} style={{ marginLeft: 6, marginRight: 6 }} />}
                       <View style={[s.lobbyStatusDot, { backgroundColor: lobby.hasCountdown ? '#FBBF24' : '#10B981' }]} />
-                      <Text style={s.lobbyStatus}>{lobby.hasCountdown ? 'Starting…' : 'Waiting'}</Text>
+                      <Text style={s.lobbyStatus}>{lobby.hasCountdown ? t('lobbyBrowser.startingStatus', 'Starting…') : t('lobbyBrowser.waitingStatus', 'Waiting')}</Text>
                     </View>
                     <View style={s.lobbyRowBottom}>
                       {isCustom ? (
                         <View style={[s.lobbyTag, { backgroundColor: '#FBBF24', borderColor: '#000' }]}>
-                          <Text style={[s.lobbyTagText, { color: '#000' }]}>Custom</Text>
+                          <Text style={[s.lobbyTagText, { color: '#000' }]}>{t('lobbyBrowser.customTag', 'Custom')}</Text>
                         </View>
                       ) : (
                         <View style={[s.lobbyTag, { backgroundColor: theme.colors.primary, borderColor: '#000' }]}>
-                          <Text style={[s.lobbyTagText, { color: '#000' }]}>Auto</Text>
+                          <Text style={[s.lobbyTagText, { color: '#000' }]}>{t('lobbyBrowser.autoTag', 'Auto')}</Text>
                         </View>
                       )}
                       <Text style={s.lobbyMeta}>⏱ {lobby.timeLimit}s</Text>
                       {(lobby.roundTypes || []).map(rt => (
                         <View key={rt} style={s.lobbyTag}>
-                          <Text style={s.lobbyTagText}>{rt}</Text>
+                          <Text style={s.lobbyTagText}>{t(`lobby.${rt.replace(' ', '').toLowerCase()}`, rt)}</Text>
                         </View>
                       ))}
                     </View>
                   </View>
                   <View style={s.lobbyRight}>
                     <Text style={s.lobbyPlayers}>{lobby.playerCount}/{lobby.maxPlayers}</Text>
-                    <Text style={s.lobbyJoin}>JOIN →</Text>
+                    <Text style={s.lobbyJoin}>{t('lobbyBrowser.joinArrow', 'JOIN →')}</Text>
                   </View>
                 </NeoButton>
               );

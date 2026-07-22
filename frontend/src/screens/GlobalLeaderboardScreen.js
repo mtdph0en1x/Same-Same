@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import NeoButton from '../components/NeoButton';
 import { supabase } from '../supabase';
 import { theme } from '../styles/theme';
 import FramedAvatar from '../components/FramedAvatar';
 
 export default function GlobalLeaderboardScreen({ setScreen }) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [topWins, setTopWins] = useState([]);
   const [topXp, setTopXp] = useState([]);
@@ -28,14 +30,14 @@ export default function GlobalLeaderboardScreen({ setScreen }) {
           <Text style={s.rank}>#{i + 1}</Text>
           <FramedAvatar url={p.avatar} frame={p.active_frame || 'none'} fallbackName={p.username} size={40} />
           <View style={s.info}>
-            <Text style={s.name}>{p.username || 'Unknown'}</Text>
-            <Text style={s.level}>Level {p.level || 1}</Text>
+            <Text style={s.name}>{p.username || t('common.unknown', 'Unknown')}</Text>
+            <Text style={s.level}>{t('common.level', { level: p.level || 1 })}</Text>
           </View>
-          <Text style={s.metric}>{metric === 'wins' ? `${p.wins} Wins` : `${Math.floor(p.xp)} XP`}</Text>
+          <Text style={s.metric}>{metric === 'wins' ? t('leaderboard.wins', { count: p.wins }) : t('leaderboard.xp', { count: Math.floor(p.xp) })}</Text>
         </View>
       ))}
       {data.length === 0 && !loading && (
-        <Text style={s.empty}>No players found yet.</Text>
+        <Text style={s.empty}>{t('leaderboard.noPlayersYet', 'No players found yet.')}</Text>
       )}
     </View>
   );
@@ -44,9 +46,9 @@ export default function GlobalLeaderboardScreen({ setScreen }) {
     <SafeAreaView style={{ flex: 1 }}>
       <View style={s.headerRow}>
         <NeoButton style={s.backBtn} onPress={() => setScreen('Home')}>
-          <Text style={s.backBtnText}>← Back</Text>
+          <Text style={s.backBtnText}>{t('common.back', '← Back')}</Text>
         </NeoButton>
-        <Text style={s.title}>Global Leaderboards</Text>
+        <Text style={s.title}>{t('leaderboard.title', 'Global Leaderboards')}</Text>
         <View style={{ width: 80 }} />
       </View>
       
@@ -58,14 +60,14 @@ export default function GlobalLeaderboardScreen({ setScreen }) {
         <ScrollView contentContainerStyle={s.container}>
           <View style={s.column}>
             <View style={s.card}>
-              <Text style={s.sectionTitle}>🏆 ALL-TIME WINS</Text>
+              <Text style={s.sectionTitle}>{t('leaderboard.allTimeWins', '🏆 ALL-TIME WINS')}</Text>
               {renderList(topWins, 'wins')}
             </View>
           </View>
           
           <View style={s.column}>
             <View style={s.card}>
-              <Text style={s.sectionTitle}>⭐ TOP XP</Text>
+              <Text style={s.sectionTitle}>{t('leaderboard.topXp', '⭐ TOP XP')}</Text>
               {renderList(topXp, 'xp')}
             </View>
           </View>
