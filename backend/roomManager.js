@@ -21,6 +21,7 @@ const DEFAULT_CONFIG = {
     categoryPack:  'classic',
     teamMode:      false,
     modifiers:     [],
+    isPublic:      false,
 };
 
 // ── Default permanent public lobbies seeded on startup ────────────────────────
@@ -83,6 +84,7 @@ function validateConfig(incoming) {
     const validPacks = ['all', ...getPackNames()];
     if (validPacks.includes(incoming.categoryPack)) config.categoryPack = incoming.categoryPack;
     if (typeof incoming.teamMode === 'boolean') config.teamMode = incoming.teamMode;
+    if (typeof incoming.isPublic === 'boolean') config.isPublic = incoming.isPublic;
     if (typeof incoming.roomName === 'string') config.roomName = incoming.roomName.substring(0, 20); // Limit name length
     return config;
 }
@@ -132,6 +134,8 @@ function createRoom(io, socket, playerData) {
         gameSession: null,
         countdown:   null,
         config:      { ...DEFAULT_CONFIG },
+        isPublic:    false,
+        isHostless:  false,
         votes:       {},
     };
 
@@ -147,35 +151,7 @@ function createRoom(io, socket, playerData) {
     });
 }
 
-// ── Custom Public Room ────────────────────────────────────────────────────────
-function createCustomPublicRoom(io, socket, playerData) {
-    const roomCode = generateRoomCode();
-    const player = { id: socket.id, name: playerData.name || 'Host', level: playerData.level || 1, avatar: playerData.avatar, socket };
-    const teams = { [socket.id]: 'A' };
 
-    rooms[roomCode] = {
-        host:        socket.id,
-        players:     [player],
-        teams:       teams,
-        gameSession: null,
-        countdown:   null,
-        config:      { ...DEFAULT_CONFIG },
-        isPublic:    true,
-        isHostless:  false, // Creator is host
-        votes:       {},
-    };
-
-    socket.join(roomCode);
-    socket.emit('room_created', {
-        roomCode,
-        host:    true,
-        players: safePlayerList([player]),
-        teams:   teams,
-        config:  rooms[roomCode].config,
-        isPublic: true,
-        isHostless: false,
-    });
-}
 
 // ── Quick Play: find an open public lobby or create a new one ────────────────
 function findOrCreatePublicRoom(io, socket, playerData) {
@@ -477,6 +453,8 @@ function updateConfig(io, socket, roomCode, incomingConfig) {
     if (!room || room.host !== socket.id || room.gameSession || room.countdown || room.isHostless) return;
 
     room.config = validateConfig(incomingConfig);
+    room.isPublic = room.config.isPublic; // Sync top-level flag
+    
     io.to(roomCode).emit('config_updated', { config: room.config });
 }
 
@@ -677,7 +655,6 @@ function submitVote(io, socket, roomCode, packId) {
 
 module.exports = {
     createRoom,
-    createCustomPublicRoom,
     createPublicRoom,
     findOrCreatePublicRoom,
     joinRoom,

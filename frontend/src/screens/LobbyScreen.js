@@ -224,6 +224,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
   const [isPublic, setIsPublic]     = useState(false);
   const [isHostless, setIsHostless] = useState(false);
   const [votes, setVotes]           = useState({}); // { [packId]: count }
+  const [errorMsg, setErrorMsg]     = useState(null);
   const hostBannerTimer             = useRef(null);
   const { width } = useWindowDimensions();
   const isDesktop = width > 800;
@@ -289,10 +290,8 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
   useEffect(() => {
     socket.connect();
 
-    if (lobbyIntent === 'host_couch') {
+    if (lobbyIntent === 'host_game') {
       socket.emit('create_room', { name: playerData.name, avatar: playerData.avatar });
-    } else if (lobbyIntent === 'create_public') {
-      socket.emit('create_custom_public_room', { name: playerData.name, avatar: playerData.avatar });
     } else if (lobbyIntent === 'join_couch' || lobbyIntent === 'join_public') {
       socket.emit('join_room', { roomCode, playerData });
     } else if (lobbyIntent === 'matchmaking') {
@@ -341,7 +340,10 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
     });
 
     socket.on('config_updated', (data) => {
-      if (data.config) setConfig(data.config);
+      if (data.config) {
+        setConfig(data.config);
+        setIsPublic(!!data.config.isPublic);
+      }
     });
 
     socket.on('teams_updated', (data) => {
@@ -353,8 +355,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
     });
 
     socket.on('room_error', (data) => {
-      Alert.alert('Oops', data.message);
-      setScreen('Home');
+      setErrorMsg(data.message);
     });
 
     socket.on('kicked', (data) => {
@@ -406,6 +407,21 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
   // Split players by team for the two-column board
   const teamA = players.filter(p => teams[p.id] === 'A');
   const teamB = players.filter(p => teams[p.id] === 'B');
+
+  // Error UI Branch
+  if (errorMsg) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.matchmakingContainer}>
+          <Text style={[styles.title, { color: theme.colors.accent }]}>Oops!</Text>
+          <Text style={styles.searchingStatus}>{errorMsg}</Text>
+          <TouchableOpacity style={styles.cancelMatchBtn} onPress={() => setScreen('Home')}>
+            <Text style={styles.cancelMatchBtnText}>Back to Home</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   // Matchmaking UI Branch
   if (lobbyIntent === 'matchmaking' && !isPublic) {
@@ -552,7 +568,28 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
           <View style={styles.card}>
             <Text style={styles.cardLabel}>GAME SETTINGS{!isHost ? '  (set by host)' : ''}</Text>
 
-            {isPublic && (
+            {/* Room Privacy toggle */}
+            <Text style={styles.settingLabel}>Room Privacy</Text>
+            {isHost ? (
+              <View style={styles.toggleRow}>
+                <TouchableOpacity
+                  style={[styles.toggleBtn, !config.isPublic && styles.toggleBtnActive]}
+                  onPress={() => handleConfigChange({ isPublic: false })}
+                >
+                  <Text style={[styles.toggleText, !config.isPublic && styles.toggleTextActive]}>Private</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.toggleBtn, config.isPublic && styles.toggleBtnActiveTeam]}
+                  onPress={() => handleConfigChange({ isPublic: true })}
+                >
+                  <Text style={[styles.toggleText, config.isPublic && styles.toggleTextActive]}>Public</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <Text style={styles.readOnlyValue}>{config.isPublic ? 'Public (Visible in Browser)' : 'Private (Code Only)'}</Text>
+            )}
+
+            {config.isPublic && (
               <>
                 <Text style={styles.settingLabel}>Room Name</Text>
                 {isHost ? (

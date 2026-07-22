@@ -61,9 +61,6 @@ io.on('connection', (socket) => {
         roomManager.createRoom(io, socket, playerData);
     });
 
-    socket.on('create_custom_public_room', (playerData) => {
-        roomManager.createCustomPublicRoom(io, socket, playerData);
-    });
 
     socket.on('join_room', ({ roomCode, playerData }) => {
         roomManager.joinRoom(io, socket, roomCode, playerData);

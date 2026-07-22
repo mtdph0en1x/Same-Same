@@ -134,60 +134,7 @@ function mmModal(visible, setVisible, onFindMatch) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PublicPanel — Quick Play, Create Custom, Browse Lobbies
-// ─────────────────────────────────────────────────────────────────────────────
-function PublicPanel({ getDisplayName, profileData, setScreen, setPlayerData, setRoomCode, setIsHost, setLobbyIntent }) {
-  const [isSearching, setIsSearching] = useState(false);
 
-  const handleQuickPlay = () => {
-    const displayName = getDisplayName();
-    if (!displayName) return Alert.alert('Name required', 'Enter a name first!');
-    const playerData = { name: displayName, avatar: profileData?.avatar, level: profileData?.level || 1 };
-    setPlayerData(playerData);
-    setIsHost(false);
-    setLobbyIntent('quick_play');
-    setScreen('Lobby');
-  };
-
-  const handleCreatePublic = () => {
-    const displayName = getDisplayName();
-    if (!displayName) return Alert.alert('Name required', 'Enter a name first!');
-    const playerData = { name: displayName, avatar: profileData?.avatar, level: profileData?.level || 1 };
-    setPlayerData(playerData);
-    setIsHost(true);
-    setLobbyIntent('create_public');
-    setScreen('Lobby'); // Navigate first so LobbyScreen can emit and catch the response
-  };
-
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', gap: 20 }}>
-      <TouchableOpacity style={s.quickPlayBtn} onPress={handleQuickPlay} activeOpacity={0.8} disabled={isSearching}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-          <Flame size={24} color="#000" strokeWidth={3} />
-          <Text style={s.quickPlayBtnText}>{isSearching ? 'FINDING LOBBY...' : 'QUICK PLAY'}</Text>
-        </View>
-        <Text style={s.quickPlaySubText}>Join an open public lobby instantly</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={[s.quickPlayBtn, { backgroundColor: '#FBBF24' }]} onPress={handleCreatePublic} activeOpacity={0.8}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-          <Crown size={24} color="#000" strokeWidth={3} />
-          <Text style={s.quickPlayBtnText}>CREATE PUBLIC LOBBY</Text>
-        </View>
-        <Text style={s.quickPlaySubText}>Host a custom game for anyone to join</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={[s.quickPlayBtn, { backgroundColor: '#E5E7EB' }]} onPress={() => setScreen('LobbyBrowser')} activeOpacity={0.8}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-          <Globe size={24} color="#000" strokeWidth={3} />
-          <Text style={s.quickPlayBtnText}>BROWSE LOBBIES</Text>
-        </View>
-        <Text style={s.quickPlaySubText}>Find specific modes or hosted games</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main HomeScreen
@@ -200,7 +147,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
   const [joinModalVisible, setJoinModalVisible] = useState(false);
   const [mmModalVisible, setMmModalVisible] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
-  const [activeTab, setActiveTab] = useState('public');
+  const [activeTab, setActiveTab] = useState('play');
 
   const { width } = useWindowDimensions();
   const isDesktop = width > 800;
@@ -327,12 +274,22 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
     setScreen('Lobby');
   };
 
-  const handleHostCouch = () => {
+  const handleQuickPlay = () => {
+    const displayName = getDisplayName();
+    if (!displayName) return Alert.alert('Name required', 'Enter a name first!');
+    const playerData = { name: displayName, avatar: profileData?.avatar, level: profileData?.level || 1 };
+    setPlayerData(playerData);
+    setIsHost(false);
+    setLobbyIntent('quick_play');
+    setScreen('Lobby');
+  };
+
+  const handleHostGame = () => {
     const displayName = getDisplayName();
     if (!displayName) return Alert.alert('Name required', 'Enter a name to continue!');
     setPlayerData({ name: displayName, avatar: profileData?.avatar || 'alien' });
     setIsHost(true);
-    setLobbyIntent('host_couch');
+    setLobbyIntent('host_game');
     setScreen('Lobby');
   };
 
@@ -373,19 +330,11 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
           </TouchableOpacity>
           <View style={s.tabDivider} />
           <TouchableOpacity 
-            style={[s.tabBtn, activeTab === 'public' && s.tabBtnPlayActive]} 
-            onPress={() => setActiveTab('public')}
+            style={[s.tabBtn, activeTab === 'play' && s.tabBtnPlayActive]} 
+            onPress={() => setActiveTab('play')}
             activeOpacity={0.8}
           >
-            <Text style={[s.tabText, activeTab === 'public' && s.tabTextActive]}>PUBLIC</Text>
-          </TouchableOpacity>
-          <View style={s.tabDivider} />
-          <TouchableOpacity 
-            style={[s.tabBtn, activeTab === 'private' && s.tabBtnPlayActive]} 
-            onPress={() => setActiveTab('private')}
-            activeOpacity={0.8}
-          >
-            <Text style={[s.tabText, activeTab === 'private' && s.tabTextActive]}>PRIVATE</Text>
+            <Text style={[s.tabText, activeTab === 'play' && s.tabTextActive]}>PLAY</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -566,7 +515,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
           )}
 
           {/* ── RIGHT PANEL — Play ── */}
-          {(isDesktop || activeTab === 'public' || activeTab === 'private') && (
+          {(isDesktop || activeTab === 'play') && (
             <Animated.View 
               style={[
                 s.panel, 
@@ -582,71 +531,88 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
             >
             <View style={[s.panelHeader, s.panelHeaderRight]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                {isDesktop ? <Gamepad2 size={24} color="#000" strokeWidth={2.5} /> : activeTab === 'public' ? <Globe size={24} color="#000" strokeWidth={2.5} /> : <Home size={24} color="#000" strokeWidth={2.5} />}
-                <Text style={s.panelHeaderText}>
-                  {isDesktop ? 'PLAY' : activeTab === 'public' ? 'PUBLIC' : 'PRIVATE'}
-                </Text>
+                <Text style={s.panelHeaderText}>PLAY</Text>
               </View>
-              <Text style={s.panelSubText}>
-                {isDesktop ? 'Choose how you want to play' : activeTab === 'public' ? 'Online Matchmaking' : 'Local Couch Games'}
-              </Text>
+              <Text style={s.panelSubText}>Choose how you want to play</Text>
             </View>
 
-            <View style={s.panelBody}>
+            <View style={[s.panelBody, { flex: 1, justifyContent: 'center', gap: 16 }]}>
               
-              {(isDesktop || activeTab === 'public') && (
-                <PublicPanel
-                  getDisplayName={getDisplayName}
-                  profileData={profileData}
-                  setScreen={setScreen}
-                  setPlayerData={setPlayerData}
-                  setRoomCode={setRoomCode}
-                  setIsHost={setIsHost}
-                  setLobbyIntent={setLobbyIntent}
-                />
-              )}
+              <Button
+                title="HOST GAME"
+                onPress={handleHostGame}
+                type="secondary"
+              />
 
-              {isDesktop && (
-                <View style={s.dividerRow}>
-                  <View style={s.divider} />
-                  <Text style={s.dividerText}>OR PLAY LOCAL</Text>
-                  <View style={s.divider} />
+              <Button
+                title="QUICK PLAY"
+                subtext="Join an open public lobby instantly"
+                onPress={handleQuickPlay}
+                type="primary"
+              />
+
+              <Button
+                title="BROWSE LOBBIES"
+                subtext="Find specific modes or hosted games"
+                onPress={() => setScreen('LobbyBrowser')}
+                type="tertiary"
+              />
+
+              <View style={[s.dividerRow, { marginTop: 24, marginBottom: 10 }]}>
+                <View style={s.divider} />
+                <Text style={s.dividerText}>OR JOIN VIA CODE</Text>
+                <View style={s.divider} />
+              </View>
+
+              {isDesktop ? (
+                <View style={s.joinRow}>
+                  <TextInput
+                    style={s.joinCodeInput}
+                    placeholder="XXXX"
+                    placeholderTextColor="#9ca3af"
+                    value={code}
+                    onChangeText={setCode}
+                    maxLength={4}
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                  />
+                  <Button
+                    title="Join →"
+                    onPress={handleJoinCouch}
+                    type="primary"
+                    style={s.joinBtn}
+                  />
+                </View>
+              ) : (
+                <View style={{ gap: 12 }}>
+                  <TextInput
+                    style={[s.joinCodeInput, { 
+                      backgroundColor: '#fff', 
+                      borderWidth: 3, 
+                      borderColor: '#000', 
+                      borderRadius: 12,
+                      padding: 12,
+                      shadowColor: '#000',
+                      shadowOffset: { width: 3, height: 3 },
+                      shadowOpacity: 1,
+                      shadowRadius: 0,
+                    }]}
+                    placeholder="XXXX"
+                    placeholderTextColor="#9ca3af"
+                    value={code}
+                    onChangeText={setCode}
+                    maxLength={4}
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                  />
+                  <Button
+                    title="JOIN GAME"
+                    onPress={handleJoinCouch}
+                    type="primary"
+                  />
                 </View>
               )}
 
-              {(isDesktop || activeTab === 'private') && (
-                <>
-                  {!isDesktop && (
-                    <Text style={[s.playSectionTitle, { marginBottom: 16 }]}>COUCH GAMES</Text>
-                  )}
-                  <Button
-                    title="HOST COUCH GAME"
-                    icon={<Home size={24} color="#000" strokeWidth={3} />}
-                    onPress={handleHostCouch}
-                    type="secondary"
-                    style={s.panelBtn}
-                  />
-
-                  <View style={[s.joinRow, !isDesktop && { flexDirection: 'column' }]}>
-                    <TextInput
-                      style={s.joinCodeInput}
-                      placeholder="XXXX"
-                      placeholderTextColor="#9ca3af"
-                      value={code}
-                      onChangeText={setCode}
-                      maxLength={4}
-                      autoCapitalize="characters"
-                      autoCorrect={false}
-                    />
-                    <Button
-                      title="Join →"
-                      onPress={handleJoinCouch}
-                      type="primary"
-                      style={s.joinBtn}
-                    />
-                  </View>
-                </>
-              )}
             </View>
           </Animated.View>
           )}

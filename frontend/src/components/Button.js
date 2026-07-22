@@ -7,7 +7,7 @@ import { theme } from '../styles/theme';
 const SHADOW_X = 4;
 const SHADOW_Y = 4;
 
-export default function Button({ title, onPress, type = 'primary', style, icon }) {
+export default function Button({ title, onPress, type = 'primary', style, icon, subtext }) {
   const translateX = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(0)).current;
 
@@ -50,7 +50,7 @@ export default function Button({ title, onPress, type = 'primary', style, icon }
     if (onPress) onPress();
   };
 
-  const bg = type === 'primary' ? theme.colors.primary : theme.colors.accent;
+  const bg = type === 'primary' ? theme.colors.primary : type === 'secondary' ? theme.colors.accent : '#E5E7EB';
 
   return (
     // Black shadow block — sized by the button sitting on top with a negative offset
@@ -66,11 +66,13 @@ export default function Button({ title, onPress, type = 'primary', style, icon }
             { backgroundColor: bg },
             { transform: [{ translateX: translateX.interpolate({ inputRange: [0, SHADOW_X], outputRange: [-SHADOW_X, 0] }) },
                           { translateY: translateY.interpolate({ inputRange: [0, SHADOW_Y], outputRange: [-SHADOW_Y, 0] }) }] },
-            icon && { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
           ]}
         >
-          {icon && <View style={{ marginRight: 8 }}>{icon}</View>}
-          <Text style={styles.buttonText}>{title}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+            {icon && <View style={{ marginRight: 8 }}>{icon}</View>}
+            <Text style={styles.buttonText}>{title}</Text>
+          </View>
+          {subtext && <Text style={styles.buttonSubtext}>{subtext}</Text>}
         </Animated.View>
       </TouchableWithoutFeedback>
     </View>
@@ -99,5 +101,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     letterSpacing: 2,
     textTransform: 'uppercase',
+  },
+  buttonSubtext: {
+    fontFamily: theme.fonts.bodyBold,
+    fontSize: 12,
+    color: 'rgba(0,0,0,0.6)',
+    marginTop: 4,
+    textAlign: 'center',
   },
 });
