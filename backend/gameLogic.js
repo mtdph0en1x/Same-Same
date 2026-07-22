@@ -1,39 +1,69 @@
 const natural = require('natural');
 const JaroWinklerDistance = natural.JaroWinklerDistance;
 const PorterStemmer = natural.PorterStemmer;
-const fs = require('fs');
-const path = require('path');
+const { supabase } = require('./supabase');
 
 // ---------------------------------------------------------------------------
 // Category Packs
-// Loaded dynamically from backend/categories/*.json at startup.
-// To add a new pack: drop a new <packname>.json file in that folder and restart.
+// Loaded dynamically from Supabase `topics` table at startup.
 // ---------------------------------------------------------------------------
-const PACKS = {};
-const categoriesDir = path.join(__dirname, 'categories');
-fs.readdirSync(categoriesDir).forEach(file => {
-    if (file.endsWith('.json')) {
-        const packId = file.replace('.json', '');
-        PACKS[packId] = JSON.parse(fs.readFileSync(path.join(categoriesDir, file), 'utf8'));
-        console.log(`Loaded category pack: ${packId} (${PACKS[packId].length} categories)`);
-    }
-});
+let PACKS = {};
 
-function getRandomCategory(packId = 'classic') {
-    let pool;
-    if (packId === 'all') {
-        pool = Object.values(PACKS).flat();
-    } else if (PACKS[packId]) {
-        pool = PACKS[packId];
-    } else {
-        console.warn(`Unknown pack "${packId}", falling back to classic`);
-        pool = PACKS['classic'] || Object.values(PACKS).flat();
+async function loadTopics() {
+    console.log('Fetching topics from Supabase...');
+    // We fetch pack_id, lang, and topic.
+    const { data, error } = await supabase.from('topics').select('pack_id, lang, topic');
+    
+    if (error) {
+        console.error('Failed to load topics:', error);
+        return;
     }
+    
+    // Reset PACKS
+    PACKS = {};
+    
+    data.forEach(row => {
+        // Default to 'en' if lang is missing
+        const lang = row.lang || 'en';
+        const packId = row.pack_id;
+        
+        if (!PACKS[lang]) PACKS[lang] = {};
+        if (!PACKS[lang][packId]) PACKS[lang][packId] = [];
+        
+        PACKS[lang][packId].push(row.topic);
+    });
+    
+    let total = 0;
+    Object.keys(PACKS).forEach(lang => {
+        Object.keys(PACKS[lang]).forEach(packId => {
+            const count = PACKS[lang][packId].length;
+            total += count;
+            console.log(`Loaded [${lang}] pack '${packId}': ${count} topics`);
+        });
+    });
+    console.log(`Successfully loaded ${total} topics into memory cache.`);
+}
+
+function getRandomCategory(packId = 'classic', lang = 'en') {
+    let pool;
+    const langPacks = PACKS[lang] || PACKS['en'] || {};
+
+    if (packId === 'all') {
+        pool = Object.values(langPacks).flat();
+    } else if (langPacks[packId]) {
+        pool = langPacks[packId];
+    } else {
+        console.warn(`Unknown pack "${packId}" for lang "${lang}", falling back to classic`);
+        pool = langPacks['classic'] || Object.values(langPacks).flat();
+    }
+    
+    if (!pool || pool.length === 0) return "Oops! No topics found.";
+    
     return pool[Math.floor(Math.random() * pool.length)];
 }
 
-function getPackNames() {
-    return Object.keys(PACKS);
+function getPackNames(lang = 'en') {
+    return Object.keys(PACKS[lang] || PACKS['en'] || {});
 }
 
 // ---------------------------------------------------------------------------
@@ -183,6 +213,7 @@ function calculateScores(playerWords, roundType, modifiers = [], teams = null) {
 }
 
 module.exports = {
+    loadTopics,
     getRandomCategory,
     getPackNames,
     calculateScores

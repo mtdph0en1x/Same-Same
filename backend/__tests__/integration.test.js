@@ -14,9 +14,12 @@ const { server, io } = require('../server');
 // Helpers
 // ---------------------------------------------------------------------------
 
+const { loadTopics } = require('../gameLogic');
+
 /** Start the server on a random OS-assigned port, return the URL. */
 function startServer() {
-    return new Promise((resolve) => {
+    return new Promise(async (resolve) => {
+        await loadTopics();
         server.listen(0, () => {
             const { port } = server.address();
             resolve(`http://localhost:${port}`);

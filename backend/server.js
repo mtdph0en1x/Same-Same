@@ -48,9 +48,7 @@ const io = new Server(server, {
 const matchmaker = require('./matchmaker');
 const roomManager = require('./roomManager');
 const { supabase } = require('./supabase');
-
-// Seed the permanent default public lobbies
-roomManager.seedDefaultLobbies();
+const { loadTopics } = require('./gameLogic');
 
 io.use(async (socket, next) => {
     const token = socket.handshake.auth?.token;
@@ -201,10 +199,23 @@ io.on('connection', (socket) => {
 
 // Only bind a port when run directly (not when required by tests)
 if (require.main === module) {
-    const PORT = process.env.PORT || 3000;
-    server.listen(PORT, () => {
-        console.log(`Backend server running on port ${PORT}`);
-    });
+    (async () => {
+        try {
+            await loadTopics();
+            roomManager.seedDefaultLobbies();
+            
+            const PORT = process.env.PORT || 3000;
+            server.listen(PORT, () => {
+                console.log(`Backend server running on port ${PORT}`);
+            });
+        } catch (err) {
+            console.error("Failed to boot server:", err);
+            process.exit(1);
+        }
+    })();
+} else {
+    // If required for tests, we just seed lobbies for safety (tests will handle topics)
+    roomManager.seedDefaultLobbies();
 }
 
 module.exports = { app, server, io };
