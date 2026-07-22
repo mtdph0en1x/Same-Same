@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 import AppText from '../components/AppText';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, TextInput, Alert } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, TextInput, Alert, useWindowDimensions } from 'react-native';
 import NeoButton from '../components/NeoButton';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
@@ -20,6 +20,9 @@ const UNLOCK_THRESHOLDS = [
 ];
 
 export default function SettingsScreen({ setScreen, setIsGuest }) {
+  const { width } = useWindowDimensions();
+  const isSmall = width < 400;
+
   const { t, i18n } = useTranslation();
   const { user } = useContext(AuthContext);
   const [profile, setProfile] = useState(null);
@@ -176,24 +179,35 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
   const nextLevelXp = Math.floor(500 * Math.pow(1.10, level - 1));
   const progressPercent = Math.min(100, Math.max(0, (xp / nextLevelXp) * 100));
 
+  const containerPadding = isSmall ? theme.spacing.md : theme.spacing.xl;
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={s.container}>
+      <ScrollView contentContainerStyle={[s.container, { padding: containerPadding }]}>
         
         {/* Header */}
-        <View style={s.headerRow}>
-          <NeoButton style={s.backBtn} onPress={() => setScreen('Home')}>
-            <AppText style={s.backBtnText}>{t('common.back', '← Back')}</AppText>
-          </NeoButton>
-          <AppText style={s.title}>{t('settings.title', 'Profile Settings')}</AppText>
-          <NeoButton style={s.logoutBtn} onPress={handleLogout}>
-            <AppText style={s.logoutBtnText}>{t('common.logout', 'Logout')}</AppText>
-          </NeoButton>
+        <View style={[s.headerRow, isSmall && { flexDirection: 'column', gap: 16 }]}>
+          <View style={isSmall ? { flexDirection: 'row', justifyContent: 'space-between', width: '100%' } : { flexDirection: 'row', alignItems: 'center' }}>
+            <NeoButton style={s.backBtn} onPress={() => setScreen('Home')}>
+              <AppText style={s.backBtnText}>{t('common.back', '← Back')}</AppText>
+            </NeoButton>
+            {isSmall && (
+              <NeoButton style={s.logoutBtn} onPress={handleLogout}>
+                <AppText style={s.logoutBtnText}>{t('common.logout', 'Logout')}</AppText>
+              </NeoButton>
+            )}
+          </View>
+          <AppText style={[s.title, isSmall && { fontSize: 28, textAlign: 'center' }]}>{t('settings.title', 'Profile Settings')}</AppText>
+          {!isSmall && (
+            <NeoButton style={s.logoutBtn} onPress={handleLogout}>
+              <AppText style={s.logoutBtnText}>{t('common.logout', 'Logout')}</AppText>
+            </NeoButton>
+          )}
         </View>
 
         {/* Identity & Level Progress */}
-        <View style={s.card}>
-          <View style={s.identityRow}>
+        <View style={[s.card, isSmall && { padding: 16 }]}>
+          <View style={[s.identityRow, isSmall && { flexDirection: 'column', alignItems: 'center' }]}>
             <NeoButton onPress={pickImage} style={{ position: 'relative' }}>
               {isUploading ? (
                 <View style={{ width: 100, height: 100, borderRadius: 50, justifyContent: 'center', alignItems: 'center', backgroundColor: '#e5e7eb' }}>
@@ -207,12 +221,12 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
               </View>
             </NeoButton>
             
-            <View style={s.identityInfo}>
+            <View style={[s.identityInfo, isSmall && { alignItems: 'center' }]}>
               {isEditingName ? (
-                <View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={[isSmall && { alignItems: 'center' }]}>
+                  <View style={[{ flexDirection: 'row', alignItems: 'center', gap: 8 }, isSmall && { flexWrap: 'wrap', justifyContent: 'center' }]}>
                     <TextInput
-                      style={[s.username, { flex: 1, backgroundColor: '#f3f4f6', borderWidth: 2, borderColor: '#000', borderRadius: theme.borderRadius.md, paddingHorizontal: 10, paddingVertical: 4 }]}
+                      style={[s.username, { flex: 1, minWidth: 120, backgroundColor: '#f3f4f6', borderWidth: 2, borderColor: '#000', borderRadius: theme.borderRadius.md, paddingHorizontal: 10, paddingVertical: 4 }]}
                       value={editName}
                       onChangeText={(t) => { setEditName(t); setNameError(''); }}
                       autoFocus
@@ -229,8 +243,8 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
                   {nameError ? <AppText style={{ color: '#EF4444', fontFamily: theme.fonts.bodyBold, fontSize: 12, marginTop: 4 }}>{nameError}</AppText> : null}
                 </View>
               ) : (
-                <NeoButton onPress={() => setIsEditingName(true)} style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <AppText style={s.username}>{username}</AppText>
+                <NeoButton onPress={() => setIsEditingName(true)} style={[{ flexDirection: 'row', alignItems: 'center' }, isSmall && { justifyContent: 'center', flexWrap: 'wrap' }]}>
+                  <AppText style={[s.username, isSmall && { textAlign: 'center' }]}>{username}</AppText>
                   <AppText style={{ fontSize: 16, marginLeft: 8 }}>✏️</AppText>
                 </NeoButton>
               )}
@@ -245,8 +259,8 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
         </View>
 
         {/* Frame Selection */}
-        <View style={s.card}>
-          <AppText style={s.sectionTitle}>{t('settings.equipFrame', 'Equip Frame')}</AppText>
+        <View style={[s.card, isSmall && { padding: 16 }]}>
+          <AppText style={[s.sectionTitle, isSmall && { textAlign: 'center' }]}>{t('settings.equipFrame', 'Equip Frame')}</AppText>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.frameScroll}>
             {unlocked_frames && unlocked_frames.map(f => (
               <NeoButton key={f} style={s.frameOpt} onPress={() => setFrame(f)}>
@@ -260,29 +274,29 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
         </View>
 
         {/* Progression Timeline */}
-        <View style={s.card}>
-          <AppText style={s.sectionTitle}>{t('settings.progression', 'Progression')}</AppText>
-          <AppText style={s.desc}>{t('settings.progressionDesc', 'Keep playing to earn XP, level up, and unlock new cosmetic frames!')}</AppText>
+        <View style={[s.card, isSmall && { padding: 16 }]}>
+          <AppText style={[s.sectionTitle, isSmall && { textAlign: 'center' }]}>{t('settings.progression', 'Progression')}</AppText>
+          <AppText style={[s.desc, isSmall && { textAlign: 'center' }]}>{t('settings.progressionDesc', 'Keep playing to earn XP, level up, and unlock new cosmetic frames!')}</AppText>
 
           <View style={s.timeline}>
             {UNLOCK_THRESHOLDS.map(item => {
               const isUnlocked = level >= item.level;
               return (
-                <View key={item.level} style={[s.timelineRow, isUnlocked && s.timelineRowUnlocked]}>
+                <View key={item.level} style={[s.timelineRow, isUnlocked && s.timelineRowUnlocked, isSmall && { flexDirection: 'column', alignItems: 'center', textAlign: 'center' }]}>
                   <View style={[s.timelineLevel, isUnlocked ? s.timelineLevelUnlocked : null]}>
                     <AppText style={[s.timelineLevelText, isUnlocked ? s.timelineLevelTextUnlocked : null]}>
                       {t('common.levelShort', { level: item.level })}
                     </AppText>
                   </View>
-                  <View style={s.timelineContent}>
-                    <AppText style={[s.timelineLabel, isUnlocked && s.timelineLabelUnlocked]}>{t(`settings.${item.labelKey}`)}</AppText>
+                  <View style={[s.timelineContent, isSmall && { alignItems: 'center' }]}>
+                    <AppText style={[s.timelineLabel, isUnlocked && s.timelineLabelUnlocked, isSmall && { textAlign: 'center' }]}>{t(`settings.${item.labelKey}`)}</AppText>
                     {isUnlocked ? (
                       <AppText style={s.timelineStatusUnlocked}>{t('settings.unlocked', 'Unlocked!')}</AppText>
                     ) : (
                       <AppText style={s.timelineStatusLocked}>{t('settings.locked', '🔒 Locked')}</AppText>
                     )}
                   </View>
-                  <FramedAvatar fallbackName="?" frame={item.frame} size={40} />
+                  <FramedAvatar fallbackName="?" frame={item.frame} size={isSmall ? 64 : 40} />
                 </View>
               );
             })}

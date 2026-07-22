@@ -57,7 +57,9 @@ function getRandomCategory(packId = 'classic', lang = 'en') {
     } else if (langPacks[packId]) {
         pool = langPacks[packId];
     } else {
-        console.warn(`Unknown pack "${packId}" for lang "${lang}", falling back to classic`);
+        if (Object.keys(langPacks).length > 0) {
+            console.warn(`Unknown pack "${packId}" for lang "${lang}", falling back to classic`);
+        }
         pool = langPacks['classic'] || Object.values(langPacks).flat();
     }
     

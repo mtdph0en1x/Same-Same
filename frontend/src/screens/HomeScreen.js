@@ -120,15 +120,18 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
   const [animVal] = useState(new Animated.Value(0));
 
   useEffect(() => {
+    let active = true;
     if (user) {
       supabase.from('profiles').select('username, avatar, games_played, wins, level, xp, active_frame, unlocked_frames').eq('id', user.id).single()
         .then(({ data }) => { 
+          if (!active) return;
           if (data) {
             setProfileData(data);
           }
         });
+    } else {
+      setProfileData(null);
     }
-    
     // Always run the entrance animation for both auth and guest
     Animated.spring(animVal, {
       toValue: 1,
@@ -136,6 +139,8 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
       friction: 7,
       useNativeDriver: true,
     }).start();
+
+    return () => { active = false; };
   }, [user]);
 
 
