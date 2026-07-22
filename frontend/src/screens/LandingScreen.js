@@ -98,10 +98,13 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
   ).current;
 
 
+  const [nameError, setNameError] = useState('');
+
   async function handleGuestLogin() {
+    setNameError('');
     const newName = guestName.trim();
     if (!newName) {
-      Alert.alert('Name Required', 'Please enter a guest name.');
+      setNameError('Please enter a guest name.');
       return;
     }
     
@@ -114,9 +117,11 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        Alert.alert('Invalid Name', data.error || 'Failed to validate username');
+        setNameError(data.error || 'Failed to validate username');
         return;
       }
+      // Note: we don't catch unique constraints here because guests aren't in Supabase profiles yet.
+      // But if we did, we'd handle it.
       setIsGuest(true);
     } catch (err) {
       console.warn('Username check failed:', err);
@@ -215,13 +220,16 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
                           <Text style={{ fontSize: 40 * tScale }}>👤</Text>
                         </View>
                       </View>
-                      <TextInput
-                        style={[s.input, { width: '85%', textAlign: 'center' }]}
-                        onChangeText={setGuestName}
-                        value={guestName}
-                        placeholder="ENTER GUEST NAME"
-                        placeholderTextColor="#a0603a"
-                      />
+                      <View>
+                        <TextInput
+                          style={[s.input, { width: '85%', textAlign: 'center' }]}
+                          onChangeText={(t) => { setGuestName(t); setNameError(''); }}
+                          value={guestName}
+                          placeholder="ENTER GUEST NAME"
+                          placeholderTextColor="#a0603a"
+                        />
+                        {nameError ? <Text style={{ color: '#EF4444', fontFamily: theme.fonts.bodyBold, fontSize: 12, marginTop: 4, textAlign: 'center' }}>{nameError}</Text> : null}
+                      </View>
                     </View>
                   </View>
                   {/* Guest bottom action */}

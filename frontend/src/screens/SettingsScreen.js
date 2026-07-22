@@ -24,6 +24,7 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState('');
+  const [nameError, setNameError] = useState('');
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
@@ -41,6 +42,7 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
   };
 
   const handleSaveName = async () => {
+    setNameError('');
     const newName = editName.trim();
     if (!newName || newName === profile.username) {
       setIsEditingName(false);
@@ -55,7 +57,7 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        Alert.alert('Invalid Name', data.error || 'Failed to validate username');
+        setNameError(data.error || 'Failed to validate username');
         return;
       }
     } catch (err) {
@@ -70,13 +72,13 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
       
       if (error) {
         if (error.code === '23505') throw new Error('Username is already taken.');
-        throw error;
+        throw new Error(error.message || 'Failed to update username');
       }
       setProfile({ ...profile, username: newName });
       setIsEditingName(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(()=>{});
     } catch (err) {
-      Alert.alert('Error updating name', err.message);
+      setNameError(err.message);
     }
   };
 
@@ -204,15 +206,25 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
             
             <View style={s.identityInfo}>
               {isEditingName ? (
-                <TextInput
-                  style={[s.username, { backgroundColor: '#f3f4f6', borderWidth: 2, borderColor: '#000', borderRadius: theme.borderRadius.md, paddingHorizontal: 10, paddingVertical: 4 }]}
-                  value={editName}
-                  onChangeText={setEditName}
-                  autoFocus
-                  maxLength={20}
-                  onBlur={handleSaveName}
-                  onSubmitEditing={handleSaveName}
-                />
+                <View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <TextInput
+                      style={[s.username, { flex: 1, backgroundColor: '#f3f4f6', borderWidth: 2, borderColor: '#000', borderRadius: theme.borderRadius.md, paddingHorizontal: 10, paddingVertical: 4 }]}
+                      value={editName}
+                      onChangeText={(t) => { setEditName(t); setNameError(''); }}
+                      autoFocus
+                      maxLength={20}
+                      onSubmitEditing={handleSaveName}
+                    />
+                    <NeoButton onPress={handleSaveName} style={{ backgroundColor: '#10B981', paddingHorizontal: 16, paddingVertical: 8, borderRadius: theme.borderRadius.md, borderWidth: 2, borderColor: '#000' }}>
+                      <Text style={{ fontSize: 16, color: '#fff', fontFamily: theme.fonts.headingBold }}>SAVE</Text>
+                    </NeoButton>
+                    <NeoButton onPress={() => { setIsEditingName(false); setEditName(profile.username); setNameError(''); }} style={{ backgroundColor: '#EF4444', paddingHorizontal: 16, paddingVertical: 8, borderRadius: theme.borderRadius.md, borderWidth: 2, borderColor: '#000' }}>
+                      <Text style={{ fontSize: 16, color: '#fff', fontFamily: theme.fonts.headingBold }}>X</Text>
+                    </NeoButton>
+                  </View>
+                  {nameError ? <Text style={{ color: '#EF4444', fontFamily: theme.fonts.bodyBold, fontSize: 12, marginTop: 4 }}>{nameError}</Text> : null}
+                </View>
               ) : (
                 <NeoButton onPress={() => setIsEditingName(true)} style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <Text style={s.username}>{username}</Text>
