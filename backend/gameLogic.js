@@ -147,15 +147,17 @@ function calculateScores(playerWords, roundType, modifiers = [], teams = null) {
         groups.forEach(g => {
             if (roundType === 'Same Same' || roundType === 'Blitz') {
                 if (g.playerIds.length > 1) {
-                    
-                    
+                    let fastest = null;
+                    if (modifiers.includes('Rush')) {
+                        fastest = g.playerIds.reduce((prev, curr) => (curr.time < prev.time ? curr : prev));
+                    }
 
                     g.playerIds.forEach(p => {
                         scoreUpdates[p.id] = (scoreUpdates[p.id] || 0) + g.playerIds.length;
-                        
+                        if (fastest && p.id === fastest.id) {
+                            scoreUpdates[p.id] += 2;
+                        }
                     });
-
-                    
                 }
             } else if (roundType === 'But Different') {
                 if (g.playerIds.length === 1) {
@@ -178,15 +180,17 @@ function calculateScores(playerWords, roundType, modifiers = [], teams = null) {
                 ['A', 'B'].forEach(team => {
                     const members = byTeam[team];
                     if (members.length > 1) {
-                        
-                        
+                        let fastest = null;
+                        if (modifiers.includes('Rush')) {
+                            fastest = members.reduce((prev, curr) => (curr.time < prev.time ? curr : prev));
+                        }
 
                         members.forEach(p => {
                             scoreUpdates[p.id] = (scoreUpdates[p.id] || 0) + members.length;
-                            
+                            if (fastest && p.id === fastest.id) {
+                                scoreUpdates[p.id] += 2;
+                            }
                         });
-
-                        
                     }
                 });
             } else if (roundType === 'But Different') {
