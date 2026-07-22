@@ -18,6 +18,7 @@ import { AuthContext } from '../context/AuthContext';
 import { supabase } from '../supabase';
 import { socket } from '../socket';
 import Button from '../components/Button';
+import FramedAvatar from '../components/FramedAvatar';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -135,7 +136,6 @@ function mmModal(visible, setVisible, onFindMatch) {
 }
 
 
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Main HomeScreen
 // ─────────────────────────────────────────────────────────────────────────────
@@ -159,17 +159,12 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
   // Animations
   const [animVal] = useState(new Animated.Value(0));
 
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [editName, setEditName] = useState('');
-  const [isUploading, setIsUploading] = useState(false);
-
   useEffect(() => {
     if (user) {
-      supabase.from('profiles').select('username, avatar, games_played, wins, level, xp').eq('id', user.id).single()
+      supabase.from('profiles').select('username, avatar, games_played, wins, level, xp, active_frame, unlocked_frames').eq('id', user.id).single()
         .then(({ data }) => { 
           if (data) {
             setProfileData(data);
-            setEditName(data.username || user.email.split('@')[0]);
           }
         });
     }
@@ -183,75 +178,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
     }).start();
   }, [user]);
 
-  async function handleSaveName() {
-    if (!editName.trim()) {
-      setIsEditingName(false);
-      return;
-    }
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ username: editName.trim() })
-        .eq('id', user.id);
-      
-      if (error) throw error;
-      setProfileData({ ...profileData, username: editName.trim() });
-      setIsEditingName(false);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(()=>{});
-    } catch (err) {
-      Alert.alert('Error updating name', err.message);
-    }
-  }
 
-  async function pickImage() {
-    try {
-      let result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.5,
-        base64: true,
-      });
-
-      if (!result.canceled) {
-        setIsUploading(true);
-        const base64 = result.assets[0].base64;
-        const uri = result.assets[0].uri;
-        const extMatch = uri.match(/\.([a-zA-Z]+)$/);
-        const ext = extMatch ? extMatch[1] : 'jpeg';
-        const filePath = `${user.id}/avatar.${ext}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(filePath, decode(base64), {
-            contentType: `image/${ext}`,
-            upsert: true
-          });
-        
-        if (uploadError) throw uploadError;
-
-        const { data: publicUrlData } = supabase.storage
-          .from('avatars')
-          .getPublicUrl(filePath);
-        
-        const avatarUrl = publicUrlData.publicUrl + '?t=' + Date.now();
-
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ avatar: avatarUrl })
-          .eq('id', user.id);
-        
-        if (updateError) throw updateError;
-
-        setProfileData({ ...profileData, avatar: avatarUrl });
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(()=>{});
-      }
-    } catch (err) {
-      Alert.alert('Upload Error', err.message);
-    } finally {
-      setIsUploading(false);
-    }
-  }
 
   const getDisplayName = () => {
     if (name.trim()) return name.trim();
@@ -269,7 +196,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
   const handleFindMatch = (mode) => {
     setMmModalVisible(false);
     const displayName = getDisplayName();
-    setPlayerData({ name: displayName, avatar: profileData?.avatar || 'alien', mode });
+    setPlayerData({ name: displayName, avatar: profileData?.avatar || 'alien', frame: profileData?.active_frame || 'none', mode });
     setLobbyIntent('matchmaking');
     setScreen('Lobby');
   };
@@ -277,7 +204,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
   const handleQuickPlay = () => {
     const displayName = getDisplayName();
     if (!displayName) return Alert.alert('Name required', 'Enter a name first!');
-    const playerData = { name: displayName, avatar: profileData?.avatar, level: profileData?.level || 1 };
+    const playerData = { name: displayName, avatar: profileData?.avatar, level: profileData?.level || 1, frame: profileData?.active_frame || 'none' };
     setPlayerData(playerData);
     setIsHost(false);
     setLobbyIntent('quick_play');
@@ -287,7 +214,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
   const handleHostGame = () => {
     const displayName = getDisplayName();
     if (!displayName) return Alert.alert('Name required', 'Enter a name to continue!');
-    setPlayerData({ name: displayName, avatar: profileData?.avatar || 'alien' });
+    setPlayerData({ name: displayName, avatar: profileData?.avatar || 'alien', frame: profileData?.active_frame || 'none' });
     setIsHost(true);
     setLobbyIntent('host_game');
     setScreen('Lobby');
@@ -298,7 +225,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
     if (!displayName || !code || code.length < 4)
       return Alert.alert('Oops', 'Enter a valid 4-letter code!');
     setJoinModalVisible(false);
-    setPlayerData({ name: displayName, avatar: profileData?.avatar || 'alien' });
+    setPlayerData({ name: displayName, avatar: profileData?.avatar || 'alien', frame: profileData?.active_frame || 'none' });
     setRoomCode(code.toUpperCase());
     setIsHost(false);
     setLobbyIntent('join_couch');
@@ -381,68 +308,19 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
                     
                     {/* AVATAR & NAME (Right on Mobile, Top on Desktop) */}
                     <View style={{ alignItems: 'center', width: !isDesktop ? 110 : '100%' }}>
-                      <TouchableOpacity 
-                        activeOpacity={user ? 0.7 : 1}
-                        onPress={user ? pickImage : undefined}
-                        style={[
-                          s.panelAvatarRing, 
-                          { 
-                            backgroundColor: user ? theme.colors.primary : '#D946EF',
-                            width: 80 * tScale,
-                            height: 80 * tScale,
-                            borderRadius: 40 * tScale,
-                            marginBottom: !isDesktop ? 4 : 10,
-                          }
-                        ]}
-                      >
-                        {isUploading ? (
-                          <ActivityIndicator size="large" color="#000" />
-                        ) : user && profileData?.avatar && profileData.avatar.startsWith('http') ? (
-                          <Image source={{ uri: profileData.avatar }} style={{ width: '100%', height: '100%', borderRadius: 40 }} />
-                        ) : (
-                          <Text style={[s.panelAvatarEmoji, { fontSize: 36 * tScale }]}>{user ? '👤' : '👽'}</Text>
-                        )}
-                        {user && (
-                          <View style={{ position: 'absolute', bottom: -5, right: -5, backgroundColor: '#fff', borderRadius: 15, padding: 4, borderWidth: 2, borderColor: '#000' }}>
-                            <Text style={{ fontSize: 12 }}>✏️</Text>
-                          </View>
-                        )}
-                      </TouchableOpacity>
+                      <View style={{ marginBottom: !isDesktop ? 4 : 10 }}>
+                        <FramedAvatar 
+                          url={user ? profileData?.avatar : undefined} 
+                          fallbackName={getDisplayName()} 
+                          frame={profileData?.active_frame || 'none'} 
+                          size={80 * tScale} 
+                        />
+                      </View>
 
                       {user ? (
-                        <>
-                          {isEditingName ? (
-                            <TextInput
-                              style={[
-                                s.authUsername, 
-                                { 
-                                  fontSize: (!isDesktop ? 16 : 22) * tScale,
-                                  backgroundColor: '#f3f4f6', 
-                                  borderWidth: 2, 
-                                  borderColor: '#000', 
-                                  borderRadius: theme.borderRadius.md, 
-                                  paddingHorizontal: !isDesktop ? 5 : 10, 
-                                  minWidth: !isDesktop ? 90 : 150,
-                                  marginTop: 0,
-                                  marginBottom: !isDesktop ? 0 : 8
-                                }
-                              ]}
-                              value={editName}
-                              onChangeText={setEditName}
-                              autoFocus
-                              maxLength={20}
-                              onBlur={handleSaveName}
-                              onSubmitEditing={handleSaveName}
-                            />
-                          ) : (
-                            <TouchableOpacity onPress={() => setIsEditingName(true)} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-                              <Text style={[s.authUsername, { fontSize: (!isDesktop ? 16 : 22) * tScale, marginTop: 0, marginBottom: !isDesktop ? 0 : 8 }]}>
-                                {profileData?.username || user.user_metadata?.custom_name || user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0]}
-                              </Text>
-                              <Text style={{ fontSize: (!isDesktop ? 12 : 16) * tScale, marginLeft: 4 }}>✏️</Text>
-                            </TouchableOpacity>
-                          )}
-                        </>
+                        <Text style={[s.authUsername, { fontSize: (!isDesktop ? 16 : 22) * tScale, marginTop: 0, marginBottom: !isDesktop ? 0 : 8 }]}>
+                          {profileData?.username || user.user_metadata?.custom_name || user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0]}
+                        </Text>
                       ) : (
                         <Text style={[s.authUsername, { fontSize: (!isDesktop ? 16 : 22) * tScale, marginTop: !isDesktop ? 4 : 10, marginBottom: !isDesktop ? 0 : 8 }]}>
                           {guestName || 'GUEST'}
@@ -486,16 +364,11 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
               <View style={s.profileActionsContainer}>
                 <View style={s.profileActions}>
                   <TouchableOpacity
-                    style={s.signOutBtn}
-                    onPress={() => {
-                      if (user) {
-                        supabase.auth.signOut();
-                      } else {
-                        setIsGuest(false);
-                      }
-                    }}
+                    style={[s.signOutBtn, { backgroundColor: theme.colors.primary, flexDirection: 'row', justifyContent: 'center', gap: 10 }]}
+                    onPress={() => setScreen('Settings')}
                   >
-                    <Text style={s.signOutBtnText}>{user ? 'SIGN OUT' : 'LEAVE VISITOR PASS'}</Text>
+                    <Text style={{ fontSize: 20 }}>⚙️</Text>
+                    <Text style={[s.signOutBtnText, { color: '#000' }]}>{user ? 'PROFILE SETTINGS' : 'GUEST SETTINGS'}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -536,10 +409,11 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
               <Text style={s.panelSubText}>Choose how you want to play</Text>
             </View>
 
-            <View style={[s.panelBody, { flex: 1, justifyContent: 'center', gap: 16 }]}>
+            <View style={[s.panelBody, { gap: 16 }]}>
               
               <Button
                 title="HOST GAME"
+                subtext="Create a room for friends or open it to the public"
                 onPress={handleHostGame}
                 type="secondary"
               />

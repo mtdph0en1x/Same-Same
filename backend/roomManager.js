@@ -119,12 +119,12 @@ function pruneTeams(teams, players) {
 }
 
 function safePlayerList(players) {
-    return players.map(p => ({ id: p.id, name: p.name, level: p.level || 1, avatar: p.avatar, userId: p.socket?.userId }));
+    return players.map(p => ({ id: p.id, name: p.name, level: p.level || 1, avatar: p.avatar, frame: p.frame, userId: p.socket?.userId }));
 }
 
 function createRoom(io, socket, playerData) {
     const roomCode = generateRoomCode();
-    const player = { id: socket.id, name: playerData.name || 'Host', level: playerData.level || 1, avatar: playerData.avatar, socket };
+    const player = { id: socket.id, name: playerData.name || 'Host', level: playerData.level || 1, avatar: playerData.avatar, frame: playerData.frame, socket };
     const teams = { [socket.id]: 'A' };
 
     rooms[roomCode] = {
@@ -167,6 +167,7 @@ function findOrCreatePublicRoom(io, socket, playerData) {
         name: playerData.name || 'Player',
         level: playerData.level || 1,
         avatar: playerData.avatar,
+        frame: playerData.frame,
         socket
     };
 
@@ -378,7 +379,7 @@ function joinRoom(io, socket, roomCode, playerData) {
         } else {
             // Create a new overflow clone
             const newCode = generateRoomCode();
-            const player = { id: socket.id, name: playerData.name || 'Player', level: playerData.level || 1, avatar: playerData.avatar, socket };
+            const player = { id: socket.id, name: playerData.name || 'Player', level: playerData.level || 1, avatar: playerData.avatar, frame: playerData.frame, socket };
             const teams = { [socket.id]: 'A' };
             
             rooms[newCode] = {
@@ -419,7 +420,7 @@ function joinRoom(io, socket, roomCode, playerData) {
         return;
     }
 
-    const player = { id: socket.id, name: playerData.name || 'Player', level: playerData.level || 1, avatar: playerData.avatar, socket };
+    const player = { id: socket.id, name: playerData.name || 'Player', level: playerData.level || 1, avatar: playerData.avatar, frame: playerData.frame, socket };
     
     const existingPlayer = room.players.find(p => p.id === socket.id);
     if (!existingPlayer) {

@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { socket } from '../socket';
 import { theme } from '../styles/theme';
+import FramedAvatar from '../components/FramedAvatar';
 
 const MIN_PLAYERS      = 2;
 const MIN_TEAM_PLAYERS = 4;
@@ -128,13 +129,13 @@ function DraggablePlayerCard({ player, isSelf, myTeam, onDropToTeam, isHost }) {
         dragging && styles.teamPlayerCardLifted,
       ]}
     >
-      <View style={[styles.teamAvatar, { backgroundColor: color }]}>
-        {player.avatar && player.avatar.startsWith('http') ? (
-          <Image source={{ uri: player.avatar }} style={styles.avatarImage} />
-        ) : (
-          <Text style={styles.avatarText}>{player.name.charAt(0).toUpperCase()}</Text>
-        )}
-      </View>
+      <FramedAvatar 
+        url={player.avatar} 
+        fallbackName={player.name} 
+        frame={player.frame || 'none'} 
+        size={40} 
+        style={{ marginRight: 10 }}
+      />
       <Text style={styles.teamPlayerText} numberOfLines={1}>
         ⭐{player.level || 1} {player.name}{isSelf ? ' (You)' : ''}
       </Text>
@@ -161,13 +162,13 @@ function PlayerCard({ player, isHost, isSelf, onKick, isHostless }) {
 
   return (
     <Animated.View style={[styles.playerCard, { transform: [{ translateX: slideAnim }], opacity: opacityAnim }]}>
-      <View style={[styles.avatar, isSelf && styles.avatarSelf]}>
-        {player.avatar && player.avatar.startsWith('http') ? (
-          <Image source={{ uri: player.avatar }} style={styles.avatarImage} />
-        ) : (
-          <Text style={styles.avatarText}>{player.name.charAt(0).toUpperCase()}</Text>
-        )}
-      </View>
+      <FramedAvatar 
+        url={player.avatar} 
+        fallbackName={player.name} 
+        frame={player.frame || 'none'} 
+        size={44} 
+        style={{ marginRight: 12, ...(isSelf ? { borderColor: theme.colors.primary, borderWidth: 2 } : {}) }}
+      />
       <Text style={styles.playerText}>⭐{player.level || 1} {player.name}{isSelf ? ' (You)' : ''}</Text>
       {isHost && !isSelf && !isHostless && (
         <TouchableOpacity style={styles.kickButton} onPress={() => onKick(player.id)}>

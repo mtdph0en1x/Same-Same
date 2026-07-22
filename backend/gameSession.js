@@ -52,7 +52,8 @@ class GameSession {
         if (this.currentRound >= this.config.maxRounds) {
             const playerNames = {};
             const playerAvatars = {};
-            this.players.forEach(p => { playerNames[p.id] = p.name; playerAvatars[p.id] = p.avatar; });
+            const playerFrames = {};
+            this.players.forEach(p => { playerNames[p.id] = p.name; playerAvatars[p.id] = p.avatar; playerFrames[p.id] = p.frame; });
 
             this.io.to(this.roomId).emit('game_over', {
                 scores:       this.scores,
@@ -60,6 +61,7 @@ class GameSession {
                 teamScores:   this.teamScores,
                 playerNames,
                 playerAvatars,
+                playerFrames,
                 isPublic:     this.config.isPublic || false,
                 roomCode:     this.roomId,
             });
@@ -222,9 +224,11 @@ class GameSession {
         // Build a playerNames map so the client can display names in scores
         const playerNames = {};
         const playerAvatars = {};
+        const playerFrames = {};
         this.players.forEach(p => { 
             playerNames[p.id] = p.name; 
             playerAvatars[p.id] = p.avatar;
+            playerFrames[p.id] = p.frame;
         });
 
         const timeline = [];
@@ -297,6 +301,7 @@ class GameSession {
             newScores:    this.scores,
             playerNames:  playerNames,
             playerAvatars: playerAvatars,
+            playerFrames: playerFrames,
             teams:        this.teams,
             teamScores:   this.teamScores,
             rejectedWords: rejectedWordsList, // send to clients to display funny alert
@@ -429,7 +434,7 @@ class GameSession {
                 // Fetch current stats to increment (Race conditions possible but acceptable for indie game without RPC)
                 const { data, error } = await supabase
                     .from('profiles')
-                    .select('games_played, wins, xp, level')
+                    .select('games_played, wins, xp, level, unlocked_frames')
                     .eq('id', p.userId)
                     .single();
 
@@ -454,13 +459,22 @@ class GameSession {
                     nextLevelXp = Math.floor(500 * Math.pow(1.10, currentLevel - 1));
                 }
 
+                // Check for frame unlocks based on currentLevel
+                let unlocked = new Set(data.unlocked_frames || ['none']);
+                if (currentLevel >= 5) unlocked.add('bronze');
+                if (currentLevel >= 10) unlocked.add('silver');
+                if (currentLevel >= 20) unlocked.add('gold');
+                if (currentLevel >= 35) unlocked.add('neon');
+                if (currentLevel >= 50) unlocked.add('glitch');
+
                 await supabase
                     .from('profiles')
                     .update({
                         games_played: (data.games_played || 0) + 1,
                         wins: (data.wins || 0) + (isWinner ? 1 : 0),
                         xp: currentXp,
-                        level: currentLevel
+                        level: currentLevel,
+                        unlocked_frames: Array.from(unlocked)
                     })
                     .eq('id', p.userId);
 

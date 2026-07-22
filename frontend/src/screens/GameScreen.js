@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { socket } from '../socket';
 import { theme } from '../styles/theme';
+import FramedAvatar from '../components/FramedAvatar';
 
 const TEAM_COLORS = { A: '#E11D48', B: '#2563EB' };
 const TEAM_LABELS = { A: '🔴 Team A', B: '🔵 Team B' };
@@ -106,13 +107,12 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
             const isFinished = finishedPlayers.has(p.id);
             return (
               <View key={p.id} style={[styles.playerAvatarContainer, isFinished && styles.playerFinished]}>
-                {p.avatar && p.avatar.startsWith('http') ? (
-                  <Image source={{ uri: p.avatar }} style={styles.smallAvatarImage} />
-                ) : (
-                  <View style={styles.smallAvatarFallback}>
-                    <Text style={styles.smallAvatarText}>{p.name.charAt(0).toUpperCase()}</Text>
-                  </View>
-                )}
+                <FramedAvatar 
+                  url={p.avatar} 
+                  fallbackName={p.name} 
+                  frame={p.frame || 'none'} 
+                  size={40} 
+                />
                 {isFinished && (
                   <View style={styles.checkmarkBadge}>
                     <Text style={styles.checkmarkText}>✓</Text>

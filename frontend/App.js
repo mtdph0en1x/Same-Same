@@ -10,6 +10,7 @@ import LobbyBrowserScreen from './src/screens/LobbyBrowserScreen';
 import GameScreen from './src/screens/GameScreen';
 import ResultsScreen from './src/screens/ResultsScreen';
 import GameOverScreen from './src/screens/GameOverScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
 import LandingScreen from './src/screens/LandingScreen';
 import ChatSidebar from './src/components/ChatSidebar';
 import LeaderboardSidebar from './src/components/LeaderboardSidebar';
@@ -268,6 +269,12 @@ function AppContent() {
               )}
               {currentScreen === 'Landing' && (
                 <LandingScreen setIsGuest={setIsGuest} guestName={guestName} setGuestName={setGuestName} />
+              )}
+              {currentScreen === 'Settings' && (
+                <SettingsScreen
+                  setScreen={setCurrentScreen}
+                  setIsGuest={setIsGuest}
+                />
               )}
               {currentScreen === 'LobbyBrowser' && (
                 <LobbyBrowserScreen

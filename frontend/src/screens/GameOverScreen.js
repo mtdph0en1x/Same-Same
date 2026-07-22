@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { socket } from '../socket';
 import { theme } from '../styles/theme';
+import FramedAvatar from '../components/FramedAvatar';
 
 const MEDAL = { 0: '🥇', 1: '🥈', 2: '🥉' };
 const PODIUM_COLORS = {
@@ -13,7 +14,7 @@ const PODIUM_COLORS = {
   2: { bg: '#B45309', border: '#000', height: 60,  label: '3rd' },
 };
 
-function PodiumPlayer({ player, rank, avatars, names, delay }) {
+function PodiumPlayer({ player, rank, avatars, names, frames, delay }) {
   const rise = useRef(new Animated.Value(60)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const { bg, border, height, label } = PODIUM_COLORS[rank];
@@ -34,13 +35,12 @@ function PodiumPlayer({ player, rank, avatars, names, delay }) {
   return (
     <Animated.View style={[s.podiumSlot, { transform: [{ translateY: rise }], opacity }]}>
       <View style={s.podiumAvatarWrap}>
-        {avatar && avatar.startsWith('http') ? (
-          <Image source={{ uri: avatar }} style={s.podiumAvatar} />
-        ) : (
-          <View style={[s.podiumAvatarFallback, { backgroundColor: bg }]}>
-            <Text style={s.podiumAvatarInitial}>{name ? name.charAt(0).toUpperCase() : '?'}</Text>
-          </View>
-        )}
+        <FramedAvatar 
+          url={avatars[player.id]} 
+          fallbackName={names[player.id]} 
+          frame={frames[player.id] || 'none'} 
+          size={56} 
+        />
         <Text style={s.podiumMedal}>{MEDAL[rank]}</Text>
       </View>
       <Text style={s.podiumName} numberOfLines={1}>{name}</Text>
@@ -53,11 +53,15 @@ function PodiumPlayer({ player, rank, avatars, names, delay }) {
 }
 
 export default function GameOverScreen({ gameResults, roomCode, isHost, players = [] }) {
-  const { scores = {}, playerNames = {}, playerAvatars = {}, teams, teamScores, isPublic } = gameResults;
+  const { scores = {}, playerNames = {}, playerAvatars = {}, playerFrames = {}, teams, teamScores, isPublic } = gameResults;
 
   // Merge local player avatars as fallback
   const avatars = { ...playerAvatars };
-  players.forEach(p => { if (p.avatar && !avatars[p.id]) avatars[p.id] = p.avatar; });
+  const frames = { ...playerFrames };
+  players.forEach(p => { 
+    if (p.avatar && !avatars[p.id]) avatars[p.id] = p.avatar; 
+    if (p.frame && !frames[p.id]) frames[p.id] = p.frame; 
+  });
 
   // Sort players by score descending
   const sorted = Object.entries(scores)
@@ -101,9 +105,9 @@ export default function GameOverScreen({ gameResults, roomCode, isHost, players 
         {/* Podium — ordered as 2nd, 1st, 3rd for visual height effect */}
         {sorted.length >= 1 && (
           <View style={s.podiumRow}>
-            {podium[1] && <PodiumPlayer player={podium[1]} rank={1} avatars={avatars} names={playerNames} delay={300} />}
-            {podium[0] && <PodiumPlayer player={podium[0]} rank={0} avatars={avatars} names={playerNames} delay={100} />}
-            {podium[2] && <PodiumPlayer player={podium[2]} rank={2} avatars={avatars} names={playerNames} delay={500} />}
+            {podium[1] && <PodiumPlayer player={podium[1]} rank={1} avatars={avatars} names={playerNames} frames={frames} delay={300} />}
+            {podium[0] && <PodiumPlayer player={podium[0]} rank={0} avatars={avatars} names={playerNames} frames={frames} delay={100} />}
+            {podium[2] && <PodiumPlayer player={podium[2]} rank={2} avatars={avatars} names={playerNames} frames={frames} delay={500} />}
           </View>
         )}
 
@@ -113,13 +117,12 @@ export default function GameOverScreen({ gameResults, roomCode, isHost, players 
             {rest.map((player, i) => (
               <View key={player.id} style={s.restRow}>
                 <Text style={s.restRank}>#{i + 4}</Text>
-                {avatars[player.id] && avatars[player.id].startsWith('http') ? (
-                  <Image source={{ uri: avatars[player.id] }} style={s.restAvatar} />
-                ) : (
-                  <View style={s.restAvatarFallback}>
-                    <Text style={s.restAvatarInitial}>{playerNames[player.id]?.charAt(0) || '?'}</Text>
-                  </View>
-                )}
+                <FramedAvatar 
+                  url={avatars[player.id]} 
+                  fallbackName={playerNames[player.id]} 
+                  frame={frames[player.id] || 'none'} 
+                  size={32} 
+                />
                 <Text style={s.restName}>{playerNames[player.id]}</Text>
                 <Text style={s.restScore}>{player.score} pts</Text>
               </View>

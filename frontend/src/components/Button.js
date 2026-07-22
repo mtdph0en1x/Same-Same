@@ -50,7 +50,7 @@ export default function Button({ title, onPress, type = 'primary', style, icon, 
     if (onPress) onPress();
   };
 
-  const bg = type === 'primary' ? theme.colors.primary : type === 'secondary' ? theme.colors.accent : '#E5E7EB';
+  const bg = type === 'primary' ? theme.colors.primary : type === 'secondary' ? theme.colors.secondary : '#E5E7EB';
 
   return (
     // Black shadow block — sized by the button sitting on top with a negative offset

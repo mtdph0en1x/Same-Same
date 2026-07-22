@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, Text, View, ScrollView, SafeAreaView, TouchableOpacity, Animated, useWindowDimensions, Image } from 'react-native';
 import { theme } from '../styles/theme';
 import { socket } from '../socket';
+import FramedAvatar from '../components/FramedAvatar';
 
 const BoardCard = ({ cardInfo, isRevealed, isResolved, roundType, isDesktop }) => {
   const scale = useRef(new Animated.Value(0.8)).current;
@@ -94,12 +95,14 @@ const BoardCard = ({ cardInfo, isRevealed, isResolved, roundType, isDesktop }) =
 };
 
 export default function ResultsScreen({ roundResults, roomCode, isHost, players = [] }) {
-  const { groups = [], roundType, newScores = {}, scoreUpdates = {}, playerNames = {}, playerAvatars = {}, rejectedWords = [], timeline = [], playerWords = {}, wordsPerRound = 5 } = roundResults;
+  const { groups = [], roundType, newScores = {}, scoreUpdates = {}, playerNames = {}, playerAvatars = {}, playerFrames = {}, rejectedWords = [], timeline = [], playerWords = {}, wordsPerRound = 5 } = roundResults;
   
   // Fallback to local players array if backend didn't send playerAvatars in roundResults
   const avatars = { ...playerAvatars };
+  const frames = { ...playerFrames };
   players.forEach(p => {
     if (p.avatar && !avatars[p.id]) avatars[p.id] = p.avatar;
+    if (p.frame && !frames[p.id]) frames[p.id] = p.frame;
   });
 
   const [step, setStep] = useState(-1);
@@ -295,13 +298,12 @@ export default function ResultsScreen({ roundResults, roomCode, isHost, players 
                         >
                             <View style={styles.playerLabelContainer}>
                                 <View style={styles.playerIdentityRow}>
-                                    {avatars[pid] && avatars[pid].startsWith('http') ? (
-                                        <Image source={{ uri: avatars[pid] }} style={styles.avatarImg} />
-                                    ) : (
-                                        <View style={styles.avatarPlaceholder}>
-                                            <Text style={styles.avatarText}>{playerNames[pid]?.charAt(0).toUpperCase()}</Text>
-                                        </View>
-                                    )}
+                                    <FramedAvatar 
+                                        url={avatars[pid]} 
+                                        fallbackName={playerNames[pid]} 
+                                        frame={frames[pid] || 'none'} 
+                                        size={32} 
+                                    />
                                     <Text style={styles.playerLabelName}>{playerNames[pid]}</Text>
                                 </View>
                                 {step >= maxSteps && (
