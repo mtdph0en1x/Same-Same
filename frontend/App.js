@@ -244,12 +244,14 @@ function AppContent() {
             <MessyDeskBackground />
 
             {['Lobby', 'Game', 'Results', 'GameOver'].includes(currentScreen) && (
-              <LeaderboardSidebar 
-                players={players} 
-                roundResults={roundResults} 
-                currentScreen={currentScreen} 
-                isDesktop={isDesktop}
-              />
+              (isDesktop || !['Game', 'Results'].includes(currentScreen)) && (
+                <LeaderboardSidebar 
+                  players={players} 
+                  roundResults={roundResults} 
+                  currentScreen={currentScreen} 
+                  isDesktop={isDesktop}
+                />
+              )
             )}
             
             <View style={[{ position: 'relative', overflow: 'hidden', flex: 1 }]}>

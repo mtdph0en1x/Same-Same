@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, ScrollView, SafeAreaView, TouchableOpacity, Ani
 import { theme } from '../styles/theme';
 import { socket } from '../socket';
 
-const BoardCard = ({ cardInfo, isRevealed, isResolved, roundType }) => {
+const BoardCard = ({ cardInfo, isRevealed, isResolved, roundType, isDesktop }) => {
   const scale = useRef(new Animated.Value(0.8)).current;
   const flip = useRef(new Animated.Value(0)).current;
   const colorAnim = useRef(new Animated.Value(0)).current;
@@ -65,10 +65,10 @@ const BoardCard = ({ cardInfo, isRevealed, isResolved, roundType }) => {
     : (isRevealed ? '#F3F4F6' : '#fff');
 
   return (
-    <View style={styles.cardContainer}>
+    <View style={[styles.cardContainer, !isDesktop && styles.cardContainerMobile]}>
       <Animated.View style={[styles.card, { transform: [{ scale }, { rotateX }] }]}>
         <Animated.View style={[StyleSheet.absoluteFill, styles.cardFace, { opacity: frontOpacity, borderColor: finalBorder, backgroundColor: finalBg }]}>
-            <Text style={[styles.cardText, cardInfo.isRejected && styles.textRejected]}>
+            <Text style={[styles.cardText, cardInfo.isRejected && styles.textRejected, !isDesktop && styles.cardTextMobile]}>
                 {cardInfo.text ? cardInfo.text.toUpperCase() : 'BLANK'}
             </Text>
             {isResolved && cardInfo.pointsStr && !cardInfo.isRejected ? (
@@ -112,6 +112,9 @@ export default function ResultsScreen({ roundResults, roomCode, isHost, players 
   const { width } = useWindowDimensions();
   const isDesktop = width > 800;
   const maxSteps = Math.max(1, timeline.length);
+
+  const scrollViewRef = useRef(null);
+  const playerRefs = useRef({});
 
   // Pre-calculate card states
   const cardData = {};
@@ -164,33 +167,45 @@ export default function ResultsScreen({ roundResults, roomCode, isHost, players 
   });
 
   useEffect(() => {
+    let timeoutId;
     if (step >= 0 && step < timeline.length) {
       const t = timeline[step];
-      if (t.type === 'reveal' && t.group) {
-        // Legacy fallback
-        setRevealedWords(prev => {
-          const next = new Set(prev);
-          t.group.playerIds.forEach(p => next.add(`${p.id}-${p.wordIndex}`));
-          return next;
-        });
-        setResolvedCards(prev => {
-          const next = new Set(prev);
-          t.group.playerIds.forEach(p => next.add(`${p.id}-${p.wordIndex}`));
-          return next;
-        });
-      } else if (t.type === 'reveal_word') {
-          setRevealedWords(prev => {
-              const next = new Set(prev);
-              next.add(`${t.playerId}-${t.wordIndex}`);
-              return next;
-          });
-      } else if (t.type === 'resolve_group' && t.group) {
-          setResolvedCards(prev => {
-              const next = new Set(prev);
-              t.group.playerIds.forEach(p => next.add(`${p.id}-${p.wordIndex}`));
-              return next;
-          });
+      
+      let delayReveal = 0;
+      let pidToScroll = null;
+      if (t.type === 'reveal_word') pidToScroll = t.playerId;
+      else if (t.group && t.group.playerIds && t.group.playerIds.length > 0) {
+         pidToScroll = t.group.playerIds[0].id;
       }
+
+      if (pidToScroll) {
+        // small tick to ensure layout is ready
+        setTimeout(() => {
+          if (scrollViewRef.current && playerRefs.current[pidToScroll] !== undefined) {
+            scrollViewRef.current.scrollTo({ y: Math.max(0, playerRefs.current[pidToScroll] - 20), animated: true });
+          }
+        }, 50);
+        delayReveal = 500; // Wait for camera to arrive before popping
+      }
+
+      timeoutId = setTimeout(() => {
+        const newRevealed = new Set();
+        const newResolved = new Set();
+        for (let i = 0; i <= step; i++) {
+           const ev = timeline[i];
+           if (ev.type === 'reveal' && ev.group) {
+             ev.group.playerIds.forEach(p => newRevealed.add(`${p.id}-${p.wordIndex}`));
+             ev.group.playerIds.forEach(p => newResolved.add(`${p.id}-${p.wordIndex}`));
+           } else if (ev.type === 'reveal_word') {
+             newRevealed.add(`${ev.playerId}-${ev.wordIndex}`);
+           } else if (ev.type === 'resolve_group' && ev.group) {
+             ev.group.playerIds.forEach(p => newResolved.add(`${p.id}-${p.wordIndex}`));
+           }
+        }
+        setRevealedWords(newRevealed);
+        setResolvedCards(newResolved);
+      }, delayReveal);
+
     } else if (step >= timeline.length) {
       // Scoreboard phase: reveal AND resolve all missing ones (e.g. blanks)
       setRevealedWords(prev => {
@@ -208,7 +223,9 @@ export default function ResultsScreen({ roundResults, roomCode, isHost, players 
          return next;
       });
     }
-  }, [step, timeline]);
+
+    return () => clearTimeout(timeoutId);
+  }, [step, timeline, isDesktop]);
 
   useEffect(() => {
     const handleStepAdvanced = ({ step: newStep }) => {
@@ -257,7 +274,12 @@ export default function ResultsScreen({ roundResults, roomCode, isHost, players 
         
         <View style={{ flex: 1, width: '100%', flexDirection: 'column' }}>
           
-          <ScrollView style={styles.boardScroll} contentContainerStyle={styles.boardContent}>
+          <ScrollView 
+            ref={scrollViewRef}
+            style={styles.boardScroll} 
+            contentContainerStyle={styles.boardContent}
+            scrollEnabled={step >= maxSteps || step === -1}
+          >
             {step === -1 ? (
                 <View style={styles.centerCard}>
                   <Text style={styles.introText}>Time to review!</Text>
@@ -266,7 +288,11 @@ export default function ResultsScreen({ roundResults, roomCode, isHost, players 
             ) : (
                 <View style={styles.playersGrid}>
                     {Object.keys(playerNames).map((pid, pIdx) => (
-                        <View key={pid} style={styles.playerRow}>
+                        <View 
+                          key={pid} 
+                          style={styles.playerRow}
+                          onLayout={(e) => { playerRefs.current[pid] = e.nativeEvent.layout.y; }}
+                        >
                             <View style={styles.playerLabelContainer}>
                                 <View style={styles.playerIdentityRow}>
                                     {avatars[pid] && avatars[pid].startsWith('http') ? (
@@ -298,6 +324,7 @@ export default function ResultsScreen({ roundResults, roomCode, isHost, players 
                                             isRevealed={isRevealed}
                                             isResolved={isResolved} 
                                             roundType={roundType}
+                                            isDesktop={isDesktop}
                                         />
                                     );
                                 })}
@@ -340,7 +367,7 @@ export default function ResultsScreen({ roundResults, roomCode, isHost, players 
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: 'transparent' },
-  container: { flex: 1, padding: theme.spacing.md, paddingTop: theme.spacing.xl },
+  container: { flex: 1, padding: theme.spacing.md, paddingTop: theme.spacing.md },
   containerDesktop: {
     paddingHorizontal: 40,
     maxWidth: 1200,
@@ -408,13 +435,19 @@ const styles = StyleSheet.create({
     fontSize: 14, fontFamily: theme.fonts.bodyBold, color: '#000'
   },
   cardsContainer: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 8
+    flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12
   },
   cardContainer: {
     width: 110, height: 70, // Base size, can flex
     flexGrow: 1,
     flexBasis: 100,
     maxWidth: 160,
+  },
+  cardContainerMobile: {
+    height: 60,
+    flexBasis: 75,
+    maxWidth: 120,
+    width: 80,
   },
   card: {
     flex: 1, borderRadius: 8, borderWidth: 3, 
@@ -425,6 +458,9 @@ const styles = StyleSheet.create({
   },
   cardText: {
     fontFamily: theme.fonts.bodyBold, fontSize: 16, color: '#000', textAlign: 'center'
+  },
+  cardTextMobile: {
+    fontSize: 12,
   },
   textRejected: {
     color: '#000'
