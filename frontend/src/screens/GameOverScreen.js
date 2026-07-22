@@ -3,6 +3,7 @@ import {
   StyleSheet, Text, View, ScrollView, TouchableOpacity,
   Animated, Image, SafeAreaView, useWindowDimensions
 } from 'react-native';
+import NeoButton from '../components/NeoButton';
 import { socket } from '../socket';
 import { theme } from '../styles/theme';
 import FramedAvatar from '../components/FramedAvatar';
@@ -133,26 +134,26 @@ export default function GameOverScreen({ gameResults, roomCode, isHost, players 
         {/* Controls */}
         <View style={s.controls}>
           {isPublic ? (
-            <TouchableOpacity style={s.btnPrimary} onPress={handlePlayAgain}>
+            <NeoButton style={s.btnPrimary} onPress={handlePlayAgain}>
               <Text style={s.btnPrimaryText}>🔄 Play Again with Group</Text>
-            </TouchableOpacity>
+            </NeoButton>
           ) : isHost ? (
-            <TouchableOpacity style={s.btnPrimary} onPress={handlePlayAgain}>
+            <NeoButton style={s.btnPrimary} onPress={handlePlayAgain}>
               <Text style={s.btnPrimaryText}>🔄 Play Again</Text>
-            </TouchableOpacity>
+            </NeoButton>
           ) : (
             <View style={s.waitingRow}>
               <Text style={s.waitingText}>Waiting for host to restart…</Text>
             </View>
           )}
 
-          <TouchableOpacity style={s.btnSecondary} onPress={handleQuickPlay}>
+          <NeoButton style={s.btnSecondary} onPress={handleQuickPlay}>
             <Text style={s.btnSecondaryText}>⚡ Quick Play (New Group)</Text>
-          </TouchableOpacity>
+          </NeoButton>
 
-          <TouchableOpacity style={s.btnGhost} onPress={handleLeave}>
+          <NeoButton style={s.btnGhost} onPress={handleLeave}>
             <Text style={s.btnGhostText}>Leave Room</Text>
-          </TouchableOpacity>
+          </NeoButton>
         </View>
 
       </ScrollView>

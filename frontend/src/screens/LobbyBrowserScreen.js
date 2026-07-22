@@ -3,6 +3,7 @@ import {
   StyleSheet, Text, View, TouchableOpacity, ScrollView,
   SafeAreaView, useWindowDimensions
 } from 'react-native';
+import NeoButton from '../components/NeoButton';
 import { ArrowLeft, RefreshCw, Flame, Crown } from 'lucide-react-native';
 import { socket } from '../socket';
 import { theme } from '../styles/theme';
@@ -57,13 +58,13 @@ export default function LobbyBrowserScreen({ setScreen, getDisplayName, profileD
         
         {/* Header */}
         <View style={s.header}>
-          <TouchableOpacity style={s.backBtn} onPress={() => setScreen('Home')}>
+          <NeoButton style={s.backBtn} onPress={() => setScreen('Home')}>
             <ArrowLeft size={24} color="#000" strokeWidth={3} />
-          </TouchableOpacity>
+          </NeoButton>
           <Text style={s.title}>Public Lobbies</Text>
-          <TouchableOpacity style={s.refreshBtn} onPress={fetchLobbies} disabled={isRefreshing}>
+          <NeoButton style={s.refreshBtn} onPress={fetchLobbies} disabled={isRefreshing}>
             <RefreshCw size={24} color="#000" strokeWidth={3} style={isRefreshing ? s.spin : {}} />
-          </TouchableOpacity>
+          </NeoButton>
         </View>
 
         <ScrollView style={s.list} contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
@@ -76,7 +77,7 @@ export default function LobbyBrowserScreen({ setScreen, getDisplayName, profileD
             lobbies.map(lobby => {
               const isCustom = !lobby.isPermanent;
               return (
-                <TouchableOpacity key={lobby.code} style={[s.lobbyRow, isCustom && s.lobbyRowCustom]} onPress={() => handleJoinLobby(lobby.code)} activeOpacity={0.8}>
+                <NeoButton key={lobby.code} style={[s.lobbyRow, isCustom && s.lobbyRowCustom]} onPress={() => handleJoinLobby(lobby.code)} activeOpacity={0.8}>
                   <View style={{ flex: 1 }}>
                     <View style={s.lobbyRowTop}>
                       <Text style={s.lobbyLabel}>{lobby.label || lobby.code}</Text>
@@ -106,7 +107,7 @@ export default function LobbyBrowserScreen({ setScreen, getDisplayName, profileD
                     <Text style={s.lobbyPlayers}>{lobby.playerCount}/{lobby.maxPlayers}</Text>
                     <Text style={s.lobbyJoin}>JOIN →</Text>
                   </View>
-                </TouchableOpacity>
+                </NeoButton>
               );
             })
           )}

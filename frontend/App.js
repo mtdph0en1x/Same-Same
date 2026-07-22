@@ -12,13 +12,16 @@ import ResultsScreen from './src/screens/ResultsScreen';
 import GameOverScreen from './src/screens/GameOverScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import LandingScreen from './src/screens/LandingScreen';
+import GlobalLeaderboardScreen from './src/screens/GlobalLeaderboardScreen';
 import ChatSidebar from './src/components/ChatSidebar';
 import LeaderboardSidebar from './src/components/LeaderboardSidebar';
 import BackgroundPattern from './src/components/BackgroundPattern';
 import MessyDeskBackground from './src/components/MessyDeskBackground';
+import FramedAvatar from './src/components/FramedAvatar';
 import { AuthProvider, AuthContext } from './src/context/AuthContext';
 import { socket } from './src/socket';
 import { theme } from './src/styles/theme';
+import { supabase } from './src/supabase';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -61,6 +64,24 @@ function AppContent() {
   const [teams, setTeams] = useState(null);
   const [roundResults, setRoundResults] = useState(null);
   const [gameResults, setGameResults] = useState(null);
+  
+  const [topPlayers, setTopPlayers] = useState([]);
+
+  useEffect(() => {
+    // Fetch global top 4 players by XP
+    supabase.from('profiles').select('username, active_frame, avatar, xp').order('xp', { ascending: false }).limit(4)
+      .then(({ data }) => {
+        if (data) {
+          setTopPlayers(data.map((p, i) => ({
+            rank: i + 1,
+            name: p.username || 'Unknown',
+            pts: Math.floor(p.xp || 0).toLocaleString(),
+            avatarUrl: p.avatar,
+            frame: p.active_frame || 'none'
+          })));
+        }
+      });
+  }, []);
 
   const { width } = useWindowDimensions();
   const isDesktop = width > 800;
@@ -191,12 +212,16 @@ function AppContent() {
   // ── Persistent chrome: Activity Bar ──────────────────────────────────────
   const ActivityBar = isDesktop ? (
     <View style={chrome.activityBar}>
-      <Text style={chrome.activityLabel}>🏆 TODAY'S TOP</Text>
+      <Text style={chrome.activityLabel}>🏆 TOP PLAYERS (XP)</Text>
       <View style={chrome.activityItems}>
-        {TOP_PLAYERS.map(p => (
+        {(topPlayers.length > 0 ? topPlayers : TOP_PLAYERS).map(p => (
           <View key={p.rank} style={chrome.activityItem}>
             <Text style={chrome.activityRank}>#{p.rank}</Text>
-            <Text style={chrome.activityAvatar}>{p.avatar}</Text>
+            {p.avatarUrl || p.frame ? (
+              <FramedAvatar url={p.avatarUrl} frame={p.frame} fallbackName={p.name} size={24} />
+            ) : (
+              <Text style={chrome.activityAvatar}>{p.avatar}</Text>
+            )}
             <Text style={chrome.activityName}>{p.name}</Text>
             <Text style={chrome.activityPts}>{p.pts} pts</Text>
           </View>
@@ -275,6 +300,9 @@ function AppContent() {
                   setScreen={setCurrentScreen}
                   setIsGuest={setIsGuest}
                 />
+              )}
+              {currentScreen === 'GlobalLeaderboard' && (
+                <GlobalLeaderboardScreen setScreen={setCurrentScreen} />
               )}
               {currentScreen === 'LobbyBrowser' && (
                 <LobbyBrowserScreen

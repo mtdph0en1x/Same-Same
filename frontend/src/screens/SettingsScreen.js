@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, TextInput, Alert } from 'react-native';
+import NeoButton from '../components/NeoButton';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
 import * as Haptics from 'expo-haptics';
@@ -40,18 +41,38 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
   };
 
   const handleSaveName = async () => {
-    if (!editName.trim() || editName.trim() === profile.username) {
+    const newName = editName.trim();
+    if (!newName || newName === profile.username) {
       setIsEditingName(false);
       return;
     }
+    
+    try {
+      const res = await fetch(`${process.env.EXPO_PUBLIC_SERVER_URL || 'http://localhost:3000'}/check-username`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: newName })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        Alert.alert('Invalid Name', data.error || 'Failed to validate username');
+        return;
+      }
+    } catch (err) {
+      console.warn('Username check failed:', err);
+    }
+
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ username: editName.trim() })
+        .update({ username: newName })
         .eq('id', user.id);
       
-      if (error) throw error;
-      setProfile({ ...profile, username: editName.trim() });
+      if (error) {
+        if (error.code === '23505') throw new Error('Username is already taken.');
+        throw error;
+      }
+      setProfile({ ...profile, username: newName });
       setIsEditingName(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(()=>{});
     } catch (err) {
@@ -134,12 +155,12 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
       <View style={s.container}>
         <Text style={s.title}>Guest Profile</Text>
         <Text style={s.desc}>Create an account to track stats and unlock frames!</Text>
-        <TouchableOpacity style={s.backBtn} onPress={() => setScreen('Home')}>
+        <NeoButton style={s.backBtn} onPress={() => setScreen('Home')}>
           <Text style={s.backBtnText}>Back to Home</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={s.logoutBtn} onPress={handleLogout}>
+        </NeoButton>
+        <NeoButton style={s.logoutBtn} onPress={handleLogout}>
           <Text style={s.logoutBtnText}>Sign Out / Change Name</Text>
-        </TouchableOpacity>
+        </NeoButton>
       </View>
     );
   }
@@ -156,19 +177,19 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
         
         {/* Header */}
         <View style={s.headerRow}>
-          <TouchableOpacity style={s.backBtn} onPress={() => setScreen('Home')}>
+          <NeoButton style={s.backBtn} onPress={() => setScreen('Home')}>
             <Text style={s.backBtnText}>← Back</Text>
-          </TouchableOpacity>
+          </NeoButton>
           <Text style={s.title}>Profile Settings</Text>
-          <TouchableOpacity style={s.logoutBtn} onPress={handleLogout}>
+          <NeoButton style={s.logoutBtn} onPress={handleLogout}>
             <Text style={s.logoutBtnText}>Logout</Text>
-          </TouchableOpacity>
+          </NeoButton>
         </View>
 
         {/* Identity & Level Progress */}
         <View style={s.card}>
           <View style={s.identityRow}>
-            <TouchableOpacity onPress={pickImage} style={{ position: 'relative' }}>
+            <NeoButton onPress={pickImage} style={{ position: 'relative' }}>
               {isUploading ? (
                 <View style={{ width: 100, height: 100, borderRadius: 50, justifyContent: 'center', alignItems: 'center', backgroundColor: '#e5e7eb' }}>
                   <ActivityIndicator size="large" color="#000" />
@@ -179,7 +200,7 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
               <View style={{ position: 'absolute', bottom: -5, right: -5, backgroundColor: '#fff', borderRadius: 15, padding: 4, borderWidth: 2, borderColor: '#000' }}>
                 <Text style={{ fontSize: 14 }}>✏️</Text>
               </View>
-            </TouchableOpacity>
+            </NeoButton>
             
             <View style={s.identityInfo}>
               {isEditingName ? (
@@ -193,10 +214,10 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
                   onSubmitEditing={handleSaveName}
                 />
               ) : (
-                <TouchableOpacity onPress={() => setIsEditingName(true)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <NeoButton onPress={() => setIsEditingName(true)} style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <Text style={s.username}>{username}</Text>
                   <Text style={{ fontSize: 16, marginLeft: 8 }}>✏️</Text>
-                </TouchableOpacity>
+                </NeoButton>
               )}
               <Text style={s.levelText}>⭐ Level {level}</Text>
             </View>
@@ -213,12 +234,12 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
           <Text style={s.sectionTitle}>Equip Frame</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.frameScroll}>
             {unlocked_frames && unlocked_frames.map(f => (
-              <TouchableOpacity key={f} style={s.frameOpt} onPress={() => setFrame(f)}>
+              <NeoButton key={f} style={s.frameOpt} onPress={() => setFrame(f)}>
                 <FramedAvatar fallbackName="?" frame={f} size={64} />
                 <Text style={[s.frameOptText, f === active_frame && s.frameOptTextActive]}>
                   {f.toUpperCase()}
                 </Text>
-              </TouchableOpacity>
+              </NeoButton>
             ))}
           </ScrollView>
         </View>

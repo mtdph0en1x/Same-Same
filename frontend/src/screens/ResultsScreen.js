@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, Text, View, ScrollView, SafeAreaView, TouchableOpacity, Animated, useWindowDimensions, Image } from 'react-native';
+import NeoButton from '../components/NeoButton';
 import { theme } from '../styles/theme';
 import { socket } from '../socket';
 import FramedAvatar from '../components/FramedAvatar';
@@ -340,23 +341,23 @@ export default function ResultsScreen({ roundResults, roomCode, isHost, players 
           <View style={styles.bottomPanel}>
             <View style={styles.controlsRow}>
               {step >= maxSteps ? (
-                <TouchableOpacity 
+                <NeoButton 
                   style={[styles.readyBtn, hasVoted && styles.readyBtnActive]} 
                   onPress={handleVoteNext}
                 >
                   <Text style={styles.readyBtnText}>
                     {hasVoted ? `Ready (${votes}/${voteThreshold})` : `Ready for Next Round`}
                   </Text>
-                </TouchableOpacity>
+                </NeoButton>
               ) : null}
 
 
               {isHost && (
-                <TouchableOpacity style={styles.forceBtn} onPress={handleForceNext}>
+                <NeoButton style={styles.forceBtn} onPress={handleForceNext}>
                   <Text style={styles.forceBtnText}>
                     {step >= maxSteps ? 'Force Next Round' : 'Skip to Scoreboard'}
                   </Text>
-                </TouchableOpacity>
+                </NeoButton>
               )}
             </View>
           </View>

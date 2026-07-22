@@ -4,6 +4,7 @@ import {
   Platform, Modal, useWindowDimensions, ScrollView,
   ActivityIndicator, Alert, Animated, Easing, Pressable, Image, ImageBackground
 } from 'react-native';
+import NeoButton from '../components/NeoButton';
 import { 
   Swords, Users, Shield, User, PartyPopper, Zap, 
   Gamepad2, Trophy, BarChart2, Flame, Home, Globe, Crown 
@@ -73,9 +74,9 @@ function joinModal(visible, setVisible, code, setCode, onJoin) {
     <Modal visible={visible} animationType="slide" transparent onRequestClose={() => setVisible(false)}>
       <View style={s.modalOverlay}>
         <View style={s.modalContent}>
-          <TouchableOpacity style={s.closeBtn} onPress={() => setVisible(false)}>
+          <NeoButton style={s.closeBtn} onPress={() => setVisible(false)}>
             <Text style={s.closeBtnText}>✕</Text>
-          </TouchableOpacity>
+          </NeoButton>
           <Text style={s.modalTitle}>Join Game</Text>
           <TextInput
             style={[s.panelInput, s.codeInput]}
@@ -99,35 +100,35 @@ function mmModal(visible, setVisible, onFindMatch) {
     <Modal visible={visible} animationType="fade" transparent onRequestClose={() => setVisible(false)}>
       <View style={s.modalOverlay}>
         <View style={s.modalContent}>
-          <TouchableOpacity style={s.closeBtn} onPress={() => setVisible(false)}>
+          <NeoButton style={s.closeBtn} onPress={() => setVisible(false)}>
             <Text style={s.closeBtnText}>✕</Text>
-          </TouchableOpacity>
+          </NeoButton>
           <Text style={s.modalTitle}>Select Mode</Text>
           <Text style={s.mmSectionTitle}>Teams</Text>
           <View style={s.mmRow}>
-            <TouchableOpacity style={s.mmBtn} onPress={() => onFindMatch('team2v2')}>
+            <NeoButton style={s.mmBtn} onPress={() => onFindMatch('team2v2')}>
               <Text style={s.mmBtnText}>🤝 2v2</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={s.mmBtn} onPress={() => onFindMatch('team4v4')}>
+            </NeoButton>
+            <NeoButton style={s.mmBtn} onPress={() => onFindMatch('team4v4')}>
               <Text style={s.mmBtnText}>🛡️ 4v4</Text>
-            </TouchableOpacity>
+            </NeoButton>
           </View>
           <Text style={s.mmSectionTitle}>Solo</Text>
           <View style={s.mmRow}>
-            <TouchableOpacity style={s.mmBtn} onPress={() => onFindMatch('duel')}>
+            <NeoButton style={s.mmBtn} onPress={() => onFindMatch('duel')}>
               <Text style={s.mmBtnText}>⚔️ 1v1</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={s.mmBtn} onPress={() => onFindMatch('solo4')}>
+            </NeoButton>
+            <NeoButton style={s.mmBtn} onPress={() => onFindMatch('solo4')}>
               <Text style={s.mmBtnText}>🏃 4p</Text>
-            </TouchableOpacity>
+            </NeoButton>
           </View>
           <View style={s.mmRow}>
-            <TouchableOpacity style={s.mmBtn} onPress={() => onFindMatch('solo6')}>
+            <NeoButton style={s.mmBtn} onPress={() => onFindMatch('solo6')}>
               <Text style={s.mmBtnText}>🏃 6p</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={s.mmBtn} onPress={() => onFindMatch('solo8')}>
+            </NeoButton>
+            <NeoButton style={s.mmBtn} onPress={() => onFindMatch('solo8')}>
               <Text style={s.mmBtnText}>🏃 8p</Text>
-            </TouchableOpacity>
+            </NeoButton>
           </View>
         </View>
       </View>
@@ -248,21 +249,21 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
       {/* Mobile Tab Bar */}
       {!isDesktop && (
         <View style={s.tabBar}>
-          <TouchableOpacity 
+          <NeoButton 
             style={[s.tabBtn, activeTab === 'profile' && s.tabBtnProfileActive]} 
             onPress={() => setActiveTab('profile')}
             activeOpacity={0.8}
           >
             <Text style={[s.tabText, activeTab === 'profile' && s.tabTextActive]}>PROFILE</Text>
-          </TouchableOpacity>
+          </NeoButton>
           <View style={s.tabDivider} />
-          <TouchableOpacity 
+          <NeoButton 
             style={[s.tabBtn, activeTab === 'play' && s.tabBtnPlayActive]} 
             onPress={() => setActiveTab('play')}
             activeOpacity={0.8}
           >
             <Text style={[s.tabText, activeTab === 'play' && s.tabTextActive]}>PLAY</Text>
-          </TouchableOpacity>
+          </NeoButton>
         </View>
       )}
 
@@ -363,13 +364,13 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
               </View>
               <View style={s.profileActionsContainer}>
                 <View style={s.profileActions}>
-                  <TouchableOpacity
+                  <NeoButton
                     style={[s.signOutBtn, { backgroundColor: theme.colors.primary, flexDirection: 'row', justifyContent: 'center', gap: 10 }]}
                     onPress={() => setScreen('Settings')}
                   >
                     <Text style={{ fontSize: 20 }}>⚙️</Text>
                     <Text style={[s.signOutBtnText, { color: '#000' }]}>{user ? 'PROFILE SETTINGS' : 'GUEST SETTINGS'}</Text>
-                  </TouchableOpacity>
+                  </NeoButton>
                 </View>
               </View>
             </View>
@@ -429,6 +430,13 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
                 title="BROWSE LOBBIES"
                 subtext="Find specific modes or hosted games"
                 onPress={() => setScreen('LobbyBrowser')}
+                type="tertiary"
+              />
+
+              <Button
+                title="LEADERBOARDS"
+                subtext="Global Rankings"
+                onPress={() => setScreen('GlobalLeaderboard')}
                 type="tertiary"
               />
 

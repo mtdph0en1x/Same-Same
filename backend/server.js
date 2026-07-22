@@ -2,9 +2,40 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
+const Filter = require('bad-words');
 
 const app = express();
 app.use(cors());
+app.use(express.json());
+
+const filter = new Filter();
+
+app.post('/check-username', (req, res) => {
+    const { username } = req.body;
+    if (!username || typeof username !== 'string') {
+        return res.status(400).json({ error: 'Username is required' });
+    }
+    
+    if (filter.isProfane(username)) {
+        return res.status(400).json({ error: 'Inappropriate username detected.' });
+    }
+    
+    const regex = /^[a-zA-Z0-9_]{3,20}$/;
+    if (!regex.test(username)) {
+        return res.status(400).json({ error: 'Username must be 3-20 characters, alphanumeric and underscores only.' });
+    }
+
+    if (/^\d+$/.test(username)) {
+        return res.status(400).json({ error: 'Username cannot be only numbers.' });
+    }
+    
+    const reserved = ['admin', 'moderator', 'samesame', 'system', 'host', 'bot', 'guest'];
+    if (reserved.includes(username.toLowerCase())) {
+        return res.status(400).json({ error: 'This username is reserved.' });
+    }
+    
+    res.json({ success: true });
+});
 
 const server = http.createServer(app);
 const io = new Server(server, {

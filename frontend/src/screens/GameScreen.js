@@ -3,6 +3,7 @@ import {
   StyleSheet, Text, View, TextInput, TouchableOpacity,
   SafeAreaView, ScrollView, Animated, Image, useWindowDimensions
 } from 'react-native';
+import NeoButton from '../components/NeoButton';
 import { socket } from '../socket';
 import { theme } from '../styles/theme';
 import FramedAvatar from '../components/FramedAvatar';
@@ -177,9 +178,9 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
               autoCorrect={false}
               autoCapitalize="none"
             />
-            <TouchableOpacity style={[styles.button, !isDesktop && styles.buttonMobile]} activeOpacity={0.8} onPress={handleSubmit}>
+            <NeoButton style={[styles.button, !isDesktop && styles.buttonMobile]} activeOpacity={0.8} onPress={handleSubmit}>
               <Text style={[styles.buttonText, !isDesktop && styles.buttonTextMobile]}>Submit ↵</Text>
-            </TouchableOpacity>
+            </NeoButton>
           </View>
         ) : (
           <View style={styles.waitingContainer}>

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, SafeAreaView, Platform, useWindowDimensions, ScrollView, Image, Animated, PanResponder } from 'react-native';
+import NeoButton from '../components/NeoButton';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { supabase } from '../supabase';
@@ -97,6 +98,35 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
   ).current;
 
 
+  async function handleGuestLogin() {
+    const newName = guestName.trim();
+    if (!newName) {
+      Alert.alert('Name Required', 'Please enter a guest name.');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const res = await fetch(`${process.env.EXPO_PUBLIC_SERVER_URL || 'http://localhost:3000'}/check-username`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: newName })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        Alert.alert('Invalid Name', data.error || 'Failed to validate username');
+        return;
+      }
+      setIsGuest(true);
+    } catch (err) {
+      console.warn('Username check failed:', err);
+      // Let them in if server check fails, or could block them
+      setIsGuest(true);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleGoogleLogin() {
     setLoading(true);
     try {
@@ -147,18 +177,18 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
             
             {/* TABS — pressing them also animates the rail */}
             <View style={s.tabBar}>
-              <TouchableOpacity
+              <NeoButton
                 style={[s.tab, activeTab === 'guest' && s.activeTab]}
                 onPress={() => goToTab('guest')}
               >
                 <Text style={[s.tabText, activeTab === 'guest' && s.activeTabText]}>🎟️ VISITOR PASS</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+              </NeoButton>
+              <NeoButton
                 style={[s.tab, activeTab === 'auth' && s.activeTab, { borderRightWidth: 0 }]}
                 onPress={() => goToTab('auth')}
               >
                 <Text style={[s.tabText, activeTab === 'auth' && s.activeTabText]}>🪪 SAMESAME ID</Text>
-              </TouchableOpacity>
+              </NeoButton>
             </View>
 
             {/* ── Swipeable content rail ─────────────────────────────── */}
@@ -196,12 +226,17 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
                   </View>
                   {/* Guest bottom action */}
                   <View style={{ height: 100, paddingHorizontal: 24, paddingVertical: 16, alignItems: 'center', justifyContent: 'center' }}>
-                    <TouchableOpacity
-                      style={[s.guestBtn, { width: '100%', marginBottom: 0 }]}
-                      onPress={() => setIsGuest(true)}
+                    <NeoButton
+                      style={[s.guestBtn, { width: '100%', marginBottom: 0 }, loading && { opacity: 0.7 }]}
+                      onPress={handleGuestLogin}
+                      disabled={loading}
                     >
-                      <Text style={[s.guestBtnText, { fontSize: 16 * tScale }]}>ENTER AS GUEST →</Text>
-                    </TouchableOpacity>
+                      {loading ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Text style={[s.guestBtnText, { fontSize: 16 * tScale }]}>ENTER AS GUEST →</Text>
+                      )}
+                    </NeoButton>
                   </View>
                 </View>
 
@@ -215,7 +250,7 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
                     />
                     <View style={[s.idCardContent, { flex: 1 }]}>
                       <View style={s.idCardTopSection} />
-                      <TouchableOpacity
+                      <NeoButton
                         style={[s.input, { width: '85%', alignSelf: 'center', alignItems: 'center', justifyContent: 'center' }, loading && { opacity: 0.7 }]}
                         onPress={handleGoogleLogin}
                         disabled={loading}
@@ -224,7 +259,7 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
                           ? <ActivityIndicator color="#000" />
                           : <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: 13, color: '#000' }}>🌐 CONTINUE WITH GOOGLE</Text>
                         }
-                      </TouchableOpacity>
+                      </NeoButton>
                     </View>
                   </View>
                   {/* Auth bottom action */}

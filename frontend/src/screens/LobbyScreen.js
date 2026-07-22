@@ -3,6 +3,7 @@ import {
   StyleSheet, Text, View, TouchableOpacity, TextInput,
   SafeAreaView, Animated, Alert, ScrollView, PanResponder, Image, useWindowDimensions
 } from 'react-native';
+import NeoButton from '../components/NeoButton';
 import { socket } from '../socket';
 import { theme } from '../styles/theme';
 import FramedAvatar from '../components/FramedAvatar';
@@ -30,7 +31,7 @@ function SegmentedControl({ options, value, onChange, labelMap }) {
   return (
     <View style={styles.segmented}>
       {options.map(opt => (
-        <TouchableOpacity
+        <NeoButton
           key={opt}
           style={[styles.segmentBtn, value === opt && styles.segmentBtnActive]}
           onPress={() => onChange(opt)}
@@ -39,7 +40,7 @@ function SegmentedControl({ options, value, onChange, labelMap }) {
           <Text style={[styles.segmentText, value === opt && styles.segmentTextActive]}>
             {labelMap ? labelMap[opt] ?? opt : opt}
           </Text>
-        </TouchableOpacity>
+        </NeoButton>
       ))}
     </View>
   );
@@ -48,13 +49,13 @@ function SegmentedControl({ options, value, onChange, labelMap }) {
 // Toggle chip for round types
 function RoundTypeToggle({ type, active, onChange }) {
   return (
-    <TouchableOpacity
+    <NeoButton
       style={[styles.chip, active && styles.chipActive]}
       onPress={() => onChange(type)}
       activeOpacity={0.7}
     >
       <Text style={[styles.chipText, active && styles.chipTextActive]}>{type}</Text>
-    </TouchableOpacity>
+    </NeoButton>
   );
 }
 
@@ -171,9 +172,9 @@ function PlayerCard({ player, isHost, isSelf, onKick, isHostless }) {
       />
       <Text style={styles.playerText}>⭐{player.level || 1} {player.name}{isSelf ? ' (You)' : ''}</Text>
       {isHost && !isSelf && !isHostless && (
-        <TouchableOpacity style={styles.kickButton} onPress={() => onKick(player.id)}>
+        <NeoButton style={styles.kickButton} onPress={() => onKick(player.id)}>
           <Text style={styles.kickButtonText}>✕</Text>
-        </TouchableOpacity>
+        </NeoButton>
       )}
     </Animated.View>
   );
@@ -416,9 +417,9 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
         <View style={styles.matchmakingContainer}>
           <Text style={[styles.title, { color: theme.colors.accent }]}>Oops!</Text>
           <Text style={styles.searchingStatus}>{errorMsg}</Text>
-          <TouchableOpacity style={styles.cancelMatchBtn} onPress={() => setScreen('Home')}>
+          <NeoButton style={styles.cancelMatchBtn} onPress={() => setScreen('Home')}>
             <Text style={styles.cancelMatchBtnText}>Back to Home</Text>
-          </TouchableOpacity>
+          </NeoButton>
         </View>
       </SafeAreaView>
     );
@@ -436,12 +437,12 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
                 <>
                   <Text style={styles.matchFoundSubtitle}>Are you ready?</Text>
                   <View style={styles.matchActionRow}>
-                    <TouchableOpacity style={[styles.matchBtn, styles.matchBtnDecline]} onPress={handleDeclineMatch}>
+                    <NeoButton style={[styles.matchBtn, styles.matchBtnDecline]} onPress={handleDeclineMatch}>
                       <Text style={styles.matchBtnText}>DECLINE</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={[styles.matchBtn, styles.matchBtnAccept]} onPress={handleAcceptMatch}>
+                    </NeoButton>
+                    <NeoButton style={[styles.matchBtn, styles.matchBtnAccept]} onPress={handleAcceptMatch}>
                       <Text style={styles.matchBtnText}>ACCEPT</Text>
-                    </TouchableOpacity>
+                    </NeoButton>
                   </View>
                 </>
               ) : (
@@ -453,9 +454,9 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
               <Text style={styles.title}>Same Same?</Text>
               <Text style={styles.searchingStatus}>{status}</Text>
               {/* Pulsing indicator can go here */}
-              <TouchableOpacity style={styles.cancelMatchBtn} onPress={handleLeaveMatchmaking}>
+              <NeoButton style={styles.cancelMatchBtn} onPress={handleLeaveMatchmaking}>
                 <Text style={styles.cancelMatchBtnText}>Cancel Search</Text>
-              </TouchableOpacity>
+              </NeoButton>
             </>
           )}
         </View>
@@ -473,9 +474,9 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
 
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.leaveButton} onPress={handleLeave}>
+          <NeoButton style={styles.leaveButton} onPress={handleLeave}>
             <Text style={styles.leaveButtonText}>← Leave</Text>
-          </TouchableOpacity>
+          </NeoButton>
         </View>
 
         <View style={isDesktop ? styles.desktopRow : {}}>
@@ -573,18 +574,18 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
             <Text style={styles.settingLabel}>Room Privacy</Text>
             {isHost ? (
               <View style={styles.toggleRow}>
-                <TouchableOpacity
+                <NeoButton
                   style={[styles.toggleBtn, !config.isPublic && styles.toggleBtnActive]}
                   onPress={() => handleConfigChange({ isPublic: false })}
                 >
                   <Text style={[styles.toggleText, !config.isPublic && styles.toggleTextActive]}>Private</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
+                </NeoButton>
+                <NeoButton
                   style={[styles.toggleBtn, config.isPublic && styles.toggleBtnActiveTeam]}
                   onPress={() => handleConfigChange({ isPublic: true })}
                 >
                   <Text style={[styles.toggleText, config.isPublic && styles.toggleTextActive]}>Public</Text>
-                </TouchableOpacity>
+                </NeoButton>
               </View>
             ) : (
               <Text style={styles.readOnlyValue}>{config.isPublic ? 'Public (Visible in Browser)' : 'Private (Code Only)'}</Text>
@@ -692,18 +693,18 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
             <Text style={styles.settingLabel}>Team mode</Text>
             {isHost ? (
               <View style={styles.toggleRow}>
-                <TouchableOpacity
+                <NeoButton
                   style={[styles.toggleBtn, !config.teamMode && styles.toggleBtnActive]}
                   onPress={() => handleConfigChange({ teamMode: false })}
                 >
                   <Text style={[styles.toggleText, !config.teamMode && styles.toggleTextActive]}>Off</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
+                </NeoButton>
+                <NeoButton
                   style={[styles.toggleBtn, config.teamMode && styles.toggleBtnActiveTeam]}
                   onPress={() => handleConfigChange({ teamMode: true })}
                 >
                   <Text style={[styles.toggleText, config.teamMode && styles.toggleTextActive]}>On</Text>
-                </TouchableOpacity>
+                </NeoButton>
               </View>
             ) : (
               <Text style={styles.readOnlyValue}>{config.teamMode ? 'On' : 'Off'}</Text>
@@ -719,7 +720,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
             </Text>
             <View style={styles.voteList}>
               {['classic', 'food', 'nature', 'pop_culture', 'challenge', 'all'].map(packId => (
-                <TouchableOpacity
+                <NeoButton
                   key={packId}
                   style={styles.voteBtn}
                   onPress={() => handleVote(packId)}
@@ -731,7 +732,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
                       {votes[packId] || 0}
                     </Text>
                   </View>
-                </TouchableOpacity>
+                </NeoButton>
               ))}
             </View>
           </View>
@@ -747,13 +748,13 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
                   : `Need at least ${MIN_PLAYERS} players to start`}
               </Text>
             )}
-            <TouchableOpacity
+            <NeoButton
               style={[styles.button, (!canStart || countdown !== null) && styles.buttonDisabled]}
               activeOpacity={canStart && countdown === null ? 0.8 : 1}
               onPress={canStart && countdown === null ? handleStartGame : undefined}
             >
               <Text style={styles.buttonText}>{countdown !== null ? 'STARTING...' : 'START GAME'}</Text>
-            </TouchableOpacity>
+            </NeoButton>
           </View>
         )}
 
