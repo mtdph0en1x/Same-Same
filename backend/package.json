@@ -24,7 +24,7 @@
   "type": "commonjs",
   "dependencies": {
     "@supabase/supabase-js": "^2.110.2",
-    "bad-words": "^4.1.5",
+    "bad-words": "^3.0.4",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",

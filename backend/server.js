@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
-const { Filter } = require('bad-words');
+const Filter = require('bad-words');
 
 const app = express();
 app.use(cors());
