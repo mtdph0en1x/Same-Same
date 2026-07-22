@@ -236,9 +236,9 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
                 }
               ]}
             >
-            <View style={[s.panelHeader, user ? s.panelHeaderLeft : { backgroundColor: '#FBBF24' }]}>
-              <AppText style={s.panelHeaderText}>{user ? t('home.samesameid') : t('home.visitorPass')}</AppText>
-              <AppText style={s.panelSubText}>{user ? t('home.officialPlayerBadge') : t('home.temporaryAccess')}</AppText>
+            <View style={[s.panelHeader, user ? s.panelHeaderLeft : { backgroundColor: '#FBBF24' }, !isDesktop && { paddingVertical: 12, paddingHorizontal: 16 }]}>
+              <AppText style={[s.panelHeaderText, !isDesktop && { fontSize: 18, letterSpacing: 2 }]}>{user ? t('home.samesameid') : t('home.visitorPass')}</AppText>
+              <AppText style={[s.panelSubText, !isDesktop && { fontSize: 10 }]}>{user ? t('home.officialPlayerBadge') : t('home.temporaryAccess')}</AppText>
             </View>
 
             <View style={[s.panelBody, s.panelBodyLeft]}>
@@ -354,12 +354,12 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
                 }
               ]}
             >
-            <View style={[s.panelHeader, s.panelHeaderRight, { justifyContent: 'center', position: 'relative' }]}>
+            <View style={[s.panelHeader, s.panelHeaderRight, { justifyContent: 'center', position: 'relative' }, !isDesktop && { paddingVertical: 12, paddingHorizontal: 16 }]}>
               <View style={{ alignItems: 'center' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <AppText style={s.panelHeaderText}>{t('home.play')}</AppText>
+                  <AppText style={[s.panelHeaderText, !isDesktop && { fontSize: 18, letterSpacing: 2 }]}>{t('home.play')}</AppText>
                 </View>
-                <AppText style={s.panelSubText}>{t('home.chooseHowToPlay')}</AppText>
+                <AppText style={[s.panelSubText, !isDesktop && { fontSize: 10 }]}>{t('home.chooseHowToPlay')}</AppText>
               </View>
               {isDesktop && (
                 <View style={{ position: 'absolute', right: 32 }}>

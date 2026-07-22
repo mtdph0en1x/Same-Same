@@ -257,13 +257,13 @@ function AppContent() {
 
         {/* ── Persistent top chrome ── */}
         {PageHeader}
-        {NewsBar}
+        {isDesktop && NewsBar}
 
         {/* ── Window area — all screens render here ── */}
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.windowArea}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.windowArea, !isDesktop && { paddingHorizontal: 8, paddingVertical: 8 }]}>
           <View style={[
             styles.appWindow, 
-            !isDesktop && { width: '90%', alignSelf: 'center', marginBottom: 20 },
+            !isDesktop && { width: '100%', alignSelf: 'center', marginBottom: 10 },
             { flexDirection: isDesktop ? 'row' : 'column' }
           ]}>
             {/* Subtle inner pattern */}
