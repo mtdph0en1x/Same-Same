@@ -39,11 +39,11 @@ function SegmentedControl({ options, value, onChange, labelMap }) {
 }
 
 // Toggle chip for round types
-function RoundTypeToggle({ type, active, onChange }) {
+function RoundTypeToggle({ type, value, active, onChange }) {
   return (
     <NeoButton
       style={[styles.chip, active && styles.chipActive]}
-      onPress={() => onChange(type)}
+      onPress={() => onChange(value || type)}
       activeOpacity={0.7}
     >
       <AppText style={[styles.chipText, active && styles.chipTextActive]}>{type}</AppText>
@@ -217,8 +217,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
   const [hostBanner, setHostBanner] = useState(false);
   const [config, setConfig]         = useState(DEFAULT_CONFIG);
   const [teams, setTeams]           = useState({});      // { [playerId]: 'A' | 'B' }
-  const [pendingMatch, setPendingMatch] = useState(null); // { matchId, timeoutMs }
-  const [matchStatus, setMatchStatus] = useState(null); // 'accepting' | 'accepted' | 'declined' | null
+
   const [isPublic, setIsPublic]     = useState(false);
   const [isHostless, setIsHostless] = useState(false);
   const [votes, setVotes]           = useState({}); // { [packId]: count }
@@ -268,49 +267,20 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
   const handleVote = (packId) => {
     socket.emit('submit_vote', { roomCode, packId });
   };
-  // Matchmaking Handlers
-  const handleAcceptMatch = () => {
-    socket.emit('accept_match', { matchId: pendingMatch.matchId });
-    setMatchStatus('accepted');
-  };
 
-  const handleDeclineMatch = () => {
-    socket.emit('decline_match', { matchId: pendingMatch.matchId });
-    setMatchStatus('declined');
-    setScreen('Home');
-  };
-
-  const handleLeaveMatchmaking = () => {
-    socket.emit('leave_matchmaking');
-    setScreen('Home');
-  };
 
   useEffect(() => {
     socket.connect();
 
     if (lobbyIntent === 'host_game') {
-      socket.emit('create_room', { name: playerData.name, avatar: playerData.avatar });
+      socket.emit('create_room', playerData);
     } else if (lobbyIntent === 'join_couch' || lobbyIntent === 'join_public') {
       socket.emit('join_room', { roomCode, playerData });
-    } else if (lobbyIntent === 'matchmaking') {
-      socket.emit('join_matchmaking', { name: playerData.name, avatar: playerData.avatar, mode: playerData.mode });
     } else if (lobbyIntent === 'quick_play') {
       socket.emit('quick_play', playerData);
     }
 
-    socket.on('matchmaking_joined', () => setStatus(t('lobby.findingMatch', 'Finding a match...')));
 
-    socket.on('match_found', (data) => {
-      setPendingMatch(data);
-      setMatchStatus('accepting');
-    });
-
-    socket.on('match_cancelled', (data) => {
-      setPendingMatch(null);
-      setMatchStatus(null);
-      Alert.alert(t('lobby.matchCancelled', 'Match Cancelled'), data.reason);
-      setStatus(t('lobby.findingMatch', 'Finding a match...'));
-    });
 
     socket.on('room_created', (data) => {
       setRoomCode(data.roomCode);
@@ -374,7 +344,6 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
     socket.on('countdown_tick',    ({ count }) => setCountdown(count));
 
     return () => {
-      socket.off('matchmaking_joined');
       socket.off('room_created');
       socket.off('joined_room');
       socket.off('player_joined');
@@ -386,8 +355,6 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
       socket.off('host_changed');
       socket.off('countdown_started');
       socket.off('countdown_tick');
-      socket.off('match_found');
-      socket.off('match_cancelled');
       clearTimeout(hostBannerTimer.current);
     };
   }, []);
@@ -431,44 +398,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
     );
   }
 
-  // Matchmaking UI Branch
-  if (lobbyIntent === 'matchmaking' && !isPublic) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.matchmakingContainer}>
-          {pendingMatch ? (
-            <View style={styles.matchFoundCard}>
-              <AppText style={styles.matchFoundTitle}>{t('lobby.matchFound', 'MATCH FOUND!')}</AppText>
-              {matchStatus === 'accepting' ? (
-                <>
-                  <AppText style={styles.matchFoundSubtitle}>{t('lobby.areYouReady', 'Are you ready?')}</AppText>
-                  <View style={styles.matchActionRow}>
-                    <NeoButton style={[styles.matchBtn, styles.matchBtnDecline]} onPress={handleDeclineMatch}>
-                      <AppText style={styles.matchBtnText}>{t('lobby.decline', 'DECLINE')}</AppText>
-                    </NeoButton>
-                    <NeoButton style={[styles.matchBtn, styles.matchBtnAccept]} onPress={handleAcceptMatch}>
-                      <AppText style={styles.matchBtnText}>{t('lobby.accept', 'ACCEPT')}</AppText>
-                    </NeoButton>
-                  </View>
-                </>
-              ) : (
-                <AppText style={styles.matchFoundSubtitle}>{t('lobby.waitingForOthers', 'Waiting for other players...')}</AppText>
-              )}
-            </View>
-          ) : (
-            <>
-              <AppText style={styles.title}>Same Same?</AppText>
-              <AppText style={styles.searchingStatus}>{status}</AppText>
-              {/* Pulsing indicator can go here */}
-              <NeoButton style={styles.cancelMatchBtn} onPress={handleLeaveMatchmaking}>
-                <AppText style={styles.cancelMatchBtnText}>{t('lobby.cancelSearch', 'Cancel Search')}</AppText>
-              </NeoButton>
-            </>
-          )}
-        </View>
-      </SafeAreaView>
-    );
-  }
+
 
   // Couch Lobby UI
   return (
@@ -657,7 +587,8 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
                 {['Same Same', 'But Different', 'Blitz'].map(type => (
                   <RoundTypeToggle
                     key={type}
-                    type={t(`lobby.${type.replace(' ', '').toLowerCase()}`, type)} // Fallback to raw type if not exactly matching keys, though we should map better
+                    value={type}
+                    type={t(`lobby.${type.replace(' ', '').toLowerCase()}`, type)}
                     active={config.roundTypes.includes(type)}
                     onChange={toggleRoundType}
                   />
@@ -670,9 +601,10 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
             <AppText style={styles.settingLabel}>{t('lobby.gameModifiers', 'Game modifiers')}</AppText>
             {isHost ? (
               <View style={styles.chipRow}>
-                {['Rush'].map(mod => (
+                {['Rush', 'Hardcore', 'Zen'].map(mod => (
                   <RoundTypeToggle
                     key={mod}
+                    value={mod}
                     type={t(`lobby.${mod.toLowerCase()}`, mod)}
                     active={(config.modifiers || []).includes(mod)}
                     onChange={toggleModifier}

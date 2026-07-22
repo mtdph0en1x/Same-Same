@@ -10,7 +10,7 @@ const VALID_ROUND_TYPES    = ['Same Same', 'But Different', 'Blitz'];
 const VALID_MAX_ROUNDS     = [3, 6, 9];
 const VALID_TIME_LIMITS    = [30, 60, 90];
 const VALID_WORDS_PER_ROUND = [3, 5, 7];
-const VALID_MODIFIERS      = ['Rush'];
+const VALID_MODIFIERS      = ['Rush', 'Hardcore', 'Zen'];
 
 const DEFAULT_CONFIG = {
     roomName:      '', // Used for Custom Public Lobbies
@@ -22,6 +22,7 @@ const DEFAULT_CONFIG = {
     teamMode:      false,
     modifiers:     [],
     isPublic:      false,
+    lang:          'en',
 };
 
 // ── Default permanent public lobbies seeded on startup ────────────────────────
@@ -66,11 +67,20 @@ function createDefaultLobby({ code, label, config }) {
 }
 
 function seedDefaultLobbies() {
-    DEFAULT_LOBBIES.forEach(createDefaultLobby);
+    const langs = ['en', 'es', 'ru', 'uk'];
+    langs.forEach(lang => {
+        DEFAULT_LOBBIES.forEach(lobby => {
+            createDefaultLobby({
+                code: `${lobby.code}-${lang.toUpperCase()}`,
+                label: lobby.label,
+                config: { ...lobby.config, lang }
+            });
+        });
+    });
 }
 
-function validateConfig(incoming) {
-    const config = { ...DEFAULT_CONFIG };
+function validateConfig(incoming, currentConfig = DEFAULT_CONFIG) {
+    const config = { ...currentConfig };
     if (VALID_MAX_ROUNDS.includes(incoming.maxRounds))        config.maxRounds     = incoming.maxRounds;
     if (VALID_TIME_LIMITS.includes(incoming.timeLimit))       config.timeLimit     = incoming.timeLimit;
     if (VALID_WORDS_PER_ROUND.includes(incoming.wordsPerRound)) config.wordsPerRound = incoming.wordsPerRound;
@@ -86,6 +96,10 @@ function validateConfig(incoming) {
     if (typeof incoming.teamMode === 'boolean') config.teamMode = incoming.teamMode;
     if (typeof incoming.isPublic === 'boolean') config.isPublic = incoming.isPublic;
     if (typeof incoming.roomName === 'string') config.roomName = incoming.roomName.substring(0, 20); // Limit name length
+    
+    const validLangs = ['en', 'es', 'ru', 'uk'];
+    if (validLangs.includes(incoming.lang)) config.lang = incoming.lang;
+
     return config;
 }
 
@@ -133,7 +147,7 @@ function createRoom(io, socket, playerData) {
         teams:       teams,
         gameSession: null,
         countdown:   null,
-        config:      { ...DEFAULT_CONFIG },
+        config:      { ...DEFAULT_CONFIG, lang: playerData.lang || 'en' },
         isPublic:    false,
         isHostless:  false,
         votes:       {},
@@ -159,6 +173,7 @@ function findOrCreatePublicRoom(io, socket, playerData) {
     const openRoom = Object.entries(rooms).find(([code, room]) => {
         return room.isPublic &&
                !room.gameSession &&
+               room.config.lang === (playerData.lang || 'en') &&
                room.players.length < MAX_PLAYERS;
     });
 
@@ -208,7 +223,7 @@ function findOrCreatePublicRoom(io, socket, playerData) {
             teams,
             gameSession: null,
             countdown: null,
-            config: { ...DEFAULT_CONFIG },
+            config: { ...DEFAULT_CONFIG, lang: playerData.lang || 'en' },
             isPublic: true,
             isHostless: true,
             votes: {},
@@ -261,49 +276,7 @@ function playAgain(io, socket, roomCode) {
     }
 }
 
-function createPublicRoom(io, players, mmMode = 'solo4') {
-    const roomCode = generateRoomCode();
-    const hostId = players[0].id;
-    const teams = {};
-    const isTeamMode = mmMode === 'team2v2' || mmMode === 'team4v4';
 
-    players.forEach(p => {
-        p.socket.join(roomCode);
-        if (isTeamMode) {
-            teams[p.id] = assignTeam(teams); // Auto-assign to A/B
-        }
-    });
-
-    const roomConfig = { ...DEFAULT_CONFIG, teamMode: isTeamMode };
-
-    rooms[roomCode] = {
-        host:        hostId,
-        players:     players,
-        teams:       teams,
-        gameSession: null,
-        countdown:   null,
-        config:      roomConfig,
-        isPublic:    true,
-        isHostless:  true,
-        votes:       {},
-    };
-
-    const safePlayers = safePlayerList(players);
-    
-    players.forEach(p => {
-        p.socket.emit('joined_room', {
-            roomCode,
-            players: safePlayers,
-            host:    p.id === hostId,
-            config:  rooms[roomCode].config,
-            teams:   teams,
-            isPublic: true
-        });
-    });
-
-    // Start 10-second countdown immediately
-    startPublicCountdown(io, roomCode);
-}
 
 function startPublicCountdown(io, roomCode) {
     const room = rooms[roomCode];
@@ -354,6 +327,7 @@ function startPublicCountdown(io, roomCode) {
                 teams: room.config.teamMode ? { ...room.teams } : null,
                 isPublic: room.isPublic || false,
             };
+            console.log(`[DEBUG-TOPIC] startGame -> roomCode: ${roomCode}, room.config.lang: ${room.config.lang}, sessionConfig.lang: ${sessionConfig.lang}, room.config.categoryPack: ${room.config.categoryPack}`);
             room.gameSession = new GameSession(io, roomCode, gamePlayers, sessionConfig);
             room.gameSession.start();
         }
@@ -453,7 +427,7 @@ function updateConfig(io, socket, roomCode, incomingConfig) {
     const room = rooms[roomCode];
     if (!room || room.host !== socket.id || room.gameSession || room.countdown || room.isHostless) return;
 
-    room.config = validateConfig(incomingConfig);
+    room.config = validateConfig(incomingConfig, room.config);
     room.isPublic = room.config.isPublic; // Sync top-level flag
     
     io.to(roomCode).emit('config_updated', { config: room.config });
@@ -559,32 +533,16 @@ function startGame(io, socket, roomCode) {
 }
 
 function submitWord(roomId, playerId, word) {
-    const matchmaker = require('./matchmaker'); // Lazy load
-    let game = null;
-
-    if (matchmaker.activeGames[roomId]) {
-        game = matchmaker.activeGames[roomId];
-    } else if (rooms[roomId] && rooms[roomId].gameSession) {
-        game = rooms[roomId].gameSession;
-    }
-
-    if (game) {
-        game.submitWord(playerId, word);
+    const room = rooms[roomId];
+    if (room && room.gameSession) {
+        room.gameSession.submitWord(playerId, word);
     }
 }
 
 function voteNextStep(roomId, playerId) {
-    const matchmaker = require('./matchmaker'); // Lazy load
-    let game = null;
-
-    if (matchmaker.activeGames[roomId]) {
-        game = matchmaker.activeGames[roomId];
-    } else if (rooms[roomId] && rooms[roomId].gameSession) {
-        game = rooms[roomId].gameSession;
-    }
-
-    if (game) {
-        game.voteNextStep(playerId);
+    const room = rooms[roomId];
+    if (room && room.gameSession) {
+        room.gameSession.voteNextStep(playerId);
     }
 }
 
@@ -656,7 +614,6 @@ function submitVote(io, socket, roomCode, packId) {
 
 module.exports = {
     createRoom,
-    createPublicRoom,
     findOrCreatePublicRoom,
     joinRoom,
     updateConfig,

@@ -45,7 +45,6 @@ const io = new Server(server, {
     }
 });
 
-const matchmaker = require('./matchmaker');
 const roomManager = require('./roomManager');
 const { supabase } = require('./supabase');
 const { loadTopics } = require('./gameLogic');
@@ -67,23 +66,6 @@ io.use(async (socket, next) => {
 
 io.on('connection', (socket) => {
     console.log(`User connected: ${socket.id} (Auth: ${socket.userId || 'Guest'})`);
-
-    // Mode 1: Matchmaking
-    socket.on('join_matchmaking', (playerData) => {
-        matchmaker.addPlayer(io, socket, playerData);
-    });
-
-    socket.on('leave_matchmaking', () => {
-        matchmaker.removePlayer(socket.id);
-    });
-
-    socket.on('accept_match', ({ matchId }) => {
-        matchmaker.acceptMatch(socket.id, matchId);
-    });
-
-    socket.on('decline_match', ({ matchId }) => {
-        matchmaker.declineMatch(socket.id, matchId);
-    });
 
     // Mode 2: Couch Multiplayer
     socket.on('create_room', (playerData) => {
@@ -123,13 +105,13 @@ io.on('connection', (socket) => {
         roomManager.playAgain(io, socket, roomCode);
     });
 
-    socket.on('get_public_lobbies', () => {
+    socket.on('get_public_lobbies', ({ lang = 'en' } = {}) => {
         const lobbies = [];
         const seenPermanent = new Set();
 
         // 1. Add all open public lobbies and open clones
         for (const [code, room] of Object.entries(roomManager.rooms)) {
-            if (room.isPublic && !room.gameSession) {
+            if (room.isPublic && !room.gameSession && room.config.lang === lang) {
                 lobbies.push({
                     code,
                     label:       room.config.roomName || room.label || code,
@@ -147,7 +129,7 @@ io.on('connection', (socket) => {
 
         // 2. Guarantee permanent lobbies always appear, even if fully occupied
         for (const [code, room] of Object.entries(roomManager.rooms)) {
-            if (room.isPermanent && room.isPublic && !seenPermanent.has(code)) {
+            if (room.isPermanent && room.isPublic && room.config.lang === lang && !seenPermanent.has(code)) {
                 lobbies.push({
                     code,
                     label:       room.config.roomName || room.label || code,
@@ -192,7 +174,6 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         console.log(`User disconnected: ${socket.id}`);
-        matchmaker.removePlayer(socket.id);
         roomManager.handleDisconnect(io, socket);
     });
 });

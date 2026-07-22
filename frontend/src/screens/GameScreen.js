@@ -46,7 +46,7 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
   const isDesktop = width > 800;
 
   useEffect(() => {
-    setTimeLeft(gameData.timeLimit || 60);
+    setTimeLeft(gameData.timeLimit !== undefined ? gameData.timeLimit : 60);
     setCurrentWord('');
     setSubmittedWords([]);
     setIsDone(false);

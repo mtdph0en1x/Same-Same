@@ -120,6 +120,8 @@ export default function ResultsScreen({ roundResults, roomCode, isHost, players 
   const { width } = useWindowDimensions();
   const isDesktop = width > 800;
   const maxSteps = Math.max(1, timeline.length);
+  const rushWinnerEvent = timeline.find(ev => ev.type === 'rush_bonus');
+  const rushWinnerId = rushWinnerEvent ? rushWinnerEvent.playerId : null;
 
   const scrollViewRef = useRef(null);
   const playerRefs = useRef({});
@@ -273,6 +275,11 @@ export default function ResultsScreen({ roundResults, roomCode, isHost, players 
       <View style={[styles.container, isDesktop && styles.containerDesktop]}>
         <View style={styles.headerRow}>
           <AppText style={styles.title}>{t('results.title', 'Round Results')}</AppText>
+          {currentTimelineEvent?.type === 'rush_bonus' && (
+              <View style={[styles.topicBadge, { backgroundColor: '#FCD34D' }]}>
+                  <AppText style={styles.topicBadgeText}>⚡ {playerNames[currentTimelineEvent.playerId]} +2 {t('lobby.rush', 'Rush')} Bonus!</AppText>
+              </View>
+          )}
           {currentTimelineEvent?.type === 'topic' && (
               <View style={styles.topicBadge}>
                   <AppText style={styles.topicBadgeText}>{currentTimelineEvent.title}</AppText>
@@ -310,6 +317,9 @@ export default function ResultsScreen({ roundResults, roomCode, isHost, players 
                                         size={32} 
                                     />
                                     <AppText style={styles.playerLabelName}>{playerNames[pid]}</AppText>
+                                    {rushWinnerId === pid && step >= maxSteps && (
+                                        <Text style={{ fontSize: 20, marginLeft: 5 }}>⚡</Text>
+                                    )}
                                 </View>
                                 {step >= maxSteps && (
                                     <View style={styles.finalScoreBubble}>

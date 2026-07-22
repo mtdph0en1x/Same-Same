@@ -11,7 +11,7 @@ import { socket } from '../socket';
 import { theme } from '../styles/theme';
 
 export default function LobbyBrowserScreen({ setScreen, getDisplayName, profileData, setPlayerData, setRoomCode, setIsHost, setLobbyIntent }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [lobbies, setLobbies] = useState([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -20,7 +20,7 @@ export default function LobbyBrowserScreen({ setScreen, getDisplayName, profileD
 
   const fetchLobbies = () => {
     setIsRefreshing(true);
-    socket.emit('get_public_lobbies');
+    socket.emit('get_public_lobbies', { lang: (i18n.language || 'en').substring(0, 2) });
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
@@ -47,7 +47,7 @@ export default function LobbyBrowserScreen({ setScreen, getDisplayName, profileD
   const handleJoinLobby = (code) => {
     const displayName = getDisplayName();
     if (!displayName) return; // Add error handling or redirect to home to set name
-    const playerData = { name: displayName, avatar: profileData?.avatar, level: profileData?.level || 1 };
+    const playerData = { name: displayName, avatar: profileData?.avatar, level: profileData?.level || 1, lang: (i18n.language || 'en').substring(0, 2) };
     setPlayerData(playerData);
     setRoomCode(code);
     setIsHost(false);

@@ -35,8 +35,7 @@ for (let i = 1; i <= NUM_BOTS; i++) {
         
         // Randomly vote for a pack
         if (data.isPublic) {
-            const packs = ['classic', 'food', 'nature', 'pop_culture', 'challenge'];
-            const randomPack = packs[Math.floor(Math.random() * packs.length)];
+            const randomPack = 'classic';
             setTimeout(() => {
                 socket.emit('submit_vote', { roomCode: currentRoomCode, packId: randomPack });
                 console.log(`[${botName}] Voted for ${randomPack}`);

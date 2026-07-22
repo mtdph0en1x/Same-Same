@@ -18,11 +18,12 @@ class GameSession {
 
         this.config = {
             maxRounds:     [3, 6, 9].includes(config.maxRounds)       ? config.maxRounds     : 6,
-            timeLimit:     [30, 60, 90].includes(config.timeLimit)     ? config.timeLimit     : 60,
+            timeLimit:     config.modifiers?.includes('Zen') ? 0 : ([30, 60, 90].includes(config.timeLimit) ? config.timeLimit : 60),
             wordsPerRound: [3, 5, 7].includes(config.wordsPerRound)   ? config.wordsPerRound : 5,
             roundTypes:    roundTypes.length > 0 ? roundTypes : ['Same Same', 'But Different', 'Blitz'],
             categoryPack:  config.categoryPack || 'classic',
             modifiers:     config.modifiers || [],
+            lang:          config.lang || 'en',
         };
 
         // teams: { [playerId]: 'A' | 'B' } or null for solo mode
@@ -82,10 +83,10 @@ class GameSession {
         if (roundType === 'Blitz') {
             category = [];
             for (let i = 0; i < this.config.wordsPerRound; i++) {
-                category.push(getRandomCategory(this.config.categoryPack));
+                category.push(getRandomCategory(this.config.categoryPack, this.config.lang));
             }
         } else {
-            category = getRandomCategory(this.config.categoryPack);
+            category = getRandomCategory(this.config.categoryPack, this.config.lang);
         }
         this.currentCategory = category;
 
@@ -98,9 +99,11 @@ class GameSession {
             wordsPerRound: this.config.wordsPerRound,
         });
 
-        this.timer = setTimeout(() => {
+        if (this.config.timeLimit > 0) {
+            this.timer = setTimeout(() => {
             this.endRound(roundType);
         }, this.config.timeLimit * 1000);
+        }
     }
 
     submitWord(playerId, word) {
@@ -121,6 +124,7 @@ class GameSession {
         // Check if this player hit their word limit
         if (pw.words.length >= this.config.wordsPerRound) {
             pw.done = true;
+            pw.doneTime = Date.now();
             this.io.to(this.roomId).emit('player_finished', { playerId });
 
             this.checkRoundEarlyEnd();
@@ -286,6 +290,25 @@ class GameSession {
             }
         }
 
+        
+        let fastestFinisher = null;
+        if (this.config.modifiers?.includes('Rush')) {
+            let minDoneTime = Infinity;
+            for (const p of this.players) {
+                const pw = wordSnapshot[p.id];
+                if (pw && pw.done && pw.doneTime < minDoneTime) {
+                    minDoneTime = pw.doneTime;
+                    fastestFinisher = p.id;
+                }
+            }
+            if (fastestFinisher) {
+                // Add +2 points directly
+                scoreUpdates[fastestFinisher] = (scoreUpdates[fastestFinisher] || 0) + 2;
+                // Prepend to timeline or append at the end? Append before scoreboard
+                timeline.push({ type: 'rush_bonus', playerId: fastestFinisher });
+            }
+        }
+        
         this.timeline = timeline;
         this.reviewVotes = new Set();
         this.reviewMaxSteps = Math.max(1, this.timeline.length);

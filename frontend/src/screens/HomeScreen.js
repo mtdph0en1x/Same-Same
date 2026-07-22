@@ -27,50 +27,7 @@ WebBrowser.maybeCompleteAuthSession();
 
 
 
-// ─────────────────────────────────────────────────────────────────────────────
-// AnimatedModeCard — physical playing card that scales on press
-// ─────────────────────────────────────────────────────────────────────────────
-function AnimatedModeCard({ m, onPress, rotation }) {
-  const scale = React.useRef(new Animated.Value(1)).current;
 
-  const handleHoverIn = () => {
-    Animated.spring(scale, { toValue: 1.05, useNativeDriver: true, speed: 20 }).start();
-  };
-  const handleHoverOut = () => {
-    Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 20 }).start();
-  };
-  const handlePressIn = () => {
-    Animated.spring(scale, { toValue: 0.95, useNativeDriver: true, speed: 40 }).start();
-  };
-  const handlePressOut = () => {
-    // If still hovered, go back to 1.05, otherwise 1. But for simplicity, just go to 1.05.
-    Animated.spring(scale, { toValue: 1.05, useNativeDriver: true, speed: 40 }).start();
-  };
-
-  return (
-    <Animated.View style={[s.modeCard, { transform: [{ rotate: rotation }, { scale }] }]}>
-      <Pressable
-        onPress={onPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        onHoverIn={handleHoverIn}
-        onHoverOut={handleHoverOut}
-        style={({ hovered }) => [
-          { flex: 1, alignItems: 'center', justifyContent: 'center', width: '100%', padding: 10 },
-          hovered && { backgroundColor: 'rgba(0,0,0,0.02)' }
-        ]}
-      >
-        <View style={s.modeCardIcon}>{m.icon}</View>
-        <AppText style={s.modeCardLabel}>{m.label}</AppText>
-        <AppText style={s.modeCardDesc}>{m.desc}</AppText>
-      </Pressable>
-    </Animated.View>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Shared modal renderers
-// ─────────────────────────────────────────────────────────────────────────────
 function joinModal(visible, setVisible, code, setCode, onJoin, t) {
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={() => setVisible(false)}>
@@ -91,47 +48,6 @@ function joinModal(visible, setVisible, code, setCode, onJoin, t) {
             autoCorrect={false}
           />
           <Button title={t('home.joinRoom')} onPress={onJoin} type="primary" />
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-function mmModal(visible, setVisible, onFindMatch, t) {
-  return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={() => setVisible(false)}>
-      <View style={s.modalOverlay}>
-        <View style={s.modalContent}>
-          <NeoButton style={s.closeBtn} onPress={() => setVisible(false)}>
-            <AppText style={s.closeBtnText}>✕</AppText>
-          </NeoButton>
-          <AppText style={s.modalTitle}>{t('home.selectMode')}</AppText>
-          <AppText style={s.mmSectionTitle}>{t('home.teams')}</AppText>
-          <View style={s.mmRow}>
-            <NeoButton style={s.mmBtn} onPress={() => onFindMatch('team2v2')}>
-              <AppText style={s.mmBtnText}>🤝 2v2</AppText>
-            </NeoButton>
-            <NeoButton style={s.mmBtn} onPress={() => onFindMatch('team4v4')}>
-              <AppText style={s.mmBtnText}>🛡️ 4v4</AppText>
-            </NeoButton>
-          </View>
-          <AppText style={s.mmSectionTitle}>{t('home.solo')}</AppText>
-          <View style={s.mmRow}>
-            <NeoButton style={s.mmBtn} onPress={() => onFindMatch('duel')}>
-              <AppText style={s.mmBtnText}>⚔️ 1v1</AppText>
-            </NeoButton>
-            <NeoButton style={s.mmBtn} onPress={() => onFindMatch('solo4')}>
-              <AppText style={s.mmBtnText}>🏃 4p</AppText>
-            </NeoButton>
-          </View>
-          <View style={s.mmRow}>
-            <NeoButton style={s.mmBtn} onPress={() => onFindMatch('solo6')}>
-              <AppText style={s.mmBtnText}>🏃 6p</AppText>
-            </NeoButton>
-            <NeoButton style={s.mmBtn} onPress={() => onFindMatch('solo8')}>
-              <AppText style={s.mmBtnText}>🏃 8p</AppText>
-            </NeoButton>
-          </View>
         </View>
       </View>
     </Modal>
@@ -189,7 +105,6 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
   const [code, setCode] = useState('');
   const [profileData, setProfileData] = useState(null);
   const [joinModalVisible, setJoinModalVisible] = useState(false);
-  const [mmModalVisible, setMmModalVisible] = useState(false);
   const [langModalVisible, setLangModalVisible] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
   const [activeTab, setActiveTab] = useState('play');
@@ -233,23 +148,11 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
     return 'GUEST';
   };
 
-  const handleOpenMmModal = () => {
-    if (!getDisplayName()) return Alert.alert(t('home.nameRequired'), t('home.enterNameToContinue'));
-    setMmModalVisible(true);
-  };
-
-  const handleFindMatch = (mode) => {
-    setMmModalVisible(false);
-    const displayName = getDisplayName();
-    setPlayerData({ name: displayName, avatar: profileData?.avatar || 'alien', frame: profileData?.active_frame || 'none', mode });
-    setLobbyIntent('matchmaking');
-    setScreen('Lobby');
-  };
 
   const handleQuickPlay = () => {
     const displayName = getDisplayName();
     if (!displayName) return Alert.alert(t('home.nameRequired'), t('home.enterNameFirst'));
-    const playerData = { name: displayName, avatar: profileData?.avatar, level: profileData?.level || 1, frame: profileData?.active_frame || 'none' };
+    const playerData = { name: displayName, avatar: profileData?.avatar, level: profileData?.level || 1, frame: profileData?.active_frame || 'none', lang: (i18n.language || 'en').substring(0, 2) };
     setPlayerData(playerData);
     setIsHost(false);
     setLobbyIntent('quick_play');
@@ -259,7 +162,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
   const handleHostGame = () => {
     const displayName = getDisplayName();
     if (!displayName) return Alert.alert(t('home.nameRequired'), t('home.enterNameToContinue'));
-    setPlayerData({ name: displayName, avatar: profileData?.avatar || 'alien', frame: profileData?.active_frame || 'none' });
+    setPlayerData({ name: displayName, avatar: profileData?.avatar || 'alien', frame: profileData?.active_frame || 'none', lang: (i18n.language || 'en').substring(0, 2) });
     setIsHost(true);
     setLobbyIntent('host_game');
     setScreen('Lobby');
@@ -270,22 +173,13 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
     if (!displayName || !code || code.length < 4)
       return Alert.alert(t('home.oops'), t('home.enterValidCode'));
     setJoinModalVisible(false);
-    setPlayerData({ name: displayName, avatar: profileData?.avatar || 'alien', frame: profileData?.active_frame || 'none' });
+    setPlayerData({ name: displayName, avatar: profileData?.avatar || 'alien', frame: profileData?.active_frame || 'none', lang: (i18n.language || 'en').substring(0, 2) });
     setRoomCode(code.toUpperCase());
     setIsHost(false);
     setLobbyIntent('join_couch');
     setScreen('Lobby');
   };
 
-  // Online modes list — used in the play panel
-  const ONLINE_MODES = [
-    { mode: 'duel',    label: '1v1', icon: <Swords size={32} color="#D946EF" strokeWidth={2.5} />, desc: 'Duel'        },
-    { mode: 'team2v2', label: '2v2', icon: <Users size={32} color="#10B981" strokeWidth={2.5} />, desc: 'Teams'       },
-    { mode: 'team4v4', label: '4v4', icon: <Shield size={32} color="#FBBF24" strokeWidth={2.5} />, desc: 'Battle'      },
-    { mode: 'solo4',   label: '4p',  icon: <User size={32} color="#10B981" strokeWidth={2.5} />, desc: 'Free-for-all' },
-    { mode: 'solo6',   label: '6p',  icon: <PartyPopper size={32} color="#F59E0B" strokeWidth={2.5} />, desc: 'Party'       },
-    { mode: 'solo8',   label: '8p',  icon: <Zap size={32} color="#EF4444" strokeWidth={2.5} />, desc: 'Chaos'       },
-  ];
 
   // ── Unified View ────────────────────────────────────────────────────────
   return (
@@ -566,7 +460,6 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
       </View>
       </ScrollView>
       {joinModal(joinModalVisible, setJoinModalVisible, code, setCode, handleJoinCouch, t)}
-      {mmModal(mmModalVisible, setMmModalVisible, handleFindMatch, t)}
       {langModal(langModalVisible, setLangModalVisible, i18n, t)}
     </View>
   );

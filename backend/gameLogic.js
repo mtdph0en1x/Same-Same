@@ -45,8 +45,12 @@ async function loadTopics() {
 }
 
 function getRandomCategory(packId = 'classic', lang = 'en') {
+    console.log(`[DEBUG-TOPIC] getRandomCategory called with packId="${packId}", lang="${lang}"`);
+    console.log(`[DEBUG-TOPIC] Available languages in PACKS cache:`, Object.keys(PACKS));
+    
     let pool;
     const langPacks = PACKS[lang] || PACKS['en'] || {};
+    console.log(`[DEBUG-TOPIC] langPacks resolved for lang "${lang}" has packs:`, Object.keys(langPacks));
 
     if (packId === 'all') {
         pool = Object.values(langPacks).flat();
@@ -111,7 +115,8 @@ function calculateScores(playerWords, roundType, modifiers = [], teams = null) {
             for (const g of groups) {
                 if (roundType === 'Blitz' && g.topicIndex !== i) continue;
 
-                if (g.stem === stem || JaroWinklerDistance(g.canonical, w) > 0.85) {
+                const isMatch = modifiers.includes('Hardcore') ? (g.canonical.toLowerCase() === w.toLowerCase()) : (g.stem === stem || JaroWinklerDistance(g.canonical, w) > 0.85);
+                if (isMatch) {
                     // Only add this player once per group
                     if (!g.playerIds.find(p => p.id === playerId)) {
                         g.playerIds.push({ id: playerId, name: data.name, time, wordIndex: i, text: w });
@@ -142,21 +147,15 @@ function calculateScores(playerWords, roundType, modifiers = [], teams = null) {
         groups.forEach(g => {
             if (roundType === 'Same Same' || roundType === 'Blitz') {
                 if (g.playerIds.length > 1) {
-                    let fastestPlayer = null;
-                    let minTime = Infinity;
+                    
+                    
 
                     g.playerIds.forEach(p => {
                         scoreUpdates[p.id] = (scoreUpdates[p.id] || 0) + g.playerIds.length;
-                        if (modifiers.includes('Rush') && p.time < minTime) {
-                            minTime = p.time;
-                            fastestPlayer = p.id;
-                        }
+                        
                     });
 
-                    // Award speed bonus in Rush mode
-                    if (modifiers.includes('Rush') && fastestPlayer) {
-                        scoreUpdates[fastestPlayer] += 2;
-                    }
+                    
                 }
             } else if (roundType === 'But Different') {
                 if (g.playerIds.length === 1) {
@@ -179,21 +178,15 @@ function calculateScores(playerWords, roundType, modifiers = [], teams = null) {
                 ['A', 'B'].forEach(team => {
                     const members = byTeam[team];
                     if (members.length > 1) {
-                        let fastestPlayer = null;
-                        let minTime = Infinity;
+                        
+                        
 
                         members.forEach(p => {
                             scoreUpdates[p.id] = (scoreUpdates[p.id] || 0) + members.length;
-                            if (modifiers.includes('Rush') && p.time < minTime) {
-                                minTime = p.time;
-                                fastestPlayer = p.id;
-                            }
+                            
                         });
 
-                        // Award speed bonus in Rush mode
-                        if (modifiers.includes('Rush') && fastestPlayer) {
-                            scoreUpdates[fastestPlayer] += 2;
-                        }
+                        
                     }
                 });
             } else if (roundType === 'But Different') {
