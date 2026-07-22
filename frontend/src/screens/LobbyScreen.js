@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import AppText from '../components/AppText';
 import {
   StyleSheet, Text, View, TouchableOpacity, TextInput,
   SafeAreaView, Animated, Alert, ScrollView, PanResponder, Image, useWindowDimensions
@@ -28,9 +29,9 @@ function SegmentedControl({ options, value, onChange, labelMap }) {
           onPress={() => onChange(opt)}
           activeOpacity={0.7}
         >
-          <Text style={[styles.segmentText, value === opt && styles.segmentTextActive]}>
+          <AppText style={[styles.segmentText, value === opt && styles.segmentTextActive]}>
             {labelMap ? labelMap[opt] ?? opt : opt}
-          </Text>
+          </AppText>
         </NeoButton>
       ))}
     </View>
@@ -45,7 +46,7 @@ function RoundTypeToggle({ type, active, onChange }) {
       onPress={() => onChange(type)}
       activeOpacity={0.7}
     >
-      <Text style={[styles.chipText, active && styles.chipTextActive]}>{type}</Text>
+      <AppText style={[styles.chipText, active && styles.chipTextActive]}>{type}</AppText>
     </NeoButton>
   );
 }
@@ -129,12 +130,12 @@ function DraggablePlayerCard({ player, isSelf, myTeam, onDropToTeam, isHost }) {
         size={40} 
         style={{ marginRight: 10 }}
       />
-      <Text style={styles.teamPlayerText} numberOfLines={1}>
+      <AppText style={styles.teamPlayerText} numberOfLines={1}>
         ⭐{player.level || 1} {player.name}{isSelf ? ` ${t('common.you', '(You)')}` : ''}
-      </Text>
+      </AppText>
       {isHost && (
         <View style={[styles.dragHandle, { backgroundColor: color + '22' }]}>
-          <Text style={{ color, fontSize: 16 }}>⠿</Text>
+          <AppText style={{ color, fontSize: 16 }}>⠿</AppText>
         </View>
       )}
     </Animated.View>
@@ -163,10 +164,10 @@ function PlayerCard({ player, isHost, isSelf, onKick, isHostless }) {
         size={44} 
         style={{ marginRight: 12, ...(isSelf ? { borderColor: theme.colors.primary, borderWidth: 2 } : {}) }}
       />
-      <Text style={styles.playerText}>⭐{player.level || 1} {player.name}{isSelf ? ` ${t('common.you', '(You)')}` : ''}</Text>
+      <AppText style={styles.playerText}>⭐{player.level || 1} {player.name}{isSelf ? ` ${t('common.you', '(You)')}` : ''}</AppText>
       {isHost && !isSelf && !isHostless && (
         <NeoButton style={styles.kickButton} onPress={() => onKick(player.id)}>
-          <Text style={styles.kickButtonText}>✕</Text>
+          <AppText style={styles.kickButtonText}>✕</AppText>
         </NeoButton>
       )}
     </Animated.View>
@@ -193,7 +194,7 @@ function CountdownOverlay({ count }) {
       <Animated.Text style={[styles.countdownNumber, { transform: [{ scale: scaleAnim }], opacity: opacityAnim }]}>
         {count}
       </Animated.Text>
-      <Text style={styles.countdownLabel}>{t('lobby.getReady', 'Get ready!')}</Text>
+      <AppText style={styles.countdownLabel}>{t('lobby.getReady', 'Get ready!')}</AppText>
     </View>
   );
 }
@@ -420,10 +421,10 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.matchmakingContainer}>
-          <Text style={[styles.title, { color: theme.colors.accent }]}>{t('lobby.oops', 'Oops!')}</Text>
-          <Text style={styles.searchingStatus}>{errorMsg}</Text>
+          <AppText style={[styles.title, { color: theme.colors.accent }]}>{t('lobby.oops', 'Oops!')}</AppText>
+          <AppText style={styles.searchingStatus}>{errorMsg}</AppText>
           <NeoButton style={styles.cancelMatchBtn} onPress={() => setScreen('Home')}>
-            <Text style={styles.cancelMatchBtnText}>{t('lobby.backToHome', 'Back to Home')}</Text>
+            <AppText style={styles.cancelMatchBtnText}>{t('lobby.backToHome', 'Back to Home')}</AppText>
           </NeoButton>
         </View>
       </SafeAreaView>
@@ -437,30 +438,30 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
         <View style={styles.matchmakingContainer}>
           {pendingMatch ? (
             <View style={styles.matchFoundCard}>
-              <Text style={styles.matchFoundTitle}>{t('lobby.matchFound', 'MATCH FOUND!')}</Text>
+              <AppText style={styles.matchFoundTitle}>{t('lobby.matchFound', 'MATCH FOUND!')}</AppText>
               {matchStatus === 'accepting' ? (
                 <>
-                  <Text style={styles.matchFoundSubtitle}>{t('lobby.areYouReady', 'Are you ready?')}</Text>
+                  <AppText style={styles.matchFoundSubtitle}>{t('lobby.areYouReady', 'Are you ready?')}</AppText>
                   <View style={styles.matchActionRow}>
                     <NeoButton style={[styles.matchBtn, styles.matchBtnDecline]} onPress={handleDeclineMatch}>
-                      <Text style={styles.matchBtnText}>{t('lobby.decline', 'DECLINE')}</Text>
+                      <AppText style={styles.matchBtnText}>{t('lobby.decline', 'DECLINE')}</AppText>
                     </NeoButton>
                     <NeoButton style={[styles.matchBtn, styles.matchBtnAccept]} onPress={handleAcceptMatch}>
-                      <Text style={styles.matchBtnText}>{t('lobby.accept', 'ACCEPT')}</Text>
+                      <AppText style={styles.matchBtnText}>{t('lobby.accept', 'ACCEPT')}</AppText>
                     </NeoButton>
                   </View>
                 </>
               ) : (
-                <Text style={styles.matchFoundSubtitle}>{t('lobby.waitingForOthers', 'Waiting for other players...')}</Text>
+                <AppText style={styles.matchFoundSubtitle}>{t('lobby.waitingForOthers', 'Waiting for other players...')}</AppText>
               )}
             </View>
           ) : (
             <>
-              <Text style={styles.title}>Same Same?</Text>
-              <Text style={styles.searchingStatus}>{status}</Text>
+              <AppText style={styles.title}>Same Same?</AppText>
+              <AppText style={styles.searchingStatus}>{status}</AppText>
               {/* Pulsing indicator can go here */}
               <NeoButton style={styles.cancelMatchBtn} onPress={handleLeaveMatchmaking}>
-                <Text style={styles.cancelMatchBtnText}>{t('lobby.cancelSearch', 'Cancel Search')}</Text>
+                <AppText style={styles.cancelMatchBtnText}>{t('lobby.cancelSearch', 'Cancel Search')}</AppText>
               </NeoButton>
             </>
           )}
@@ -480,7 +481,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
         {/* Header */}
         <View style={styles.header}>
           <NeoButton style={styles.leaveButton} onPress={handleLeave}>
-            <Text style={styles.leaveButtonText}>{t('lobby.leave', '← Leave')}</Text>
+            <AppText style={styles.leaveButtonText}>{t('lobby.leave', '← Leave')}</AppText>
           </NeoButton>
         </View>
 
@@ -490,21 +491,21 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
         {/* Host promotion banner */}
         {hostBanner && (
           <View style={styles.hostBanner}>
-            <Text style={styles.hostBannerText}>{t('lobby.youAreNowHost', '👑 You are now the host!')}</Text>
+            <AppText style={styles.hostBannerText}>{t('lobby.youAreNowHost', '👑 You are now the host!')}</AppText>
           </View>
         )}
 
         {/* Room code */}
         {roomCode ? (
           <View style={styles.codeContainer}>
-            <Text style={styles.codeLabel}>{t('lobby.roomCode', 'ROOM CODE')}</Text>
-            <Text style={styles.roomCode}>{roomCode}</Text>
+            <AppText style={styles.codeLabel}>{t('lobby.roomCode', 'ROOM CODE')}</AppText>
+            <AppText style={styles.roomCode}>{roomCode}</AppText>
           </View>
         ) : (
-          <Text style={styles.title}>{isHost ? t('lobby.creatingRoom', 'Creating Room...') : t('lobby.matchmakingTitle', 'Matchmaking')}</Text>
+          <AppText style={styles.title}>{isHost ? t('lobby.creatingRoom', 'Creating Room...') : t('lobby.matchmakingTitle', 'Matchmaking')}</AppText>
         )}
 
-        <Text style={styles.status}>{status}</Text>
+        <AppText style={styles.status}>{status}</AppText>
 
         {/* ── Player list ────────────────────────────────────────────── */}
         {players.length > 0 && (
@@ -512,9 +513,9 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
             {config.teamMode ? (
               /* Two-column team board */
               <>
-                <Text style={styles.cardLabel}>{t('lobby.teams', { count: players.length, max: 8 })}</Text>
+                <AppText style={styles.cardLabel}>{t('lobby.teams', { count: players.length, max: 8 })}</AppText>
                 {isHost && (
-                  <Text style={styles.dragHint}>{t('lobby.dragHint', 'Drag the ⠿ handle horizontally to swap teams')}</Text>
+                  <AppText style={styles.dragHint}>{t('lobby.dragHint', 'Drag the ⠿ handle horizontally to swap teams')}</AppText>
                 )}
                 <View style={styles.teamColumns}>
                   {(['A', 'B']).map(team => {
@@ -527,9 +528,9 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
                           { backgroundColor: TEAM_BG[team], borderColor: TEAM_BORDER[team] },
                         ]}
                       >
-                        <Text style={[styles.teamColumnLabel, { color: TEAM_COLORS[team] }]}>
+                        <AppText style={[styles.teamColumnLabel, { color: TEAM_COLORS[team] }]}>
                           {teamLabels[team]}
-                        </Text>
+                        </AppText>
                         {members.map(p => (
                           <DraggablePlayerCard
                             key={p.id}
@@ -541,7 +542,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
                           />
                         ))}
                         {members.length === 0 && (
-                          <Text style={styles.emptyTeam}>{t('lobby.dropHere', 'Drop here')}</Text>
+                          <AppText style={styles.emptyTeam}>{t('lobby.dropHere', 'Drop here')}</AppText>
                         )}
                       </View>
                     );
@@ -551,7 +552,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
             ) : (
               /* Flat player list (solo mode) */
               <>
-                <Text style={styles.cardLabel}>{t('lobby.players', { count: players.length, max: 8 })}</Text>
+                <AppText style={styles.cardLabel}>{t('lobby.players', { count: players.length, max: 8 })}</AppText>
                 {players.map((p) => (
                   <PlayerCard
                     key={p.id}
@@ -573,32 +574,32 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
           {/* ── Settings panel ─────────────────────────────────────────── */}
           {roomCode && (!isPublic || !isHostless) && (
           <View style={styles.card}>
-            <Text style={styles.cardLabel}>{!isHost ? t('lobby.gameSettingsReadOnly', 'GAME SETTINGS  (set by host)') : t('lobby.gameSettings', 'GAME SETTINGS')}</Text>
+            <AppText style={styles.cardLabel}>{!isHost ? t('lobby.gameSettingsReadOnly', 'GAME SETTINGS  (set by host)') : t('lobby.gameSettings', 'GAME SETTINGS')}</AppText>
 
             {/* Room Privacy toggle */}
-            <Text style={styles.settingLabel}>{t('lobby.roomPrivacy', 'Room Privacy')}</Text>
+            <AppText style={styles.settingLabel}>{t('lobby.roomPrivacy', 'Room Privacy')}</AppText>
             {isHost ? (
               <View style={styles.toggleRow}>
                 <NeoButton
                   style={[styles.toggleBtn, !config.isPublic && styles.toggleBtnActive]}
                   onPress={() => handleConfigChange({ isPublic: false })}
                 >
-                  <Text style={[styles.toggleText, !config.isPublic && styles.toggleTextActive]}>{t('lobby.private', 'Private')}</Text>
+                  <AppText style={[styles.toggleText, !config.isPublic && styles.toggleTextActive]}>{t('lobby.private', 'Private')}</AppText>
                 </NeoButton>
                 <NeoButton
                   style={[styles.toggleBtn, config.isPublic && styles.toggleBtnActiveTeam]}
                   onPress={() => handleConfigChange({ isPublic: true })}
                 >
-                  <Text style={[styles.toggleText, config.isPublic && styles.toggleTextActive]}>{t('lobby.public', 'Public')}</Text>
+                  <AppText style={[styles.toggleText, config.isPublic && styles.toggleTextActive]}>{t('lobby.public', 'Public')}</AppText>
                 </NeoButton>
               </View>
             ) : (
-              <Text style={styles.readOnlyValue}>{config.isPublic ? t('lobby.publicVisible', 'Public (Visible in Browser)') : t('lobby.privateCodeOnly', 'Private (Code Only)')}</Text>
+              <AppText style={styles.readOnlyValue}>{config.isPublic ? t('lobby.publicVisible', 'Public (Visible in Browser)') : t('lobby.privateCodeOnly', 'Private (Code Only)')}</AppText>
             )}
 
             {config.isPublic && (
               <>
-                <Text style={styles.settingLabel}>{t('lobby.roomName', 'Room Name')}</Text>
+                <AppText style={styles.settingLabel}>{t('lobby.roomName', 'Room Name')}</AppText>
                 {isHost ? (
                   <TextInput
                     style={styles.textInput}
@@ -609,12 +610,12 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
                     maxLength={20}
                   />
                 ) : (
-                  <Text style={styles.readOnlyValue}>{config.roomName || t('lobby.unnamedRoom', 'Unnamed Room')}</Text>
+                  <AppText style={styles.readOnlyValue}>{config.roomName || t('lobby.unnamedRoom', 'Unnamed Room')}</AppText>
                 )}
               </>
             )}
 
-            <Text style={styles.settingLabel}>{t('lobby.wordsPerRound', 'Words per round')}</Text>
+            <AppText style={styles.settingLabel}>{t('lobby.wordsPerRound', 'Words per round')}</AppText>
             {isHost ? (
               <SegmentedControl
                 options={[3, 5, 7]}
@@ -623,10 +624,10 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
                 labelMap={{ 3: '3', 5: '5', 7: '7' }}
               />
             ) : (
-              <Text style={styles.readOnlyValue}>{t('lobby.wordsPerRoundValue', { count: config.wordsPerRound })}</Text>
+              <AppText style={styles.readOnlyValue}>{t('lobby.wordsPerRoundValue', { count: config.wordsPerRound })}</AppText>
             )}
 
-            <Text style={styles.settingLabel}>{t('lobby.rounds', 'Rounds')}</Text>
+            <AppText style={styles.settingLabel}>{t('lobby.rounds', 'Rounds')}</AppText>
             {isHost ? (
               <SegmentedControl
                 options={[3, 6, 9]}
@@ -635,10 +636,10 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
                 labelMap={{ 3: '3', 6: '6', 9: '9' }}
               />
             ) : (
-              <Text style={styles.readOnlyValue}>{t('lobby.roundsValue', { count: config.maxRounds })}</Text>
+              <AppText style={styles.readOnlyValue}>{t('lobby.roundsValue', { count: config.maxRounds })}</AppText>
             )}
 
-            <Text style={styles.settingLabel}>{t('lobby.timePerRound', 'Time per round')}</Text>
+            <AppText style={styles.settingLabel}>{t('lobby.timePerRound', 'Time per round')}</AppText>
             {isHost ? (
               <SegmentedControl
                 options={[30, 60, 90]}
@@ -647,10 +648,10 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
                 labelMap={{ 30: '30s', 60: '60s', 90: '90s' }}
               />
             ) : (
-              <Text style={styles.readOnlyValue}>{t('lobby.timePerRoundValue', { count: config.timeLimit })}</Text>
+              <AppText style={styles.readOnlyValue}>{t('lobby.timePerRoundValue', { count: config.timeLimit })}</AppText>
             )}
 
-            <Text style={styles.settingLabel}>{t('lobby.roundTypes', 'Round types')}</Text>
+            <AppText style={styles.settingLabel}>{t('lobby.roundTypes', 'Round types')}</AppText>
             {isHost ? (
               <View style={styles.chipRow}>
                 {['Same Same', 'But Different', 'Blitz'].map(type => (
@@ -663,10 +664,10 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
                 ))}
               </View>
             ) : (
-              <Text style={styles.readOnlyValue}>{config.roundTypes.map(type => t(`lobby.${type.replace(' ', '').toLowerCase()}`, type)).join(', ')}</Text>
+              <AppText style={styles.readOnlyValue}>{config.roundTypes.map(type => t(`lobby.${type.replace(' ', '').toLowerCase()}`, type)).join(', ')}</AppText>
             )}
 
-            <Text style={styles.settingLabel}>{t('lobby.gameModifiers', 'Game modifiers')}</Text>
+            <AppText style={styles.settingLabel}>{t('lobby.gameModifiers', 'Game modifiers')}</AppText>
             {isHost ? (
               <View style={styles.chipRow}>
                 {['Rush'].map(mod => (
@@ -679,10 +680,10 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
                 ))}
               </View>
             ) : (
-              <Text style={styles.readOnlyValue}>{(config.modifiers || []).length > 0 ? config.modifiers.map(mod => t(`lobby.${mod.toLowerCase()}`, mod)).join(', ') : t('lobby.modifiersNone', 'None')}</Text>
+              <AppText style={styles.readOnlyValue}>{(config.modifiers || []).length > 0 ? config.modifiers.map(mod => t(`lobby.${mod.toLowerCase()}`, mod)).join(', ') : t('lobby.modifiersNone', 'None')}</AppText>
             )}
 
-            <Text style={styles.settingLabel}>{t('lobby.categoryPack', 'Category pack')}</Text>
+            <AppText style={styles.settingLabel}>{t('lobby.categoryPack', 'Category pack')}</AppText>
             {isHost ? (
               <SegmentedControl
                 options={['classic', 'food', 'nature', 'pop_culture', 'challenge', 'all']}
@@ -691,28 +692,28 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
                 labelMap={packLabels}
               />
             ) : (
-              <Text style={styles.readOnlyValue}>{packLabels[config.categoryPack] ?? config.categoryPack}</Text>
+              <AppText style={styles.readOnlyValue}>{packLabels[config.categoryPack] ?? config.categoryPack}</AppText>
             )}
 
             {/* Teams toggle */}
-            <Text style={styles.settingLabel}>{t('lobby.teamMode', 'Team mode')}</Text>
+            <AppText style={styles.settingLabel}>{t('lobby.teamMode', 'Team mode')}</AppText>
             {isHost ? (
               <View style={styles.toggleRow}>
                 <NeoButton
                   style={[styles.toggleBtn, !config.teamMode && styles.toggleBtnActive]}
                   onPress={() => handleConfigChange({ teamMode: false })}
                 >
-                  <Text style={[styles.toggleText, !config.teamMode && styles.toggleTextActive]}>{t('lobby.off', 'Off')}</Text>
+                  <AppText style={[styles.toggleText, !config.teamMode && styles.toggleTextActive]}>{t('lobby.off', 'Off')}</AppText>
                 </NeoButton>
                 <NeoButton
                   style={[styles.toggleBtn, config.teamMode && styles.toggleBtnActiveTeam]}
                   onPress={() => handleConfigChange({ teamMode: true })}
                 >
-                  <Text style={[styles.toggleText, config.teamMode && styles.toggleTextActive]}>{t('lobby.on', 'On')}</Text>
+                  <AppText style={[styles.toggleText, config.teamMode && styles.toggleTextActive]}>{t('lobby.on', 'On')}</AppText>
                 </NeoButton>
               </View>
             ) : (
-              <Text style={styles.readOnlyValue}>{config.teamMode ? t('lobby.on', 'On') : t('lobby.off', 'Off')}</Text>
+              <AppText style={styles.readOnlyValue}>{config.teamMode ? t('lobby.on', 'On') : t('lobby.off', 'Off')}</AppText>
             )}
           </View>
         )}
@@ -720,9 +721,9 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
         {/* ── Public Voting Panel ────────────────────────────────────── */}
         {roomCode && isPublic && isHostless && (
           <View style={[styles.card, { borderColor: theme.colors.primary }]}>
-            <Text style={[styles.cardLabel, { color: '#000', textAlign: 'center', fontSize: 16 }]}>
+            <AppText style={[styles.cardLabel, { color: '#000', textAlign: 'center', fontSize: 16 }]}>
               {t('lobby.voteForPack', { countdown: countdown !== null ? `(${countdown}s)` : '' })}
-            </Text>
+            </AppText>
             <View style={styles.voteList}>
               {['classic', 'food', 'nature', 'pop_culture', 'challenge', 'all'].map(packId => (
                 <NeoButton
@@ -731,11 +732,11 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
                   onPress={() => handleVote(packId)}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.voteBtnText}>{packLabels[packId] ?? packId}</Text>
+                  <AppText style={styles.voteBtnText}>{packLabels[packId] ?? packId}</AppText>
                   <View style={[styles.voteCountBadge, votes[packId] > 0 && styles.voteCountBadgeActive]}>
-                    <Text style={[styles.voteCountText, votes[packId] > 0 && styles.voteCountTextActive]}>
+                    <AppText style={[styles.voteCountText, votes[packId] > 0 && styles.voteCountTextActive]}>
                       {votes[packId] || 0}
-                    </Text>
+                    </AppText>
                   </View>
                 </NeoButton>
               ))}
@@ -747,18 +748,18 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
         {isHost && !isHostless && (
           <View style={styles.startSection}>
             {!canStart && (
-              <Text style={styles.startHint}>
+              <AppText style={styles.startHint}>
                 {config.teamMode
                   ? t('lobby.needTeamPlayers', { min: MIN_TEAM_PLAYERS })
                   : t('lobby.needPlayers', { min: MIN_PLAYERS })}
-              </Text>
+              </AppText>
             )}
             <NeoButton
               style={[styles.button, (!canStart || countdown !== null) && styles.buttonDisabled]}
               activeOpacity={canStart && countdown === null ? 0.8 : 1}
               onPress={canStart && countdown === null ? handleStartGame : undefined}
             >
-              <Text style={styles.buttonText}>{countdown !== null ? t('lobby.starting', 'STARTING...') : t('lobby.startGame', 'START GAME')}</Text>
+              <AppText style={styles.buttonText}>{countdown !== null ? t('lobby.starting', 'STARTING...') : t('lobby.startGame', 'START GAME')}</AppText>
             </NeoButton>
           </View>
         )}

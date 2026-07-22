@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import AppText from '../components/AppText';
 import {
   StyleSheet, Text, View, TouchableOpacity, ScrollView,
   SafeAreaView, useWindowDimensions
@@ -63,7 +64,7 @@ export default function LobbyBrowserScreen({ setScreen, getDisplayName, profileD
           <NeoButton style={s.backBtn} onPress={() => setScreen('Home')}>
             <ArrowLeft size={24} color="#000" strokeWidth={3} />
           </NeoButton>
-          <Text style={s.title}>{t('lobbyBrowser.title', 'Public Lobbies')}</Text>
+          <AppText style={s.title}>{t('lobbyBrowser.title', 'Public Lobbies')}</AppText>
           <NeoButton style={s.refreshBtn} onPress={fetchLobbies} disabled={isRefreshing}>
             <RefreshCw size={24} color="#000" strokeWidth={3} style={isRefreshing ? s.spin : {}} />
           </NeoButton>
@@ -72,8 +73,8 @@ export default function LobbyBrowserScreen({ setScreen, getDisplayName, profileD
         <ScrollView style={s.list} contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
           {lobbies.length === 0 ? (
             <View style={s.noLobbiesBox}>
-              <Text style={s.noLobbiesText}>{t('lobbyBrowser.noLobbies', 'No open lobbies right now.')}</Text>
-              <Text style={s.noLobbiesSubText}>{t('lobbyBrowser.noLobbiesSub', 'Go back and create one!')}</Text>
+              <AppText style={s.noLobbiesText}>{t('lobbyBrowser.noLobbies', 'No open lobbies right now.')}</AppText>
+              <AppText style={s.noLobbiesSubText}>{t('lobbyBrowser.noLobbiesSub', 'Go back and create one!')}</AppText>
             </View>
           ) : (
             lobbies.map(lobby => {
@@ -82,32 +83,32 @@ export default function LobbyBrowserScreen({ setScreen, getDisplayName, profileD
                 <NeoButton key={lobby.code} style={[s.lobbyRow, isCustom && s.lobbyRowCustom]} onPress={() => handleJoinLobby(lobby.code)} activeOpacity={0.8}>
                   <View style={{ flex: 1 }}>
                     <View style={s.lobbyRowTop}>
-                      <Text style={s.lobbyLabel}>{lobby.label || lobby.code}</Text>
+                      <AppText style={s.lobbyLabel}>{lobby.label || lobby.code}</AppText>
                       {isCustom && <Crown size={16} color="#FBBF24" strokeWidth={3} style={{ marginLeft: 6, marginRight: 6 }} />}
                       <View style={[s.lobbyStatusDot, { backgroundColor: lobby.hasCountdown ? '#FBBF24' : '#10B981' }]} />
-                      <Text style={s.lobbyStatus}>{lobby.hasCountdown ? t('lobbyBrowser.startingStatus', 'Starting…') : t('lobbyBrowser.waitingStatus', 'Waiting')}</Text>
+                      <AppText style={s.lobbyStatus}>{lobby.hasCountdown ? t('lobbyBrowser.startingStatus', 'Starting…') : t('lobbyBrowser.waitingStatus', 'Waiting')}</AppText>
                     </View>
                     <View style={s.lobbyRowBottom}>
                       {isCustom ? (
                         <View style={[s.lobbyTag, { backgroundColor: '#FBBF24', borderColor: '#000' }]}>
-                          <Text style={[s.lobbyTagText, { color: '#000' }]}>{t('lobbyBrowser.customTag', 'Custom')}</Text>
+                          <AppText style={[s.lobbyTagText, { color: '#000' }]}>{t('lobbyBrowser.customTag', 'Custom')}</AppText>
                         </View>
                       ) : (
                         <View style={[s.lobbyTag, { backgroundColor: theme.colors.primary, borderColor: '#000' }]}>
-                          <Text style={[s.lobbyTagText, { color: '#000' }]}>{t('lobbyBrowser.autoTag', 'Auto')}</Text>
+                          <AppText style={[s.lobbyTagText, { color: '#000' }]}>{t('lobbyBrowser.autoTag', 'Auto')}</AppText>
                         </View>
                       )}
-                      <Text style={s.lobbyMeta}>⏱ {lobby.timeLimit}s</Text>
+                      <AppText style={s.lobbyMeta}>⏱ {lobby.timeLimit}s</AppText>
                       {(lobby.roundTypes || []).map(rt => (
                         <View key={rt} style={s.lobbyTag}>
-                          <Text style={s.lobbyTagText}>{t(`lobby.${rt.replace(' ', '').toLowerCase()}`, rt)}</Text>
+                          <AppText style={s.lobbyTagText}>{t(`lobby.${rt.replace(' ', '').toLowerCase()}`, rt)}</AppText>
                         </View>
                       ))}
                     </View>
                   </View>
                   <View style={s.lobbyRight}>
-                    <Text style={s.lobbyPlayers}>{lobby.playerCount}/{lobby.maxPlayers}</Text>
-                    <Text style={s.lobbyJoin}>{t('lobbyBrowser.joinArrow', 'JOIN →')}</Text>
+                    <AppText style={s.lobbyPlayers}>{lobby.playerCount}/{lobby.maxPlayers}</AppText>
+                    <AppText style={s.lobbyJoin}>{t('lobbyBrowser.joinArrow', 'JOIN →')}</AppText>
                   </View>
                 </NeoButton>
               );

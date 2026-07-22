@@ -16,6 +16,8 @@ export const theme = {
     headingBold: 'Fredoka_700Bold',
     body: 'Nunito_400Regular',
     bodyBold: 'Nunito_600SemiBold',
+    headingFallback: 'Nunito_800ExtraBold',
+    headingBoldFallback: 'Nunito_900Black',
   },
   spacing: {
     xs: 4,

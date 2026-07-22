@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useContext } from 'react';
+import AppText from '../components/AppText';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, TextInput, Alert } from 'react-native';
 import NeoButton from '../components/NeoButton';
 import * as ImagePicker from 'expo-image-picker';
@@ -157,13 +158,13 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
   if (!profile) {
     return (
       <View style={s.container}>
-        <Text style={s.title}>{t('settings.guestTitle', 'Guest Profile')}</Text>
-        <Text style={s.desc}>{t('settings.guestDesc', 'Create an account to track stats and unlock frames!')}</Text>
+        <AppText style={s.title}>{t('settings.guestTitle', 'Guest Profile')}</AppText>
+        <AppText style={s.desc}>{t('settings.guestDesc', 'Create an account to track stats and unlock frames!')}</AppText>
         <NeoButton style={s.backBtn} onPress={() => setScreen('Home')}>
-          <Text style={s.backBtnText}>{t('settings.backToHome', 'Back to Home')}</Text>
+          <AppText style={s.backBtnText}>{t('settings.backToHome', 'Back to Home')}</AppText>
         </NeoButton>
         <NeoButton style={s.logoutBtn} onPress={handleLogout}>
-          <Text style={s.logoutBtnText}>{t('settings.signOutChangeName', 'Sign Out / Change Name')}</Text>
+          <AppText style={s.logoutBtnText}>{t('settings.signOutChangeName', 'Sign Out / Change Name')}</AppText>
         </NeoButton>
       </View>
     );
@@ -182,11 +183,11 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
         {/* Header */}
         <View style={s.headerRow}>
           <NeoButton style={s.backBtn} onPress={() => setScreen('Home')}>
-            <Text style={s.backBtnText}>{t('common.back', '← Back')}</Text>
+            <AppText style={s.backBtnText}>{t('common.back', '← Back')}</AppText>
           </NeoButton>
-          <Text style={s.title}>{t('settings.title', 'Profile Settings')}</Text>
+          <AppText style={s.title}>{t('settings.title', 'Profile Settings')}</AppText>
           <NeoButton style={s.logoutBtn} onPress={handleLogout}>
-            <Text style={s.logoutBtnText}>{t('common.logout', 'Logout')}</Text>
+            <AppText style={s.logoutBtnText}>{t('common.logout', 'Logout')}</AppText>
           </NeoButton>
         </View>
 
@@ -202,7 +203,7 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
                 <FramedAvatar url={avatar} fallbackName={username} frame={active_frame || 'none'} size={100} />
               )}
               <View style={{ position: 'absolute', bottom: -5, right: -5, backgroundColor: '#fff', borderRadius: 15, padding: 4, borderWidth: 2, borderColor: '#000' }}>
-                <Text style={{ fontSize: 14 }}>✏️</Text>
+                <AppText style={{ fontSize: 14 }}>✏️</AppText>
               </View>
             </NeoButton>
             
@@ -219,40 +220,40 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
                       onSubmitEditing={handleSaveName}
                     />
                     <NeoButton onPress={handleSaveName} style={{ backgroundColor: '#10B981', paddingHorizontal: 16, paddingVertical: 8, borderRadius: theme.borderRadius.md, borderWidth: 2, borderColor: '#000' }}>
-                      <Text style={{ fontSize: 16, color: '#fff', fontFamily: theme.fonts.headingBold }}>{t('common.save', 'SAVE')}</Text>
+                      <AppText style={{ fontSize: 16, color: '#fff', fontFamily: theme.fonts.headingBold }}>{t('common.save', 'SAVE')}</AppText>
                     </NeoButton>
                     <NeoButton onPress={() => { setIsEditingName(false); setEditName(profile.username); setNameError(''); }} style={{ backgroundColor: '#EF4444', paddingHorizontal: 16, paddingVertical: 8, borderRadius: theme.borderRadius.md, borderWidth: 2, borderColor: '#000' }}>
-                      <Text style={{ fontSize: 16, color: '#fff', fontFamily: theme.fonts.headingBold }}>X</Text>
+                      <AppText style={{ fontSize: 16, color: '#fff', fontFamily: theme.fonts.headingBold }}>X</AppText>
                     </NeoButton>
                   </View>
-                  {nameError ? <Text style={{ color: '#EF4444', fontFamily: theme.fonts.bodyBold, fontSize: 12, marginTop: 4 }}>{nameError}</Text> : null}
+                  {nameError ? <AppText style={{ color: '#EF4444', fontFamily: theme.fonts.bodyBold, fontSize: 12, marginTop: 4 }}>{nameError}</AppText> : null}
                 </View>
               ) : (
                 <NeoButton onPress={() => setIsEditingName(true)} style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={s.username}>{username}</Text>
-                  <Text style={{ fontSize: 16, marginLeft: 8 }}>✏️</Text>
+                  <AppText style={s.username}>{username}</AppText>
+                  <AppText style={{ fontSize: 16, marginLeft: 8 }}>✏️</AppText>
                 </NeoButton>
               )}
-              <Text style={s.levelText}>⭐ {t('common.level', { level })}</Text>
+              <AppText style={s.levelText}>⭐ {t('common.level', { level })}</AppText>
             </View>
           </View>
 
           <View style={s.xpBarContainer}>
             <View style={[s.xpBarFill, { width: `${progressPercent}%` }]} />
           </View>
-          <Text style={s.xpText}>{t('settings.xpProgress', { current: Math.floor(xp), next: nextLevelXp })}</Text>
+          <AppText style={s.xpText}>{t('settings.xpProgress', { current: Math.floor(xp), next: nextLevelXp })}</AppText>
         </View>
 
         {/* Frame Selection */}
         <View style={s.card}>
-          <Text style={s.sectionTitle}>{t('settings.equipFrame', 'Equip Frame')}</Text>
+          <AppText style={s.sectionTitle}>{t('settings.equipFrame', 'Equip Frame')}</AppText>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.frameScroll}>
             {unlocked_frames && unlocked_frames.map(f => (
               <NeoButton key={f} style={s.frameOpt} onPress={() => setFrame(f)}>
                 <FramedAvatar fallbackName="?" frame={f} size={64} />
-                <Text style={[s.frameOptText, f === active_frame && s.frameOptTextActive]}>
+                <AppText style={[s.frameOptText, f === active_frame && s.frameOptTextActive]}>
                   {f.toUpperCase()}
-                </Text>
+                </AppText>
               </NeoButton>
             ))}
           </ScrollView>
@@ -260,8 +261,8 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
 
         {/* Progression Timeline */}
         <View style={s.card}>
-          <Text style={s.sectionTitle}>{t('settings.progression', 'Progression')}</Text>
-          <Text style={s.desc}>{t('settings.progressionDesc', 'Keep playing to earn XP, level up, and unlock new cosmetic frames!')}</Text>
+          <AppText style={s.sectionTitle}>{t('settings.progression', 'Progression')}</AppText>
+          <AppText style={s.desc}>{t('settings.progressionDesc', 'Keep playing to earn XP, level up, and unlock new cosmetic frames!')}</AppText>
 
           <View style={s.timeline}>
             {UNLOCK_THRESHOLDS.map(item => {
@@ -269,16 +270,16 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
               return (
                 <View key={item.level} style={[s.timelineRow, isUnlocked && s.timelineRowUnlocked]}>
                   <View style={[s.timelineLevel, isUnlocked ? s.timelineLevelUnlocked : null]}>
-                    <Text style={[s.timelineLevelText, isUnlocked ? s.timelineLevelTextUnlocked : null]}>
+                    <AppText style={[s.timelineLevelText, isUnlocked ? s.timelineLevelTextUnlocked : null]}>
                       {t('common.levelShort', { level: item.level })}
-                    </Text>
+                    </AppText>
                   </View>
                   <View style={s.timelineContent}>
-                    <Text style={[s.timelineLabel, isUnlocked && s.timelineLabelUnlocked]}>{t(`settings.${item.labelKey}`)}</Text>
+                    <AppText style={[s.timelineLabel, isUnlocked && s.timelineLabelUnlocked]}>{t(`settings.${item.labelKey}`)}</AppText>
                     {isUnlocked ? (
-                      <Text style={s.timelineStatusUnlocked}>{t('settings.unlocked', 'Unlocked!')}</Text>
+                      <AppText style={s.timelineStatusUnlocked}>{t('settings.unlocked', 'Unlocked!')}</AppText>
                     ) : (
-                      <Text style={s.timelineStatusLocked}>{t('settings.locked', '🔒 Locked')}</Text>
+                      <AppText style={s.timelineStatusLocked}>{t('settings.locked', '🔒 Locked')}</AppText>
                     )}
                   </View>
                   <FramedAvatar fallbackName="?" frame={item.frame} size={40} />

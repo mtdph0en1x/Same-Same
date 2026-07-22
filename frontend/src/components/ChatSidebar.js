@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import AppText from './AppText';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, Animated, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { socket } from '../socket';
@@ -32,8 +33,8 @@ const FloatingReaction = ({ reaction, onComplete }) => {
         opacity
       }
     ]}>
-      <Text style={{ fontSize: 60 }}>{reaction.emoji}</Text>
-      <Text style={styles.reactionSender}>{reaction.senderName}</Text>
+      <AppText style={{ fontSize: 60 }}>{reaction.emoji}</AppText>
+      <AppText style={styles.reactionSender}>{reaction.senderName}</AppText>
     </Animated.View>
   );
 };
@@ -106,17 +107,17 @@ export default function ChatSidebar({ roomCode, playerData, isSidebarOpen, setIs
             style={[styles.toggleBtn, isSidebarOpen ? styles.toggleBtnOpen : styles.toggleBtnClosed]}
             onPress={() => setIsSidebarOpen(!isSidebarOpen)}
           >
-            <Text style={styles.toggleBtnText}>{isSidebarOpen ? '▶' : '◀'}</Text>
+            <AppText style={styles.toggleBtnText}>{isSidebarOpen ? '▶' : '◀'}</AppText>
           </TouchableOpacity>
 
           {isSidebarOpen && (
             <View style={styles.sidebar}>
               <View style={styles.chatHistory}>
                 {chatMessages.map((msg, i) => (
-                  <Text key={i} style={styles.chatMessage}>
-                    <Text style={{fontWeight: 'bold'}}>{msg.senderName}: </Text>
+                  <AppText key={i} style={styles.chatMessage}>
+                    <AppText style={{fontWeight: 'bold'}}>{msg.senderName}: </AppText>
                     {msg.message}
-                  </Text>
+                  </AppText>
                 ))}
               </View>
 
@@ -124,7 +125,7 @@ export default function ChatSidebar({ roomCode, playerData, isSidebarOpen, setIs
                 <View style={styles.reactionBar}>
                   {STICKERS.map(s => (
                     <TouchableOpacity key={s.id} onPress={() => sendReaction(s.id)} style={styles.reactionBtn}>
-                      <Text style={{fontSize: 24}}>{s.emoji}</Text>
+                      <AppText style={{fontSize: 24}}>{s.emoji}</AppText>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -139,7 +140,7 @@ export default function ChatSidebar({ roomCode, playerData, isSidebarOpen, setIs
                     placeholderTextColor={theme.colors.muted}
                   />
                   <TouchableOpacity style={styles.sendChatBtn} onPress={sendChat}>
-                    <Text style={styles.sendChatBtnText}>{t('chat.send', 'Send')}</Text>
+                    <AppText style={styles.sendChatBtnText}>{t('chat.send', 'Send')}</AppText>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -150,9 +151,9 @@ export default function ChatSidebar({ roomCode, playerData, isSidebarOpen, setIs
         <View style={styles.sidebarMobileContainer}>
           {!isSidebarOpen && latestMessage && (
             <View style={styles.latestMessagePreview}>
-              <Text style={styles.latestMessageText} numberOfLines={1}>
-                <Text style={{fontWeight: 'bold'}}>{latestMessage.senderName}: </Text>{latestMessage.message}
-              </Text>
+              <AppText style={styles.latestMessageText} numberOfLines={1}>
+                <AppText style={{fontWeight: 'bold'}}>{latestMessage.senderName}: </AppText>{latestMessage.message}
+              </AppText>
             </View>
           )}
 
@@ -160,9 +161,9 @@ export default function ChatSidebar({ roomCode, playerData, isSidebarOpen, setIs
             style={styles.mobileToggleBar} 
             onPress={() => setIsSidebarOpen(!isSidebarOpen)}
           >
-            <Text style={{fontFamily: theme.fonts.bodyBold}}>
+            <AppText style={{fontFamily: theme.fonts.bodyBold}}>
                {isSidebarOpen ? t('chat.hideChat', '▼ Hide Chat & Emojis') : t('chat.showChat', '▲ Show Chat & Emojis')}
-            </Text>
+            </AppText>
           </TouchableOpacity>
 
           {isSidebarOpen && (
@@ -170,10 +171,10 @@ export default function ChatSidebar({ roomCode, playerData, isSidebarOpen, setIs
               <View style={styles.chatHistoryMobile}>
                 <ScrollView contentContainerStyle={{ gap: 8, flexGrow: 1, justifyContent: 'flex-end' }} showsVerticalScrollIndicator={false}>
                   {chatMessages.map((msg, i) => (
-                    <Text key={i} style={styles.chatMessage}>
-                      <Text style={{fontWeight: 'bold'}}>{msg.senderName}: </Text>
+                    <AppText key={i} style={styles.chatMessage}>
+                      <AppText style={{fontWeight: 'bold'}}>{msg.senderName}: </AppText>
                       {msg.message}
-                    </Text>
+                    </AppText>
                   ))}
                 </ScrollView>
               </View>
@@ -181,7 +182,7 @@ export default function ChatSidebar({ roomCode, playerData, isSidebarOpen, setIs
                 <View style={styles.reactionBar}>
                   {STICKERS.map(s => (
                     <TouchableOpacity key={s.id} onPress={() => sendReaction(s.id)} style={styles.reactionBtn}>
-                      <Text style={{fontSize: 24}}>{s.emoji}</Text>
+                      <AppText style={{fontSize: 24}}>{s.emoji}</AppText>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -196,7 +197,7 @@ export default function ChatSidebar({ roomCode, playerData, isSidebarOpen, setIs
                     placeholderTextColor={theme.colors.muted}
                   />
                   <TouchableOpacity style={styles.sendChatBtn} onPress={sendChat}>
-                    <Text style={styles.sendChatBtnText}>{t('chat.send', 'Send')}</Text>
+                    <AppText style={styles.sendChatBtnText}>{t('chat.send', 'Send')}</AppText>
                   </TouchableOpacity>
                 </View>
               </View>

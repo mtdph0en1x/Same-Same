@@ -1,4 +1,5 @@
 import React from 'react';
+import AppText from './AppText';
 import { StyleSheet, View, Text } from 'react-native';
 
 const shapes = [
@@ -28,9 +29,9 @@ export default function MessyDeskBackground() {
 
         if (shape.type === 'text') {
           return (
-            <Text key={index} style={[style, { fontSize: shape.size, fontWeight: '900', color: shape.color }]}>
+            <AppText key={index} style={[style, { fontSize: shape.size, fontWeight: '900', color: shape.color }]}>
               {shape.content}
-            </Text>
+            </AppText>
           );
         }
 

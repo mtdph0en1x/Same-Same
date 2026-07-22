@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import AppText from '../components/AppText';
 import { StyleSheet, Text, View, ScrollView, SafeAreaView, TouchableOpacity, Animated, useWindowDimensions, Image } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import NeoButton from '../components/NeoButton';
@@ -72,12 +73,12 @@ const BoardCard = ({ cardInfo, isRevealed, isResolved, roundType, isDesktop }) =
     <View style={[styles.cardContainer, !isDesktop && styles.cardContainerMobile]}>
       <Animated.View style={[styles.card, { transform: [{ scale }, { rotateX }] }]}>
         <Animated.View style={[StyleSheet.absoluteFill, styles.cardFace, { opacity: frontOpacity, borderColor: finalBorder, backgroundColor: finalBg }]}>
-            <Text style={[styles.cardText, cardInfo.isRejected && styles.textRejected, !isDesktop && styles.cardTextMobile]}>
+            <AppText style={[styles.cardText, cardInfo.isRejected && styles.textRejected, !isDesktop && styles.cardTextMobile]}>
                 {cardInfo.text ? cardInfo.text.toUpperCase() : t('results.blank', 'BLANK')}
-            </Text>
+            </AppText>
             {isResolved && cardInfo.pointsStr && !cardInfo.isRejected ? (
                 <View style={[styles.pointsBubble, cardInfo.matchState === 'fail' && styles.pointsBubbleFail]}>
-                    <Text style={styles.pointsBubbleText}>{cardInfo.pointsStr}</Text>
+                    <AppText style={styles.pointsBubbleText}>{cardInfo.pointsStr}</AppText>
                 </View>
             ) : null}
             {isResolved && cardInfo.isRejected && (
@@ -90,7 +91,7 @@ const BoardCard = ({ cardInfo, isRevealed, isResolved, roundType, isDesktop }) =
         </Animated.View>
         <Animated.View style={[StyleSheet.absoluteFill, styles.cardBack, { opacity: backOpacity }]}>
             <View style={styles.cardBackPattern} />
-            <Text style={styles.cardBackText}>?????</Text>
+            <AppText style={styles.cardBackText}>?????</AppText>
         </Animated.View>
       </Animated.View>
     </View>
@@ -271,10 +272,10 @@ export default function ResultsScreen({ roundResults, roomCode, isHost, players 
     <SafeAreaView style={styles.safeArea}>
       <View style={[styles.container, isDesktop && styles.containerDesktop]}>
         <View style={styles.headerRow}>
-          <Text style={styles.title}>{t('results.title', 'Round Results')}</Text>
+          <AppText style={styles.title}>{t('results.title', 'Round Results')}</AppText>
           {currentTimelineEvent?.type === 'topic' && (
               <View style={styles.topicBadge}>
-                  <Text style={styles.topicBadgeText}>{currentTimelineEvent.title}</Text>
+                  <AppText style={styles.topicBadgeText}>{currentTimelineEvent.title}</AppText>
               </View>
           )}
         </View>
@@ -289,8 +290,8 @@ export default function ResultsScreen({ roundResults, roomCode, isHost, players 
           >
             {step === -1 ? (
                 <View style={styles.centerCard}>
-                  <Text style={styles.introText}>{t('results.timeToReview', 'Time to review!')}</Text>
-                  <Text style={styles.introSubText}>{t('results.letsSeAnswers', "Let's see the answers.")}</Text>
+                  <AppText style={styles.introText}>{t('results.timeToReview', 'Time to review!')}</AppText>
+                  <AppText style={styles.introSubText}>{t('results.letsSeAnswers', "Let's see the answers.")}</AppText>
                 </View>
             ) : (
                 <View style={styles.playersGrid}>
@@ -308,14 +309,14 @@ export default function ResultsScreen({ roundResults, roomCode, isHost, players 
                                         frame={frames[pid] || 'none'} 
                                         size={32} 
                                     />
-                                    <Text style={styles.playerLabelName}>{playerNames[pid]}</Text>
+                                    <AppText style={styles.playerLabelName}>{playerNames[pid]}</AppText>
                                 </View>
                                 {step >= maxSteps && (
                                     <View style={styles.finalScoreBubble}>
-                                        <Text style={styles.finalScoreText}>{t('common.pts', { count: newScores[pid] })}</Text>
-                                        <Text style={styles.scoreUpdateText}>
+                                        <AppText style={styles.finalScoreText}>{t('common.pts', { count: newScores[pid] })}</AppText>
+                                        <AppText style={styles.scoreUpdateText}>
                                             ({scoreUpdates[pid] > 0 ? '+' : ''}{scoreUpdates[pid] || 0})
-                                        </Text>
+                                        </AppText>
                                     </View>
                                 )}
                             </View>
@@ -348,18 +349,18 @@ export default function ResultsScreen({ roundResults, roomCode, isHost, players 
                   style={[styles.readyBtn, hasVoted && styles.readyBtnActive]} 
                   onPress={handleVoteNext}
                 >
-                  <Text style={styles.readyBtnText}>
+                  <AppText style={styles.readyBtnText}>
                     {hasVoted ? t('results.readyCount', { votes, threshold: voteThreshold }) : t('results.readyForNext', 'Ready for Next Round')}
-                  </Text>
+                  </AppText>
                 </NeoButton>
               ) : null}
 
 
               {isHost && (
                 <NeoButton style={styles.forceBtn} onPress={handleForceNext}>
-                  <Text style={styles.forceBtnText}>
+                  <AppText style={styles.forceBtnText}>
                     {step >= maxSteps ? t('results.forceNextRound', 'Force Next Round') : t('results.skipToScoreboard', 'Skip to Scoreboard')}
-                  </Text>
+                  </AppText>
                 </NeoButton>
               )}
             </View>

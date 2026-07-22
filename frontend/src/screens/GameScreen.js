@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import AppText from '../components/AppText';
 import {
   StyleSheet, Text, View, TextInput, TouchableOpacity,
   SafeAreaView, ScrollView, Animated, Image, useWindowDimensions
@@ -24,7 +25,7 @@ function WordChip({ word }) {
 
   return (
     <Animated.View style={[styles.chip, { transform: [{ scale: scaleAnim }], opacity: opacityAnim }]}>
-      <Text style={styles.chipText}>{word}</Text>
+      <AppText style={styles.chipText}>{word}</AppText>
     </Animated.View>
   );
 }
@@ -100,7 +101,7 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
         {/* Team badge */}
         {myTeam && (
           <View style={[styles.teamBadge, { backgroundColor: TEAM_COLORS[myTeam] }]}>
-            <Text style={styles.teamBadgeText}>{teamLabels[myTeam]}</Text>
+            <AppText style={styles.teamBadgeText}>{teamLabels[myTeam]}</AppText>
           </View>
         )}
 
@@ -118,7 +119,7 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
                 />
                 {isFinished && (
                   <View style={styles.checkmarkBadge}>
-                    <Text style={styles.checkmarkText}>✓</Text>
+                    <AppText style={styles.checkmarkText}>✓</AppText>
                   </View>
                 )}
               </View>
@@ -127,22 +128,22 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
         </View>
 
         {/* Header: Round info */}
-        <Text style={styles.headerText}>
+        <AppText style={styles.headerText}>
           {t('game.roundHeader', { 
             current: gameData.roundNumber, 
             total: gameData.totalRounds, 
             type: t(`lobby.${gameData.roundType.replace(' ', '').toLowerCase()}`, gameData.roundType)
           })}
-        </Text>
+        </AppText>
 
         {/* Timer + progress row */}
         <View style={[styles.metaRow, !isDesktop && styles.metaRowMobile]}>
           <View style={[styles.timerCircle, !isDesktop && styles.timerCircleMobile, isWarning && styles.timerCircleWarning]}>
-            <Text style={[styles.timerText, !isDesktop && styles.timerTextMobile, isWarning && styles.timerTextWarning]}>{timeLeft}</Text>
+            <AppText style={[styles.timerText, !isDesktop && styles.timerTextMobile, isWarning && styles.timerTextWarning]}>{timeLeft}</AppText>
           </View>
           <View style={styles.progressContainer}>
-            <Text style={styles.progressLabel}>{t('game.words', 'WORDS')}</Text>
-            <Text style={styles.progressValue}>{progress} / {wordsPerRound}</Text>
+            <AppText style={styles.progressLabel}>{t('game.words', 'WORDS')}</AppText>
+            <AppText style={styles.progressValue}>{progress} / {wordsPerRound}</AppText>
             <View style={styles.progressBar}>
               <View style={[styles.progressFill, { width: `${(progress / wordsPerRound) * 100}%` }]} />
             </View>
@@ -155,8 +156,8 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
 
         {/* Category */}
         <View style={[styles.categoryCard, !isDesktop && styles.categoryCardMobile]}>
-          {isBlitz && <Text style={[styles.blitzHeader, !isDesktop && styles.blitzHeaderMobile]}>{t('game.blitzTopic', { num: progress + 1 })}</Text>}
-          <Text style={[styles.categoryTitle, !isDesktop && styles.categoryTitleMobile]}>{currentCategory}</Text>
+          {isBlitz && <AppText style={[styles.blitzHeader, !isDesktop && styles.blitzHeaderMobile]}>{t('game.blitzTopic', { num: progress + 1 })}</AppText>}
+          <AppText style={[styles.categoryTitle, !isDesktop && styles.categoryTitleMobile]}>{currentCategory}</AppText>
         </View>
 
         {/* Submitted words */}
@@ -185,16 +186,16 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
               autoCapitalize="none"
             />
             <NeoButton style={[styles.button, !isDesktop && styles.buttonMobile]} activeOpacity={0.8} onPress={handleSubmit}>
-              <Text style={[styles.buttonText, !isDesktop && styles.buttonTextMobile]}>{t('game.submit', 'Submit ↵')}</Text>
+              <AppText style={[styles.buttonText, !isDesktop && styles.buttonTextMobile]}>{t('game.submit', 'Submit ↵')}</AppText>
             </NeoButton>
           </View>
         ) : (
           <View style={styles.waitingContainer}>
-            <Text style={styles.waitingEmoji}>✅</Text>
-            <Text style={styles.waitingText}>{t('game.allDone', 'All done!')}</Text>
-            <Text style={styles.waitingSubtext}>
+            <AppText style={styles.waitingEmoji}>✅</AppText>
+            <AppText style={styles.waitingText}>{t('game.allDone', 'All done!')}</AppText>
+            <AppText style={styles.waitingSubtext}>
               {t('game.waitingForOthers', { finished: finishedPlayers.size > 0 ? t('game.finished', { count: finishedPlayers.size }) : '' })}
-            </Text>
+            </AppText>
           </View>
         )}
         

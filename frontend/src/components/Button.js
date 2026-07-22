@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import AppText from './AppText';
 import { Animated, TouchableWithoutFeedback, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { theme } from '../styles/theme';
@@ -70,9 +71,9 @@ export default function Button({ title, onPress, type = 'primary', style, icon, 
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
             {icon && <View style={{ marginRight: 8 }}>{icon}</View>}
-            <Text style={styles.buttonText}>{title}</Text>
+            <AppText style={styles.buttonText}>{title}</AppText>
           </View>
-          {subtext && <Text style={styles.buttonSubtext}>{subtext}</Text>}
+          {subtext && <AppText style={styles.buttonSubtext}>{subtext}</AppText>}
         </Animated.View>
       </TouchableWithoutFeedback>
     </View>

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import AppText from '../components/AppText';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, SafeAreaView, Platform, useWindowDimensions, ScrollView, Image, Animated, PanResponder } from 'react-native';
 import NeoButton from '../components/NeoButton';
 import * as WebBrowser from 'expo-web-browser';
@@ -188,13 +189,13 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
                 style={[s.tab, activeTab === 'guest' && s.activeTab]}
                 onPress={() => goToTab('guest')}
               >
-                <Text style={[s.tabText, activeTab === 'guest' && s.activeTabText]}>{t('landing.visitorPassTab')}</Text>
+                <AppText style={[s.tabText, activeTab === 'guest' && s.activeTabText]}>{t('landing.visitorPassTab')}</AppText>
               </NeoButton>
               <NeoButton
                 style={[s.tab, activeTab === 'auth' && s.activeTab, { borderRightWidth: 0 }]}
                 onPress={() => goToTab('auth')}
               >
-                <Text style={[s.tabText, activeTab === 'auth' && s.activeTabText]}>{t('landing.samesameidTab')}</Text>
+                <AppText style={[s.tabText, activeTab === 'auth' && s.activeTabText]}>{t('landing.samesameidTab')}</AppText>
               </NeoButton>
             </View>
 
@@ -219,7 +220,7 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
                     <View style={[s.idCardContent, { flex: 1 }]}>
                       <View style={s.idCardTopSection}>
                         <View style={s.avatarRing}>
-                          <Text style={{ fontSize: 40 * tScale }}>👤</Text>
+                          <AppText style={{ fontSize: 40 * tScale }}>👤</AppText>
                         </View>
                       </View>
                       <View>
@@ -230,7 +231,7 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
                           placeholder={t('landing.enterGuestName')}
                           placeholderTextColor="#a0603a"
                         />
-                        {nameError ? <Text style={{ color: '#EF4444', fontFamily: theme.fonts.bodyBold, fontSize: 12, marginTop: 4, textAlign: 'center' }}>{nameError}</Text> : null}
+                        {nameError ? <AppText style={{ color: '#EF4444', fontFamily: theme.fonts.bodyBold, fontSize: 12, marginTop: 4, textAlign: 'center' }}>{nameError}</AppText> : null}
                       </View>
                     </View>
                   </View>
@@ -244,7 +245,7 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
                       {loading ? (
                         <ActivityIndicator color="#fff" />
                       ) : (
-                        <Text style={[s.guestBtnText, { fontSize: 16 * tScale }]}>{t('landing.enterAsGuest')}</Text>
+                        <AppText style={[s.guestBtnText, { fontSize: 16 * tScale }]}>{t('landing.enterAsGuest')}</AppText>
                       )}
                     </NeoButton>
                   </View>
@@ -267,16 +268,16 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
                       >
                         {loading
                           ? <ActivityIndicator color="#000" />
-                          : <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: 13, color: '#000' }}>{t('landing.continueWithGoogle')}</Text>
+                          : <AppText style={{ fontFamily: theme.fonts.bodyBold, fontSize: 13, color: '#000' }}>{t('landing.continueWithGoogle')}</AppText>
                         }
                       </NeoButton>
                     </View>
                   </View>
                   {/* Auth bottom action */}
                   <View style={{ height: 100, paddingHorizontal: 24, paddingVertical: 16, alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: 11 * tScale, color: '#333', textAlign: 'center', paddingHorizontal: 10 }}>
+                    <AppText style={{ fontFamily: theme.fonts.bodyBold, fontSize: 11 * tScale, color: '#333', textAlign: 'center', paddingHorizontal: 10 }}>
                       {t('landing.legalDisclaimer')}
-                    </Text>
+                    </AppText>
                   </View>
                 </View>
 
@@ -289,27 +290,27 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
           {isDesktop && (
             <View style={[s.col, s.colNews, { backgroundColor: '#F3F4F6' }, { flex: 7 }]}>
               <View style={[s.colHeader, { backgroundColor: theme.colors.accent }]}>
-                <Text style={s.colTitle}>{t('landing.transmissions')}</Text>
-                <Text style={s.colSubtitle}>{t('landing.systemUpdates')}</Text>
+                <AppText style={s.colTitle}>{t('landing.transmissions')}</AppText>
+                <AppText style={s.colSubtitle}>{t('landing.systemUpdates')}</AppText>
               </View>
               <View style={s.colNewsBody}>
                 
                 <View style={s.newsItem}>
-                  <Text style={s.newsDate}>{t('landing.news_v094_date')}</Text>
-                  <Text style={s.newsHeadline}>{t('landing.news_v094_headline')}</Text>
-                  <Text style={s.newsBody}>{t('landing.news_v094_body')}</Text>
+                  <AppText style={s.newsDate}>{t('landing.news_v094_date')}</AppText>
+                  <AppText style={s.newsHeadline}>{t('landing.news_v094_headline')}</AppText>
+                  <AppText style={s.newsBody}>{t('landing.news_v094_body')}</AppText>
                 </View>
 
                 <View style={s.newsItem}>
-                  <Text style={s.newsDate}>{t('landing.news_server_date')}</Text>
-                  <Text style={s.newsHeadline}>{t('landing.news_server_headline')}</Text>
-                  <Text style={s.newsBody}>{t('landing.news_server_body')}</Text>
+                  <AppText style={s.newsDate}>{t('landing.news_server_date')}</AppText>
+                  <AppText style={s.newsHeadline}>{t('landing.news_server_headline')}</AppText>
+                  <AppText style={s.newsBody}>{t('landing.news_server_body')}</AppText>
                 </View>
 
                 <View style={s.newsItem}>
-                  <Text style={s.newsDate}>{t('landing.news_rules_date')}</Text>
-                  <Text style={s.newsHeadline}>{t('landing.news_rules_headline')}</Text>
-                  <Text style={s.newsBody}>{t('landing.news_rules_body')}</Text>
+                  <AppText style={s.newsDate}>{t('landing.news_rules_date')}</AppText>
+                  <AppText style={s.newsHeadline}>{t('landing.news_rules_headline')}</AppText>
+                  <AppText style={s.newsBody}>{t('landing.news_rules_body')}</AppText>
                 </View>
 
               </View>

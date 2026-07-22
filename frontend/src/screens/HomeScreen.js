@@ -1,3 +1,4 @@
+import AppText from '../components/AppText';
 import React, { useState, useEffect, useContext } from 'react';
 import {
   StyleSheet, Text, View, TextInput, TouchableOpacity,
@@ -60,8 +61,8 @@ function AnimatedModeCard({ m, onPress, rotation }) {
         ]}
       >
         <View style={s.modeCardIcon}>{m.icon}</View>
-        <Text style={s.modeCardLabel}>{m.label}</Text>
-        <Text style={s.modeCardDesc}>{m.desc}</Text>
+        <AppText style={s.modeCardLabel}>{m.label}</AppText>
+        <AppText style={s.modeCardDesc}>{m.desc}</AppText>
       </Pressable>
     </Animated.View>
   );
@@ -76,9 +77,9 @@ function joinModal(visible, setVisible, code, setCode, onJoin, t) {
       <View style={s.modalOverlay}>
         <View style={s.modalContent}>
           <NeoButton style={s.closeBtn} onPress={() => setVisible(false)}>
-            <Text style={s.closeBtnText}>✕</Text>
+            <AppText style={s.closeBtnText}>✕</AppText>
           </NeoButton>
-          <Text style={s.modalTitle}>{t('home.joinGameModal')}</Text>
+          <AppText style={s.modalTitle}>{t('home.joinGameModal')}</AppText>
           <TextInput
             style={[s.panelInput, s.codeInput]}
             placeholder={t('home.enter4LetterCode')}
@@ -102,33 +103,33 @@ function mmModal(visible, setVisible, onFindMatch, t) {
       <View style={s.modalOverlay}>
         <View style={s.modalContent}>
           <NeoButton style={s.closeBtn} onPress={() => setVisible(false)}>
-            <Text style={s.closeBtnText}>✕</Text>
+            <AppText style={s.closeBtnText}>✕</AppText>
           </NeoButton>
-          <Text style={s.modalTitle}>{t('home.selectMode')}</Text>
-          <Text style={s.mmSectionTitle}>{t('home.teams')}</Text>
+          <AppText style={s.modalTitle}>{t('home.selectMode')}</AppText>
+          <AppText style={s.mmSectionTitle}>{t('home.teams')}</AppText>
           <View style={s.mmRow}>
             <NeoButton style={s.mmBtn} onPress={() => onFindMatch('team2v2')}>
-              <Text style={s.mmBtnText}>🤝 2v2</Text>
+              <AppText style={s.mmBtnText}>🤝 2v2</AppText>
             </NeoButton>
             <NeoButton style={s.mmBtn} onPress={() => onFindMatch('team4v4')}>
-              <Text style={s.mmBtnText}>🛡️ 4v4</Text>
+              <AppText style={s.mmBtnText}>🛡️ 4v4</AppText>
             </NeoButton>
           </View>
-          <Text style={s.mmSectionTitle}>{t('home.solo')}</Text>
+          <AppText style={s.mmSectionTitle}>{t('home.solo')}</AppText>
           <View style={s.mmRow}>
             <NeoButton style={s.mmBtn} onPress={() => onFindMatch('duel')}>
-              <Text style={s.mmBtnText}>⚔️ 1v1</Text>
+              <AppText style={s.mmBtnText}>⚔️ 1v1</AppText>
             </NeoButton>
             <NeoButton style={s.mmBtn} onPress={() => onFindMatch('solo4')}>
-              <Text style={s.mmBtnText}>🏃 4p</Text>
+              <AppText style={s.mmBtnText}>🏃 4p</AppText>
             </NeoButton>
           </View>
           <View style={s.mmRow}>
             <NeoButton style={s.mmBtn} onPress={() => onFindMatch('solo6')}>
-              <Text style={s.mmBtnText}>🏃 6p</Text>
+              <AppText style={s.mmBtnText}>🏃 6p</AppText>
             </NeoButton>
             <NeoButton style={s.mmBtn} onPress={() => onFindMatch('solo8')}>
-              <Text style={s.mmBtnText}>🏃 8p</Text>
+              <AppText style={s.mmBtnText}>🏃 8p</AppText>
             </NeoButton>
           </View>
         </View>
@@ -140,7 +141,9 @@ function mmModal(visible, setVisible, onFindMatch, t) {
 function langModal(visible, setVisible, i18n, t) {
   const languages = [
     { code: 'en', label: 'English', emoji: '🇬🇧' },
-    { code: 'es', label: 'Español', emoji: '🇪🇸' }
+    { code: 'es', label: 'Español', emoji: '🇪🇸' },
+    { code: 'ru', label: 'Русский', emoji: '🇷🇺' },
+    { code: 'uk', label: 'Українська', emoji: '🇺🇦' }
   ];
 
   return (
@@ -148,9 +151,9 @@ function langModal(visible, setVisible, i18n, t) {
       <View style={s.modalOverlay}>
         <View style={s.modalContent}>
           <NeoButton style={s.closeBtn} onPress={() => setVisible(false)}>
-            <Text style={s.closeBtnText}>✕</Text>
+            <AppText style={s.closeBtnText}>✕</AppText>
           </NeoButton>
-          <Text style={s.modalTitle}>{t('settings.language', 'Select Language')}</Text>
+          <AppText style={s.modalTitle}>{t('settings.language', 'Select Language')}</AppText>
           <View style={{ gap: 12, marginTop: 10 }}>
             {languages.map((l) => (
               <NeoButton 
@@ -164,9 +167,9 @@ function langModal(visible, setVisible, i18n, t) {
                   setVisible(false);
                 }}
               >
-                <Text style={{ fontFamily: theme.fonts.headingBold, fontSize: 18, color: '#000' }}>
+                <AppText style={{ fontFamily: theme.fonts.headingBold, fontSize: 18, color: '#000' }}>
                   {l.emoji} {l.label}
-                </Text>
+                </AppText>
               </NeoButton>
             ))}
           </View>
@@ -295,7 +298,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
             onPress={() => setActiveTab('profile')}
             activeOpacity={0.8}
           >
-            <Text style={[s.tabText, activeTab === 'profile' && s.tabTextActive]}>{t('home.tabProfile')}</Text>
+            <AppText style={[s.tabText, activeTab === 'profile' && s.tabTextActive]}>{t('home.tabProfile')}</AppText>
           </NeoButton>
           <View style={s.tabDivider} />
           <NeoButton 
@@ -303,7 +306,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
             onPress={() => setActiveTab('play')}
             activeOpacity={0.8}
           >
-            <Text style={[s.tabText, activeTab === 'play' && s.tabTextActive]}>{t('home.tabPlay')}</Text>
+            <AppText style={[s.tabText, activeTab === 'play' && s.tabTextActive]}>{t('home.tabPlay')}</AppText>
           </NeoButton>
           <View style={s.tabDivider} />
           <NeoButton 
@@ -311,7 +314,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
             onPress={() => setLangModalVisible(true)}
             activeOpacity={0.8}
           >
-            <Text style={[s.tabText, { fontSize: 16, color: '#000' }]}>🌐 {i18n.language.startsWith('en') ? 'EN' : 'ES'}</Text>
+            <AppText style={[s.tabText, { fontSize: 16, color: '#000' }]}>🌐 {(i18n.language || 'en').substring(0, 2).toUpperCase()}</AppText>
           </NeoButton>
         </View>
       )}
@@ -335,8 +338,8 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
               ]}
             >
             <View style={[s.panelHeader, user ? s.panelHeaderLeft : { backgroundColor: '#FBBF24' }]}>
-              <Text style={s.panelHeaderText}>{user ? t('home.samesameid') : t('home.visitorPass')}</Text>
-              <Text style={s.panelSubText}>{user ? t('home.officialPlayerBadge') : t('home.temporaryAccess')}</Text>
+              <AppText style={s.panelHeaderText}>{user ? t('home.samesameid') : t('home.visitorPass')}</AppText>
+              <AppText style={s.panelSubText}>{user ? t('home.officialPlayerBadge') : t('home.temporaryAccess')}</AppText>
             </View>
 
             <View style={[s.panelBody, s.panelBodyLeft]}>
@@ -368,13 +371,13 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
                       </View>
 
                       {user ? (
-                        <Text style={[s.authUsername, { fontSize: (!isDesktop ? 16 : 22) * tScale, marginTop: 0, marginBottom: !isDesktop ? 0 : 8 }]}>
+                        <AppText style={[s.authUsername, { fontSize: (!isDesktop ? 16 : 22) * tScale, marginTop: 0, marginBottom: !isDesktop ? 0 : 8 }]}>
                           {profileData?.username || user.user_metadata?.custom_name || user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0]}
-                        </Text>
+                        </AppText>
                       ) : (
-                        <Text style={[s.authUsername, { fontSize: (!isDesktop ? 16 : 22) * tScale, marginTop: !isDesktop ? 4 : 10, marginBottom: !isDesktop ? 0 : 8 }]}>
+                        <AppText style={[s.authUsername, { fontSize: (!isDesktop ? 16 : 22) * tScale, marginTop: !isDesktop ? 4 : 10, marginBottom: !isDesktop ? 0 : 8 }]}>
                           {guestName || 'GUEST'}
-                        </Text>
+                        </AppText>
                       )}
                     </View>
 
@@ -395,15 +398,15 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
                             { label: t('home.levelStat'), value: profileData?.level || 1 },
                           ].map((stat) => (
                             <View key={stat.label} style={s.statListItem}>
-                              <Text style={[s.statListLabel, { fontSize: (!isDesktop ? 10 : 11) * tScale }]}>{stat.label}</Text>
+                              <AppText style={[s.statListLabel, { fontSize: (!isDesktop ? 10 : 11) * tScale }]}>{stat.label}</AppText>
                               <View style={s.statListDots} />
-                              <Text style={[s.statListValue, { fontSize: (!isDesktop ? 14 : 15) * tScale }]}>{stat.value}</Text>
+                              <AppText style={[s.statListValue, { fontSize: (!isDesktop ? 14 : 15) * tScale }]}>{stat.value}</AppText>
                             </View>
                           ))}
                         </View>
                       ) : (
                         <View style={[s.statsList, { marginTop: 0, paddingHorizontal: 0 }]}>
-                           <Text style={[s.statListLabel, { fontSize: (!isDesktop ? 10 : 11) * tScale, color: '#9ca3af' }]}>{t('home.noStatsForGuests')}</Text>
+                           <AppText style={[s.statListLabel, { fontSize: (!isDesktop ? 10 : 11) * tScale, color: '#9ca3af' }]}>{t('home.noStatsForGuests')}</AppText>
                         </View>
                       )}
                     </View>
@@ -417,8 +420,8 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
                     style={[s.signOutBtn, { backgroundColor: theme.colors.primary, flexDirection: 'row', justifyContent: 'center', gap: 10 }]}
                     onPress={() => setScreen('Settings')}
                   >
-                    <Text style={{ fontSize: 20 }}>⚙️</Text>
-                    <Text style={[s.signOutBtnText, { color: '#000' }]}>{user ? t('home.profileSettings') : t('home.guestSettings')}</Text>
+                    <AppText style={{ fontSize: 20 }}>⚙️</AppText>
+                    <AppText style={[s.signOutBtnText, { color: '#000' }]}>{user ? t('home.profileSettings') : t('home.guestSettings')}</AppText>
                   </NeoButton>
                 </View>
               </View>
@@ -431,7 +434,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
             <View style={[s.panelDivider, isDesktop && s.panelDividerDesktop]}>
               <View style={[s.panelDividerLine, isDesktop && s.panelDividerLineV]} />
               <View style={s.panelDividerBadge}>
-                <Text style={s.panelDividerBadgeText}>VS</Text>
+                <AppText style={s.panelDividerBadgeText}>VS</AppText>
               </View>
               <View style={[s.panelDividerLine, isDesktop && s.panelDividerLineV]} />
             </View>
@@ -455,9 +458,9 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
             <View style={[s.panelHeader, s.panelHeaderRight, { justifyContent: 'center', position: 'relative' }]}>
               <View style={{ alignItems: 'center' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <Text style={s.panelHeaderText}>{t('home.play')}</Text>
+                  <AppText style={s.panelHeaderText}>{t('home.play')}</AppText>
                 </View>
-                <Text style={s.panelSubText}>{t('home.chooseHowToPlay')}</Text>
+                <AppText style={s.panelSubText}>{t('home.chooseHowToPlay')}</AppText>
               </View>
               {isDesktop && (
                 <View style={{ position: 'absolute', right: 32 }}>
@@ -465,7 +468,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
                     style={{ backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 2, borderColor: '#000' }}
                     onPress={() => setLangModalVisible(true)}
                   >
-                    <Text style={{ fontFamily: theme.fonts.headingBold, fontSize: 14, color: '#000' }}>🌐 {i18n.language.startsWith('en') ? 'EN' : 'ES'}</Text>
+                    <AppText style={{ fontFamily: theme.fonts.headingBold, fontSize: 14, color: '#000' }}>🌐 {(i18n.language || 'en').substring(0, 2).toUpperCase()}</AppText>
                   </NeoButton>
                 </View>
               )}
@@ -503,7 +506,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
 
               <View style={[s.dividerRow, { marginTop: 24, marginBottom: 10 }]}>
                 <View style={s.divider} />
-                <Text style={s.dividerText}>{t('home.orJoinViaCode')}</Text>
+                <AppText style={s.dividerText}>{t('home.orJoinViaCode')}</AppText>
                 <View style={s.divider} />
               </View>
 

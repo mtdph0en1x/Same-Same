@@ -1,4 +1,5 @@
 import React from 'react';
+import AppText from './AppText';
 import { StyleSheet, Text, View, Image, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { theme } from '../styles/theme';
@@ -21,7 +22,7 @@ export default function LeaderboardSidebar({ players, roundResults, currentScree
   return (
     <View style={[styles.sidebar, !isDesktop && styles.sidebarMobile]}>
       <View style={[styles.header, !isDesktop && styles.headerMobile]}>
-        <Text style={[styles.headerTitle, !isDesktop && styles.headerTitleMobile]}>{t('leaderboardSidebar.title', 'Leaderboard')}</Text>
+        <AppText style={[styles.headerTitle, !isDesktop && styles.headerTitleMobile]}>{t('leaderboardSidebar.title', 'Leaderboard')}</AppText>
       </View>
       <ScrollView 
         style={[styles.list, !isDesktop && styles.listMobile]}
@@ -32,23 +33,23 @@ export default function LeaderboardSidebar({ players, roundResults, currentScree
         {sortedPlayers.map((p, index) => (
           <View key={p.id} style={[styles.playerCard, !isDesktop && styles.playerCardMobile]}>
             <View style={styles.rankBadge}>
-              <Text style={styles.rankText}>#{index + 1}</Text>
+              <AppText style={styles.rankText}>#{index + 1}</AppText>
             </View>
             <View style={styles.avatar}>
               {p.avatar && p.avatar.startsWith('http') ? (
                 <Image source={{ uri: p.avatar }} style={styles.avatarImg} />
               ) : (
-                <Text style={styles.avatarText}>{p.name?.charAt(0).toUpperCase()}</Text>
+                <AppText style={styles.avatarText}>{p.name?.charAt(0).toUpperCase()}</AppText>
               )}
             </View>
             <View style={styles.info}>
-              <Text style={styles.name} numberOfLines={1}>{p.name}</Text>
-              <Text style={styles.score}>{t('leaderboardSidebar.pts', { count: getPlayerScore(p.id) })}</Text>
+              <AppText style={styles.name} numberOfLines={1}>{p.name}</AppText>
+              <AppText style={styles.score}>{t('leaderboardSidebar.pts', { count: getPlayerScore(p.id) })}</AppText>
             </View>
           </View>
         ))}
         {players.length === 0 && (
-          <Text style={styles.emptyText}>{t('leaderboardSidebar.waitingForPlayers', 'Waiting for players...')}</Text>
+          <AppText style={styles.emptyText}>{t('leaderboardSidebar.waitingForPlayers', 'Waiting for players...')}</AppText>
         )}
       </ScrollView>
     </View>

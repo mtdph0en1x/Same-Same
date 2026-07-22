@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import AppText from '../components/AppText';
 import {
   StyleSheet, Text, View, ScrollView, TouchableOpacity,
   Animated, Image, SafeAreaView, useWindowDimensions
@@ -43,12 +44,12 @@ function PodiumPlayer({ player, rank, avatars, names, frames, delay }) {
           frame={frames[player.id] || 'none'} 
           size={56} 
         />
-        <Text style={s.podiumMedal}>{MEDAL[rank]}</Text>
+        <AppText style={s.podiumMedal}>{MEDAL[rank]}</AppText>
       </View>
-      <Text style={s.podiumName} numberOfLines={1}>{name}</Text>
-      <Text style={s.podiumScore}>{player.score} pts</Text>
+      <AppText style={s.podiumName} numberOfLines={1}>{name}</AppText>
+      <AppText style={s.podiumScore}>{player.score} pts</AppText>
       <View style={[s.podiumColumn, { backgroundColor: bg, borderColor: border, height }]}>
-        <Text style={s.podiumLabel}>{label}</Text>
+        <AppText style={s.podiumLabel}>{label}</AppText>
       </View>
     </Animated.View>
   );
@@ -87,7 +88,7 @@ export default function GameOverScreen({ gameResults, roomCode, isHost, players 
       : t('gameOver.itsATie', { score1: teamScores.A, score2: teamScores.B });
     winnerBanner = (
       <View style={[s.teamBanner, { backgroundColor: bg }]}>
-        <Text style={s.teamBannerText}>{bannerText}</Text>
+        <AppText style={s.teamBannerText}>{bannerText}</AppText>
       </View>
     );
   }
@@ -101,7 +102,7 @@ export default function GameOverScreen({ gameResults, roomCode, isHost, players 
     <SafeAreaView style={s.safeArea}>
       <ScrollView contentContainerStyle={[s.container, isDesktop && s.containerDesktop]}>
 
-        <Text style={s.title}>{t('gameOver.title', 'Game Over!')}</Text>
+        <AppText style={s.title}>{t('gameOver.title', 'Game Over!')}</AppText>
 
         {winnerBanner}
 
@@ -119,15 +120,15 @@ export default function GameOverScreen({ gameResults, roomCode, isHost, players 
           <View style={s.restList}>
             {rest.map((player, i) => (
               <View key={player.id} style={s.restRow}>
-                <Text style={s.restRank}>#{i + 4}</Text>
+                <AppText style={s.restRank}>#{i + 4}</AppText>
                 <FramedAvatar 
                   url={avatars[player.id]} 
                   fallbackName={playerNames[player.id]} 
                   frame={frames[player.id] || 'none'} 
                   size={32} 
                 />
-                <Text style={s.restName}>{playerNames[player.id]}</Text>
-                <Text style={s.restScore}>{t('common.pts', { count: player.score })}</Text>
+                <AppText style={s.restName}>{playerNames[player.id]}</AppText>
+                <AppText style={s.restScore}>{t('common.pts', { count: player.score })}</AppText>
               </View>
             ))}
           </View>
@@ -137,24 +138,24 @@ export default function GameOverScreen({ gameResults, roomCode, isHost, players 
         <View style={s.controls}>
           {isPublic ? (
             <NeoButton style={s.btnPrimary} onPress={handlePlayAgain}>
-              <Text style={s.btnPrimaryText}>{t('gameOver.playAgainGroup', '🔄 Play Again with Group')}</Text>
+              <AppText style={s.btnPrimaryText}>{t('gameOver.playAgainGroup', '🔄 Play Again with Group')}</AppText>
             </NeoButton>
           ) : isHost ? (
             <NeoButton style={s.btnPrimary} onPress={handlePlayAgain}>
-              <Text style={s.btnPrimaryText}>{t('gameOver.playAgain', '🔄 Play Again')}</Text>
+              <AppText style={s.btnPrimaryText}>{t('gameOver.playAgain', '🔄 Play Again')}</AppText>
             </NeoButton>
           ) : (
             <View style={s.waitingRow}>
-              <Text style={s.waitingText}>{t('gameOver.waitingForHost', 'Waiting for host to restart…')}</Text>
+              <AppText style={s.waitingText}>{t('gameOver.waitingForHost', 'Waiting for host to restart…')}</AppText>
             </View>
           )}
 
           <NeoButton style={s.btnSecondary} onPress={handleQuickPlay}>
-            <Text style={s.btnSecondaryText}>{t('gameOver.quickPlay', '⚡ Quick Play (New Group)')}</Text>
+            <AppText style={s.btnSecondaryText}>{t('gameOver.quickPlay', '⚡ Quick Play (New Group)')}</AppText>
           </NeoButton>
 
           <NeoButton style={s.btnGhost} onPress={handleLeave}>
-            <Text style={s.btnGhostText}>{t('gameOver.leaveRoom', 'Leave Room')}</Text>
+            <AppText style={s.btnGhostText}>{t('gameOver.leaveRoom', 'Leave Room')}</AppText>
           </NeoButton>
         </View>
 
