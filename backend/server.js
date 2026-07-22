@@ -2,21 +2,36 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
-const Filter = require('bad-words');
+const leoProfanity = require('leo-profanity');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
-app.use(cors());
+
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS 
+    ? process.env.ALLOWED_ORIGINS.split(',') 
+    : ['http://localhost:8081', 'http://localhost:3000', 'https://same-same-one.vercel.app'];
+
+app.use(cors({ origin: ALLOWED_ORIGINS }));
 app.use(express.json());
 
-const filter = new Filter();
+// Initialize profanity filter for English and Russian
+leoProfanity.loadDictionary('en');
+try { leoProfanity.add(leoProfanity.getDictionary('ru')); } catch(e) {}
 
-app.post('/check-username', (req, res) => {
+// HTTP Rate limiter for username checks (50 requests per 15 mins per IP)
+const usernameLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 50,
+    message: { error: 'Too many username checks. Please try again later.' }
+});
+
+app.post('/check-username', usernameLimiter, (req, res) => {
     const { username } = req.body;
     if (!username || typeof username !== 'string') {
         return res.status(400).json({ error: 'Username is required' });
     }
     
-    if (filter.isProfane(username)) {
+    if (leoProfanity.check(username)) {
         return res.status(400).json({ error: 'Inappropriate username detected.' });
     }
     
@@ -40,7 +55,7 @@ app.post('/check-username', (req, res) => {
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "*",
+        origin: ALLOWED_ORIGINS,
         methods: ["GET", "POST"]
     }
 });
@@ -48,6 +63,25 @@ const io = new Server(server, {
 const roomManager = require('./roomManager');
 const { supabase } = require('./supabase');
 const { loadTopics } = require('./gameLogic');
+
+// Socket Rate Limiter State
+const socketRateLimits = new Map();
+const SOCKET_EVENT_LIMIT = 40; // 40 events per 5 seconds
+const SOCKET_EVENT_WINDOW = 5000; 
+
+function checkRateLimit(socketId) {
+    const now = Date.now();
+    let records = socketRateLimits.get(socketId) || [];
+    records = records.filter(time => now - time < SOCKET_EVENT_WINDOW);
+    
+    if (records.length >= SOCKET_EVENT_LIMIT) {
+        return false;
+    }
+    
+    records.push(now);
+    socketRateLimits.set(socketId, records);
+    return true;
+}
 
 io.use(async (socket, next) => {
     const token = socket.handshake.auth?.token;
@@ -66,6 +100,15 @@ io.use(async (socket, next) => {
 
 io.on('connection', (socket) => {
     console.log(`User connected: ${socket.id} (Auth: ${socket.userId || 'Guest'})`);
+
+    // Global event rate limiter to drop spam
+    socket.use(([event, ...args], next) => {
+        if (!checkRateLimit(socket.id)) {
+            // Drop event silently or pass error to protect the server
+            return next(new Error('Rate limit exceeded')); 
+        }
+        next();
+    });
 
     // Mode 2: Couch Multiplayer
     socket.on('create_room', (playerData) => {
@@ -149,7 +192,8 @@ io.on('connection', (socket) => {
 
     // Gameplay actions
     socket.on('submit_word', ({ roomId, word }) => {
-        roomManager.submitWord(roomId, socket.id, word);
+        if (typeof word !== 'string') return;
+        roomManager.submitWord(roomId, socket.id, word.trim().substring(0, 50));
     });
 
     socket.on('submit_vote', ({ roomCode, packId }) => {
@@ -165,15 +209,28 @@ io.on('connection', (socket) => {
     });
 
     socket.on('send_reaction', ({ roomId, reactionId, senderName }) => {
-        io.to(roomId).emit('reaction_received', { reactionId, senderName, xOffset: Math.random() });
+        if (typeof reactionId !== 'string' || typeof senderName !== 'string') return;
+        io.to(roomId).emit('reaction_received', { 
+            reactionId: reactionId.substring(0, 20), 
+            senderName: senderName.trim().substring(0, 30), 
+            xOffset: Math.random() 
+        });
     });
 
     socket.on('send_chat', ({ roomId, message, senderName }) => {
-        io.to(roomId).emit('chat_received', { message, senderName, timestamp: Date.now() });
+        if (typeof message !== 'string' || typeof senderName !== 'string') return;
+        const safeMsg = message.trim().substring(0, 250);
+        if (!safeMsg) return;
+        io.to(roomId).emit('chat_received', { 
+            message: safeMsg, 
+            senderName: senderName.trim().substring(0, 30), 
+            timestamp: Date.now() 
+        });
     });
 
     socket.on('disconnect', () => {
         console.log(`User disconnected: ${socket.id}`);
+        socketRateLimits.delete(socket.id);
         roomManager.handleDisconnect(io, socket);
     });
 });
