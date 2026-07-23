@@ -9,7 +9,7 @@ const app = express();
 
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS 
     ? process.env.ALLOWED_ORIGINS.split(',') 
-    : ['http://localhost:8081', 'http://localhost:3000', 'https://same-same-one.vercel.app'];
+    : ['http://localhost:8081', 'http://localhost:3000', 'https://same-same-one.vercel.app', 'https://same-same.fun', 'https://www.same-same.fun'];
 
 app.use(cors({ origin: ALLOWED_ORIGINS }));
 app.use(express.json());
@@ -62,7 +62,7 @@ const io = new Server(server, {
 
 const roomManager = require('./roomManager');
 const { supabase } = require('./supabase');
-const { loadTopics } = require('./gameLogic');
+const { loadTopics, getPackNames } = require('./gameLogic');
 
 // Socket Rate Limiter State
 const socketRateLimits = new Map();
@@ -146,6 +146,11 @@ io.on('connection', (socket) => {
 
     socket.on('play_again', ({ roomCode }) => {
         roomManager.playAgain(io, socket, roomCode);
+    });
+
+    socket.on('get_available_packs', ({ lang = 'en' } = {}) => {
+        const packs = getPackNames(lang);
+        socket.emit('available_packs', { packs });
     });
 
     socket.on('get_public_lobbies', ({ lang = 'en' } = {}) => {

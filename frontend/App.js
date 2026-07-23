@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View, Text, TouchableOpacity, useWindowDimensions, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, useWindowDimensions, ScrollView, Modal } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, Fredoka_400Regular, Fredoka_500Medium, Fredoka_600SemiBold, Fredoka_700Bold } from '@expo-google-fonts/fredoka';
 import { Nunito_300Light, Nunito_400Regular, Nunito_500Medium, Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold, Nunito_900Black } from '@expo-google-fonts/nunito';
@@ -22,6 +22,7 @@ import { AuthProvider, AuthContext } from './src/context/AuthContext';
 import { socket } from './src/socket';
 import { theme } from './src/styles/theme';
 import { supabase } from './src/supabase';
+import SoundManager from './src/utils/SoundManager';
 import './src/i18n';
 
 SplashScreen.preventAutoHideAsync();
@@ -59,6 +60,8 @@ function AppContent() {
   const [isHost, setIsHost] = useState(false);
   const [lobbyIntent, setLobbyIntent] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [creditsVisible, setCreditsVisible] = useState(false);
+  const [contactVisible, setContactVisible] = useState(false);
 
   const [gameData, setGameData] = useState(null);
   const [players, setPlayers] = useState([]);
@@ -91,6 +94,12 @@ function AppContent() {
     Fredoka_400Regular, Fredoka_500Medium, Fredoka_600SemiBold, Fredoka_700Bold,
     Nunito_300Light, Nunito_400Regular, Nunito_500Medium, Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold, Nunito_900Black,
   });
+
+  useEffect(() => {
+    SoundManager.init();
+  }, []);
+
+  // Music playback effect removed as per user request
 
   useEffect(() => {
     socket.on('game_started', (data) => {
@@ -239,8 +248,12 @@ function AppContent() {
       <Text style={chrome.footerCopy}>© 2026 Same Same</Text>
       {isDesktop && (
         <View style={chrome.footerLinks}>
-          {['Terms', 'Privacy', 'Contact', 'GitHub'].map(link => (
-            <TouchableOpacity key={link}>
+          {['Terms', 'Privacy', 'Contact', 'Credits'].map(link => (
+            <TouchableOpacity key={link} onPress={() => { 
+              if (link === 'Credits') setCreditsVisible(true); 
+              else if (link === 'Contact') setContactVisible(true);
+              else if (link === 'Terms' || link === 'Privacy') alert(`${link} will be added before official launch.`);
+            }}>
               <Text style={chrome.footerLink}>{link}</Text>
             </TouchableOpacity>
           ))}
@@ -254,6 +267,64 @@ function AppContent() {
       <View style={styles.root} onLayout={onLayoutRootView}>
         <StatusBar style="light" />
         <BackgroundPattern />
+
+        <Modal visible={creditsVisible} animationType="fade" transparent onRequestClose={() => setCreditsVisible(false)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{ width: '90%', maxWidth: 400, backgroundColor: '#FDFBF7', padding: 24, borderRadius: 16, borderWidth: 3, borderColor: '#000' }}>
+              <Text style={{ fontFamily: 'Fredoka_700Bold', fontSize: 24, marginBottom: 16 }}>Credits</Text>
+              <ScrollView style={{ maxHeight: 300 }}>
+                <Text style={{ fontFamily: 'Nunito_700Bold', fontSize: 16, marginBottom: 12 }}>Audio Attributions</Text>
+                {[
+                  { name: 'Ticking Clock', creator: 'schmutz', license: 'CC0', url: 'https://freesound.org/s/366679/' },
+                  { name: 'Rejection Buzzer', creator: 'Jacco18', license: 'CC0', url: 'https://freesound.org/s/419023/' },
+                  { name: 'Stamp Thump', creator: 'mpuffenbarger', license: 'CC0', url: 'https://freesound.org/s/683031/' },
+                  { name: 'Fanfare', creator: 'plasterbrain', license: 'CC0', url: 'https://freesound.org/s/397353/' },
+                  { name: 'Card Woosh', creator: 'florianreichelt', license: 'CC0', url: 'https://freesound.org/s/683101/' },
+                  { name: 'Match Correct', creator: 'Gronkjaer', license: 'CC0', url: 'https://freesound.org/s/654321/' },
+                  { name: 'Score Tally', creator: 'xtrgamr', license: 'CC-BY 4.0', url: 'https://freesound.org/s/253546/' }
+                ].map((sound, i) => (
+                  <TouchableOpacity key={i} onPress={() => Linking.openURL(sound.url)}>
+                    <Text style={{ fontFamily: 'Nunito_500Medium', fontSize: 14, marginBottom: 8, color: theme.colors.primary, textDecorationLine: 'underline' }}>
+                      • {sound.name} by {sound.creator} on Freesound ({sound.license})
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              <TouchableOpacity onPress={() => setCreditsVisible(false)} style={{ backgroundColor: theme.colors.primary, padding: 12, borderRadius: 8, borderWidth: 2, borderColor: '#000', marginTop: 24, alignItems: 'center' }}>
+                <Text style={{ fontFamily: 'Fredoka_600SemiBold', fontSize: 16 }}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        <Modal visible={contactVisible} animationType="fade" transparent onRequestClose={() => setContactVisible(false)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{ width: '90%', maxWidth: 400, backgroundColor: '#FDFBF7', padding: 24, borderRadius: 16, borderWidth: 3, borderColor: '#000', alignItems: 'center' }}>
+              <Text style={{ fontFamily: 'Fredoka_700Bold', fontSize: 24, marginBottom: 8 }}>Get in Touch</Text>
+              <Text style={{ fontFamily: 'Nunito_500Medium', fontSize: 15, color: '#4b5563', textAlign: 'center', marginBottom: 20 }}>
+                Have feedback, found a bug, or just want to say hi? We'd love to hear from you!
+              </Text>
+              
+              <TouchableOpacity 
+                style={{ backgroundColor: '#fff', padding: 14, borderRadius: 12, borderWidth: 2, borderColor: '#000', width: '100%', alignItems: 'center', marginBottom: 12 }}
+                onPress={() => Linking.openURL('mailto:hello@samesamegame.com')}
+              >
+                <Text style={{ fontFamily: 'Fredoka_600SemiBold', fontSize: 16 }}>✉️ hello@samesamegame.com</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={{ backgroundColor: '#1DA1F2', padding: 14, borderRadius: 12, borderWidth: 2, borderColor: '#000', width: '100%', alignItems: 'center' }}
+                onPress={() => Linking.openURL('https://twitter.com/')}
+              >
+                <Text style={{ fontFamily: 'Fredoka_600SemiBold', fontSize: 16, color: '#fff' }}>🐦 Follow us on Twitter</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => setContactVisible(false)} style={{ backgroundColor: theme.colors.primary, padding: 12, borderRadius: 8, borderWidth: 2, borderColor: '#000', marginTop: 24, width: '100%', alignItems: 'center' }}>
+                <Text style={{ fontFamily: 'Fredoka_600SemiBold', fontSize: 16 }}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
 
         {/* ── Persistent top chrome ── */}
         {PageHeader}

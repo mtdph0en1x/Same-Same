@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import AppText from '../components/AppText';
 import {
   StyleSheet, Text, View, ScrollView, TouchableOpacity,
@@ -10,6 +10,7 @@ import { socket } from '../socket';
 import { theme } from '../styles/theme';
 import FramedAvatar from '../components/FramedAvatar';
 import ConfettiCannon from 'react-native-confetti-cannon';
+import SoundManager from '../utils/SoundManager';
 
 const MEDAL = { 0: '🥇', 1: '🥈', 2: '🥉' };
 const PODIUM_COLORS = {
@@ -18,7 +19,7 @@ const PODIUM_COLORS = {
   2: { bg: '#B45309', border: '#000', height: 60,  label: '3rd' },
 };
 
-function PodiumPlayer({ player, rank, avatars, names, frames, delay }) {
+function PodiumPlayer({ player, rank, avatars, names, frames, delay, displayScore }) {
   const rise = useRef(new Animated.Value(60)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const { bg, border, height, label } = PODIUM_COLORS[rank];
@@ -48,7 +49,7 @@ function PodiumPlayer({ player, rank, avatars, names, frames, delay }) {
         <AppText style={s.podiumMedal}>{MEDAL[rank]}</AppText>
       </View>
       <AppText style={s.podiumName} numberOfLines={1}>{name}</AppText>
-      <AppText style={s.podiumScore}>{player.score} pts</AppText>
+      <AppText style={s.podiumScore}>{displayScore !== undefined ? displayScore : player.score} pts</AppText>
       <View style={[s.podiumColumn, { backgroundColor: bg, borderColor: border, height }]}>
         <AppText style={s.podiumLabel}>{label}</AppText>
       </View>
@@ -59,6 +60,54 @@ function PodiumPlayer({ player, rank, avatars, names, frames, delay }) {
 export default function GameOverScreen({ gameResults, roomCode, isHost, players = [] }) {
   const { t } = useTranslation();
   const { scores = {}, playerNames = {}, playerAvatars = {}, playerFrames = {}, teams, teamScores, isPublic } = gameResults;
+
+  const [displayScores, setDisplayScores] = useState({});
+  const hasTallied = useRef(false);
+
+  useEffect(() => {
+    if (hasTallied.current) return;
+    hasTallied.current = true;
+
+    // Initialize display scores to 0
+    const initial = {};
+    Object.keys(scores).forEach(id => initial[id] = 0);
+    setDisplayScores(initial);
+
+    // Wait 1 second for podiums to rise
+    const startDelay = setTimeout(() => {
+      SoundManager.startLoop('tally');
+      
+      const duration = 1500;
+      const fps = 30;
+      const steps = Math.floor(duration / (1000 / fps));
+      let currentStep = 0;
+
+      const interval = setInterval(() => {
+        currentStep++;
+        const progress = currentStep / steps;
+        
+        if (progress >= 1) {
+          clearInterval(interval);
+          setDisplayScores(scores);
+          SoundManager.stopLoop('tally');
+          SoundManager.playSfx('fanfare');
+        } else {
+          const ease = 1 - (1 - progress) * (1 - progress); // easeOutQuad
+          const nextScores = {};
+          Object.keys(scores).forEach(id => {
+            nextScores[id] = Math.floor(scores[id] * ease);
+          });
+          setDisplayScores(nextScores);
+        }
+      }, 1000 / fps);
+
+    }, 1000);
+
+    return () => {
+      clearTimeout(startDelay);
+      SoundManager.stopLoop('tally');
+    };
+  }, [scores]);
 
   // Merge local player avatars as fallback
   const avatars = { ...playerAvatars };
@@ -107,12 +156,11 @@ export default function GameOverScreen({ gameResults, roomCode, isHost, players 
 
         {winnerBanner}
 
-        {/* Podium — ordered as 2nd, 1st, 3rd for visual height effect */}
         {sorted.length >= 1 && (
           <View style={s.podiumRow}>
-            {podium[1] && <PodiumPlayer player={podium[1]} rank={1} avatars={avatars} names={playerNames} frames={frames} delay={300} />}
-            {podium[0] && <PodiumPlayer player={podium[0]} rank={0} avatars={avatars} names={playerNames} frames={frames} delay={100} />}
-            {podium[2] && <PodiumPlayer player={podium[2]} rank={2} avatars={avatars} names={playerNames} frames={frames} delay={500} />}
+            {podium[1] && <PodiumPlayer player={podium[1]} rank={1} avatars={avatars} names={playerNames} frames={frames} delay={300} displayScore={displayScores[podium[1].id]} />}
+            {podium[0] && <PodiumPlayer player={podium[0]} rank={0} avatars={avatars} names={playerNames} frames={frames} delay={100} displayScore={displayScores[podium[0].id]} />}
+            {podium[2] && <PodiumPlayer player={podium[2]} rank={2} avatars={avatars} names={playerNames} frames={frames} delay={500} displayScore={displayScores[podium[2].id]} />}
           </View>
         )}
 
@@ -129,7 +177,7 @@ export default function GameOverScreen({ gameResults, roomCode, isHost, players 
                   size={32} 
                 />
                 <AppText style={s.restName}>{playerNames[player.id]}</AppText>
-                <AppText style={s.restScore}>{t('common.pts', { count: player.score })}</AppText>
+                <AppText style={s.restScore}>{t('common.pts', { count: displayScores[player.id] !== undefined ? displayScores[player.id] : player.score })}</AppText>
               </View>
             ))}
           </View>

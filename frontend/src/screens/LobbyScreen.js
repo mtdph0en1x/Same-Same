@@ -9,6 +9,7 @@ import NeoButton from '../components/NeoButton';
 import { socket } from '../socket';
 import { theme } from '../styles/theme';
 import FramedAvatar from '../components/FramedAvatar';
+import SoundManager from '../utils/SoundManager';
 
 const MIN_PLAYERS      = 2;
 const MIN_TEAM_PLAYERS = 4;
@@ -210,13 +211,14 @@ const DEFAULT_CONFIG = {
 };
 
 export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, lobbyIntent, playerData, setScreen }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [players, setPlayers]       = useState([]);
   const [status, setStatus]         = useState(t('lobby.connecting', 'Connecting...'));
   const [countdown, setCountdown]   = useState(null);
   const [hostBanner, setHostBanner] = useState(false);
   const [config, setConfig]         = useState(DEFAULT_CONFIG);
   const [teams, setTeams]           = useState({});      // { [playerId]: 'A' | 'B' }
+  const [availablePacks, setAvailablePacks] = useState(['classic', 'all']);
 
   const [isPublic, setIsPublic]     = useState(false);
   const [isHostless, setIsHostless] = useState(false);
@@ -271,6 +273,13 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
 
   useEffect(() => {
     socket.connect();
+
+    socket.emit('get_available_packs', { lang: playerData?.lang || i18n.language || 'en' });
+    socket.on('available_packs', (data) => {
+      if (data.packs && data.packs.length > 0) {
+        setAvailablePacks(data.packs);
+      }
+    });
 
     if (lobbyIntent === 'host_game') {
       socket.emit('create_room', playerData);
@@ -340,8 +349,13 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
       }
     });
 
-    socket.on('countdown_started', ({ count }) => setCountdown(count));
-    socket.on('countdown_tick',    ({ count }) => setCountdown(count));
+    socket.on('countdown_started', ({ count }) => {
+      setCountdown(count);
+      SoundManager.startLoop('tick');
+    });
+    socket.on('countdown_tick', ({ count }) => {
+      setCountdown(count);
+    });
 
     return () => {
       socket.off('room_created');
@@ -355,7 +369,9 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
       socket.off('host_changed');
       socket.off('countdown_started');
       socket.off('countdown_tick');
+      socket.off('available_packs');
       clearTimeout(hostBannerTimer.current);
+      SoundManager.stopLoop('tick');
     };
   }, []);
 
@@ -381,6 +397,16 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
     pop_culture: t('packs.pop_culture', '🎬 Pop Culture'),
     challenge:   t('packs.challenge', '🔥 Challenge'),
   };
+  
+  const getPackLabel = (packId) => {
+    return packLabels[packId] || t(`packs.${packId}`, packId.charAt(0).toUpperCase() + packId.slice(1).replace(/_/g, ' '));
+  };
+
+  const dynamicPackLabels = availablePacks.reduce((acc, packId) => {
+    acc[packId] = getPackLabel(packId);
+    return acc;
+  }, {});
+
   const teamLabels = { A: t('lobby.teamA', '🔴 Team A'), B: t('lobby.teamB', '🔵 Team B') };
 
   // Error UI Branch
@@ -641,13 +667,13 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
             <AppText style={styles.settingLabel}>{t('lobby.categoryPack', 'Category pack')}</AppText>
             {isHost ? (
               <SegmentedControl
-                options={['classic', 'food', 'nature', 'pop_culture', 'challenge', 'all']}
+                options={availablePacks}
                 value={config.categoryPack}
                 onChange={(v) => handleConfigChange({ categoryPack: v })}
-                labelMap={packLabels}
+                labelMap={dynamicPackLabels}
               />
             ) : (
-              <AppText style={styles.readOnlyValue}>{packLabels[config.categoryPack] ?? config.categoryPack}</AppText>
+              <AppText style={styles.readOnlyValue}>{getPackLabel(config.categoryPack)}</AppText>
             )}
 
             {/* Teams toggle */}
@@ -680,14 +706,14 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
               {t('lobby.voteForPack', { countdown: countdown !== null ? `(${countdown}s)` : '' })}
             </AppText>
             <View style={styles.voteList}>
-              {['classic', 'food', 'nature', 'pop_culture', 'challenge', 'all'].map(packId => (
+              {availablePacks.map(packId => (
                 <NeoButton
                   key={packId}
                   style={styles.voteBtn}
                   onPress={() => handleVote(packId)}
                   activeOpacity={0.7}
                 >
-                  <AppText style={styles.voteBtnText}>{packLabels[packId] ?? packId}</AppText>
+                  <AppText style={styles.voteBtnText}>{getPackLabel(packId)}</AppText>
                   <View style={[styles.voteCountBadge, votes[packId] > 0 && styles.voteCountBadgeActive]}>
                     <AppText style={[styles.voteCountText, votes[packId] > 0 && styles.voteCountTextActive]}>
                       {votes[packId] || 0}

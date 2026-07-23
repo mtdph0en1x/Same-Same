@@ -9,6 +9,7 @@ import NeoButton from '../components/NeoButton';
 import { socket } from '../socket';
 import { theme } from '../styles/theme';
 import FramedAvatar from '../components/FramedAvatar';
+import SoundManager from '../utils/SoundManager';
 
 const TEAM_COLORS = { A: '#E11D48', B: '#2563EB' };
 
@@ -65,6 +66,14 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
       socket.off('player_finished');
     };
   }, [gameData]);
+
+  useEffect(() => {
+    if (timeLeft <= 10 && timeLeft > 0 && !isDone) {
+      SoundManager.startLoop('tick');
+    } else {
+      SoundManager.stopLoop('tick');
+    }
+  }, [timeLeft, isDone]);
 
   const handleSubmit = () => {
     const trimmed = currentWord.trim();

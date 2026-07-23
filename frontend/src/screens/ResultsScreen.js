@@ -6,6 +6,7 @@ import NeoButton from '../components/NeoButton';
 import { theme } from '../styles/theme';
 import { socket } from '../socket';
 import FramedAvatar from '../components/FramedAvatar';
+import SoundManager from '../utils/SoundManager';
 
 const BoardCard = ({ cardInfo, isRevealed, isResolved, roundType, isDesktop }) => {
   const { t } = useTranslation();
@@ -18,6 +19,7 @@ const BoardCard = ({ cardInfo, isRevealed, isResolved, roundType, isDesktop }) =
   useEffect(() => {
     if (isRevealed && !hasAnimated.current) {
       hasAnimated.current = true;
+      SoundManager.playSfx('woosh');
       Animated.parallel([
         Animated.spring(scale, { toValue: 1, friction: 6, useNativeDriver: false }),
         Animated.spring(flip, { toValue: 180, friction: 8, tension: 40, useNativeDriver: false })
@@ -41,6 +43,15 @@ const BoardCard = ({ cardInfo, isRevealed, isResolved, roundType, isDesktop }) =
             duration: 300,
             useNativeDriver: false
         }).start();
+
+        if (cardInfo.isRejected) {
+            SoundManager.playSfx('rejection');
+            SoundManager.playSfx('stamp');
+        } else if (cardInfo.matchState === 'fail') {
+            SoundManager.playSfx('rejection');
+        } else {
+            SoundManager.playSfx('correct');
+        }
     }
   }, [isResolved, cardInfo.text]);
 
