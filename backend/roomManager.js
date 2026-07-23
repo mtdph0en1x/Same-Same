@@ -138,11 +138,13 @@ function safePlayerList(players) {
 
 function createRoom(io, socket, playerData) {
     const roomCode = generateRoomCode();
-    const player = { id: socket.id, name: playerData.name || 'Host', level: playerData.level || 1, avatar: playerData.avatar, frame: playerData.frame, socket };
-    const teams = { [socket.id]: 'A' };
+    const sessionId = playerData.sessionId || socket.id;
+    socket.sessionId = sessionId;
+    const player = { id: sessionId, name: playerData.name || 'Host', level: playerData.level || 1, avatar: playerData.avatar, frame: playerData.frame, socket };
+    const teams = { [sessionId]: 'A' };
 
     rooms[roomCode] = {
-        host:        socket.id,
+        host:        sessionId,
         players:     [player],
         teams:       teams,
         gameSession: null,
@@ -177,8 +179,11 @@ function findOrCreatePublicRoom(io, socket, playerData) {
                room.players.length < MAX_PLAYERS;
     });
 
+    const sessionId = playerData.sessionId || socket.id;
+    socket.sessionId = sessionId;
+
     const player = {
-        id: socket.id,
+        id: sessionId,
         name: playerData.name || 'Player',
         level: playerData.level || 1,
         avatar: playerData.avatar,
@@ -189,10 +194,10 @@ function findOrCreatePublicRoom(io, socket, playerData) {
     if (openRoom) {
         const [roomCode, room] = openRoom;
         
-        const existingPlayer = room.players.find(p => p.id === socket.id);
+        const existingPlayer = room.players.find(p => p.id === sessionId);
         if (!existingPlayer) {
             room.players.push(player);
-            room.teams[socket.id] = assignTeam(room.teams);
+            room.teams[sessionId] = assignTeam(room.teams);
         }
         
         socket.join(roomCode);
@@ -215,10 +220,10 @@ function findOrCreatePublicRoom(io, socket, playerData) {
     } else {
         // Create a new public room with this player as the first (and only)
         const roomCode = generateRoomCode();
-        const teams = { [socket.id]: 'A' };
+        const teams = { [sessionId]: 'A' };
 
         rooms[roomCode] = {
-            host: socket.id,
+            host: sessionId,
             players: [player],
             teams,
             gameSession: null,
@@ -247,8 +252,8 @@ function playAgain(io, socket, roomCode) {
     const room = rooms[roomCode];
     if (!room) return;
 
-    // For private rooms or hosted public rooms, only the host can do this
-    if (!room.isHostless && room.host !== socket.id) return;
+    const pId = socket.sessionId || socket.id;
+    if (!room.isHostless && room.host !== pId) return;
 
     // Clear game state
     if (room.gameSession) {
@@ -341,6 +346,9 @@ function joinRoom(io, socket, roomCode, playerData) {
         return;
     }
 
+    const sessionId = playerData.sessionId || socket.id;
+    socket.sessionId = sessionId;
+
     // Overflow logic for permanent lobbies
     if (room.isPermanent && (room.gameSession || room.players.length >= MAX_PLAYERS)) {
         // Find existing overflow clone that is open
@@ -353,11 +361,11 @@ function joinRoom(io, socket, roomCode, playerData) {
         } else {
             // Create a new overflow clone
             const newCode = generateRoomCode();
-            const player = { id: socket.id, name: playerData.name || 'Player', level: playerData.level || 1, avatar: playerData.avatar, frame: playerData.frame, socket };
-            const teams = { [socket.id]: 'A' };
+            const player = { id: sessionId, name: playerData.name || 'Player', level: playerData.level || 1, avatar: playerData.avatar, frame: playerData.frame, socket };
+            const teams = { [sessionId]: 'A' };
             
             rooms[newCode] = {
-                host: socket.id, // technically hostless, but ID stored for migration
+                host: sessionId, // technically hostless, but ID stored for migration
                 players: [player],
                 teams,
                 gameSession: null,
@@ -394,13 +402,13 @@ function joinRoom(io, socket, roomCode, playerData) {
         return;
     }
 
-    const player = { id: socket.id, name: playerData.name || 'Player', level: playerData.level || 1, avatar: playerData.avatar, frame: playerData.frame, socket };
+    const player = { id: sessionId, name: playerData.name || 'Player', level: playerData.level || 1, avatar: playerData.avatar, frame: playerData.frame, socket };
     
-    const existingPlayer = room.players.find(p => p.id === socket.id);
+    const existingPlayer = room.players.find(p => p.id === sessionId);
     if (!existingPlayer) {
         room.players.push(player);
         // Auto-assign to the smaller team
-        room.teams[socket.id] = assignTeam(room.teams);
+        room.teams[sessionId] = assignTeam(room.teams);
     }
 
     socket.join(roomCode);
@@ -410,7 +418,7 @@ function joinRoom(io, socket, roomCode, playerData) {
     socket.emit('joined_room', {
         roomCode,
         players: safePlayers,
-        host:    !room.isHostless && room.host === socket.id,
+        host:    !room.isHostless && room.host === sessionId,
         config:  room.config,
         teams:   room.teams,
         isPublic: room.isPublic,
@@ -425,7 +433,8 @@ function joinRoom(io, socket, roomCode, playerData) {
 
 function updateConfig(io, socket, roomCode, incomingConfig) {
     const room = rooms[roomCode];
-    if (!room || room.host !== socket.id || room.gameSession || room.countdown || room.isHostless) return;
+    const pId = socket.sessionId || socket.id;
+    if (!room || room.host !== pId || room.gameSession || room.countdown || room.isHostless) return;
 
     room.config = validateConfig(incomingConfig, room.config);
     room.isPublic = room.config.isPublic; // Sync top-level flag
@@ -435,7 +444,8 @@ function updateConfig(io, socket, roomCode, incomingConfig) {
 
 function updateTeams(io, socket, roomCode, incomingTeams) {
     const room = rooms[roomCode];
-    if (!room || room.host !== socket.id || room.gameSession || room.countdown || room.isHostless) return;
+    const pId = socket.sessionId || socket.id;
+    if (!room || room.host !== pId || room.gameSession || room.countdown || room.isHostless) return;
 
     // Validate: every key must be a current player, every value must be 'A' or 'B'
     const playerIds = new Set(room.players.map(p => p.id));
@@ -449,8 +459,9 @@ function updateTeams(io, socket, roomCode, incomingTeams) {
 
 function kickPlayer(io, socket, roomCode, targetId) {
     const room = rooms[roomCode];
-    if (!room || room.host !== socket.id || room.isHostless) return;
-    if (targetId === socket.id) return;
+    const pId = socket.sessionId || socket.id;
+    if (!room || room.host !== pId || room.isHostless) return;
+    if (targetId === pId) return;
 
     const target = room.players.find(p => p.id === targetId);
     if (!target) return;
@@ -469,7 +480,8 @@ function leaveRoom(io, socket, roomCode) {
     const room = rooms[roomCode];
     if (!room) return;
 
-    room.players = room.players.filter(p => p.id !== socket.id);
+    const pId = socket.sessionId || socket.id;
+    room.players = room.players.filter(p => p.id !== pId);
     room.teams   = pruneTeams(room.teams, room.players);
     socket.leave(roomCode);
 
@@ -486,7 +498,7 @@ function leaveRoom(io, socket, roomCode) {
         return;
     }
 
-    if (room.host === socket.id) {
+    if (room.host === pId) {
         const newHost = room.players[0];
         room.host = newHost.id;
         io.to(roomCode).emit('host_changed', { newHostId: newHost.id, newHostName: newHost.name });
@@ -498,7 +510,8 @@ function leaveRoom(io, socket, roomCode) {
 
 function startGame(io, socket, roomCode) {
     const room = rooms[roomCode];
-    if (!room || room.host !== socket.id || room.gameSession || room.countdown || room.isHostless) return;
+    const pId = socket.sessionId || socket.id;
+    if (!room || room.host !== pId || room.gameSession || room.countdown || room.isHostless) return;
 
     const minPlayers = room.config.teamMode ? MIN_TEAM_PLAYERS : MIN_PLAYERS;
     if (room.players.length < minPlayers) {
@@ -554,40 +567,155 @@ function forceNextStep(roomId, playerId) {
 }
 
 function handleDisconnect(io, socket) {
+    const pId = socket.sessionId || socket.id;
     for (let code in rooms) {
         const room = rooms[code];
-        const wasInRoom = room.players.find(p => p.id === socket.id);
+        const wasInRoom = room.players.find(p => p.id === pId);
         if (!wasInRoom) continue;
 
-        room.players = room.players.filter(p => p.id !== socket.id);
-        room.teams   = pruneTeams(room.teams, room.players);
+        wasInRoom.disconnected = true;
 
-        if (room.players.length === 0) {
-            if (room.isPermanent) {
-                // Recreate the lobby skeleton instead of deleting it
-                room.gameSession = null;
-                room.countdown   = null;
-                room.votes       = {};
-                room.teams       = {};
-                room.host        = null;
-            } else {
-                delete rooms[code];
+        wasInRoom.disconnectTimer = setTimeout(() => {
+            if (!rooms[code]) return;
+            const p = rooms[code].players.find(p => p.id === pId);
+            if (!p || !p.disconnected) return; // They reconnected!
+
+            room.players = room.players.filter(p => p.id !== pId);
+            room.teams   = pruneTeams(room.teams, room.players);
+
+            if (room.players.length === 0) {
+                if (room.isPermanent) {
+                    room.gameSession = null;
+                    room.countdown   = null;
+                    room.votes       = {};
+                    room.teams       = {};
+                    room.host        = null;
+                } else {
+                    delete rooms[code];
+                }
+                return;
             }
-            continue;
-        }
 
-        if (room.gameSession) {
-            room.gameSession.removePlayer(socket.id);
-        }
+            if (room.gameSession) {
+                room.gameSession.removePlayer(pId);
+            }
 
-        if (room.host === socket.id) {
-            const newHost = room.players[0];
-            room.host = newHost.id;
-            io.to(code).emit('host_changed', { newHostId: newHost.id, newHostName: newHost.name });
-        }
+            if (room.host === pId) {
+                const newHost = room.players[0];
+                room.host = newHost.id;
+                io.to(code).emit('host_changed', { newHostId: newHost.id, newHostName: newHost.name });
+            }
 
-        const safePlayers = safePlayerList(room.players);
-        io.to(code).emit('player_joined', { players: safePlayers, teams: room.teams });
+            const safePlayers = safePlayerList(room.players);
+            io.to(code).emit('player_joined', { players: safePlayers, teams: room.teams });
+        }, 30000); // 30 second grace period
+    }
+}
+
+function rejoinRoom(io, socket, roomCode, sessionId) {
+    const room = rooms[roomCode];
+    if (!room) {
+        socket.emit('room_error', { message: 'Room no longer exists.' });
+        return;
+    }
+
+    const player = room.players.find(p => p.id === sessionId);
+    if (!player) {
+        socket.emit('room_error', { message: 'Player not found in room.' });
+        return;
+    }
+
+    if (player.disconnectTimer) {
+        clearTimeout(player.disconnectTimer);
+        player.disconnectTimer = null;
+    }
+    
+    player.disconnected = false;
+    player.socket = socket;
+    socket.sessionId = sessionId;
+    
+    socket.join(roomCode);
+    
+    const safePlayers = safePlayerList(room.players);
+    socket.emit('joined_room', {
+        roomCode,
+        players: safePlayers,
+        host:    !room.isHostless && room.host === sessionId,
+        config:  room.config,
+        teams:   room.teams,
+        isPublic: room.isPublic,
+        isHostless: room.isHostless || false,
+    });
+    
+    if (room.gameSession) {
+        const gs = room.gameSession;
+        
+        if (gs.isGameOver) {
+            const playerNames = {};
+            const playerAvatars = {};
+            const playerFrames = {};
+            gs.players.forEach(p => { playerNames[p.id] = p.name; playerAvatars[p.id] = p.avatar; playerFrames[p.id] = p.frame; });
+            socket.emit('game_over', {
+                scores:       gs.scores,
+                teams:        gs.teams,
+                teamScores:   gs.teamScores,
+                playerNames,
+                playerAvatars,
+                playerFrames,
+                isPublic:     gs.config.isPublic || false,
+                roomCode,
+            });
+        } else {
+            socket.emit('game_started', {
+                players: safePlayers,
+                teams: room.teams
+            });
+            
+            if (gs.timeline) {
+                // Return them to ResultsScreen
+                const playerNames = {};
+                const playerAvatars = {};
+                const playerFrames = {};
+                gs.players.forEach(p => { 
+                    playerNames[p.id] = p.name; 
+                    playerAvatars[p.id] = p.avatar;
+                    playerFrames[p.id] = p.frame;
+                });
+                
+                socket.emit('round_ended', {
+                    timeline:     gs.timeline,
+                    playerWords:  gs.lastWordSnapshot || {},
+                    groups:       gs.lastGroups || [],
+                    roundType:    gs.currentRoundType(),
+                    wordsPerRound: gs.config.wordsPerRound,
+                    scoreUpdates: gs.lastScoreUpdates || {},
+                    newScores:    gs.scores,
+                    playerNames:  playerNames,
+                    playerAvatars: playerAvatars,
+                    playerFrames: playerFrames,
+                    teams:        gs.teams,
+                    teamScores:   gs.teamScores,
+                    rejectedWords: gs.lastRejectedWords || [], 
+                });
+                // Sync review step
+                socket.emit('review_step_advanced', {
+                    step: gs.reviewCurrentStep
+                });
+                socket.emit('review_votes_updated', {
+                    votes: gs.reviewVotes ? gs.reviewVotes.size : 0,
+                    threshold: Math.floor(gs.players.length / 2) + 1
+                });
+            } else if (gs.currentRound > 0) {
+                 socket.emit('round_started', {
+                    roundNumber:   gs.currentRound,
+                    totalRounds:   gs.config.maxRounds,
+                    roundType:     gs.currentRoundType(),
+                    category:      gs.currentCategory,
+                    timeLimit:     gs.config.timeLimit,
+                    wordsPerRound: gs.config.wordsPerRound,
+                });
+            }
+        }
     }
 }
 
@@ -598,10 +726,12 @@ function submitVote(io, socket, roomCode, packId) {
     const validPacks = ['all', ...getPackNames()];
     if (!validPacks.includes(packId)) return;
 
-    // Check if player is in the room
-    if (!room.players.find(p => p.id === socket.id)) return;
+    const pId = socket.sessionId || socket.id;
 
-    room.votes[socket.id] = packId;
+    // Check if player is in the room
+    if (!room.players.find(p => p.id === pId)) return;
+
+    room.votes[pId] = packId;
     
     // Broadcast live vote counts
     const tallies = {};
@@ -616,6 +746,7 @@ module.exports = {
     createRoom,
     findOrCreatePublicRoom,
     joinRoom,
+    rejoinRoom,
     updateConfig,
     updateTeams,
     kickPlayer,

@@ -115,6 +115,10 @@ io.on('connection', (socket) => {
         roomManager.createRoom(io, socket, playerData);
     });
 
+    socket.on('rejoin_room', ({ roomCode, sessionId }) => {
+        roomManager.rejoinRoom(io, socket, roomCode, sessionId);
+    });
+
 
     socket.on('join_room', ({ roomCode, playerData }) => {
         roomManager.joinRoom(io, socket, roomCode, playerData);
@@ -198,7 +202,8 @@ io.on('connection', (socket) => {
     // Gameplay actions
     socket.on('submit_word', ({ roomId, word }) => {
         if (typeof word !== 'string') return;
-        roomManager.submitWord(roomId, socket.id, word.trim().substring(0, 50));
+        const pId = socket.sessionId || socket.id;
+        roomManager.submitWord(roomId, pId, word.trim().substring(0, 50));
     });
 
     socket.on('submit_vote', ({ roomCode, packId }) => {
@@ -206,11 +211,13 @@ io.on('connection', (socket) => {
     });
 
     socket.on('vote_next_step', ({ roomId }) => {
-        roomManager.voteNextStep(roomId, socket.id);
+        const pId = socket.sessionId || socket.id;
+        roomManager.voteNextStep(roomId, pId);
     });
 
     socket.on('force_next_step', ({ roomId }) => {
-        roomManager.forceNextStep(roomId, socket.id);
+        const pId = socket.sessionId || socket.id;
+        roomManager.forceNextStep(roomId, pId);
     });
 
     socket.on('send_reaction', ({ roomId, reactionId, senderName }) => {

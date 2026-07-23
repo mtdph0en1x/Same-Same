@@ -379,6 +379,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
   const handleKick      = (targetId) => socket.emit('kick_player', { roomCode, targetId });
   const handleLeave = () => {
     socket.emit('leave_room', { roomCode });
+    setRoomCode(null);
     setScreen('Home');
   };
 

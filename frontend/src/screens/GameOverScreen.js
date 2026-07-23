@@ -57,7 +57,7 @@ function PodiumPlayer({ player, rank, avatars, names, frames, delay, displayScor
   );
 }
 
-export default function GameOverScreen({ gameResults, roomCode, isHost, players = [] }) {
+export default function GameOverScreen({ gameResults, roomCode, isHost, players = [], setScreen, setRoomCode, sessionId }) {
   const { t } = useTranslation();
   const { scores = {}, playerNames = {}, playerAvatars = {}, playerFrames = {}, teams, teamScores, isPublic } = gameResults;
 
@@ -143,14 +143,18 @@ export default function GameOverScreen({ gameResults, roomCode, isHost, players 
     );
   }
 
-  const myPlayer = players.find(p => p.id === socket.id);
+  const myPlayer = players.find(p => p.id === socket.id || p.id === sessionId);
   const handlePlayAgain = () => socket.emit('play_again', { roomCode });
-  const handleQuickPlay = () => socket.emit('quick_play', { name: myPlayer?.name || 'Player', avatar: myPlayer?.avatar, level: myPlayer?.level || 1 });
-  const handleLeave     = () => socket.emit('leave_room', { roomCode });
+  const handleQuickPlay = () => socket.emit('quick_play', { name: myPlayer?.name || 'Player', avatar: myPlayer?.avatar, level: myPlayer?.level || 1, sessionId: sessionId || socket.id });
+  const handleLeave     = () => {
+    socket.emit('leave_room', { roomCode });
+    setRoomCode(null);
+    setScreen('Home');
+  };
 
   return (
     <SafeAreaView style={s.safeArea}>
-      <ScrollView contentContainerStyle={[s.container, isDesktop && s.containerDesktop]}>
+      <ScrollView contentContainerStyle={[s.container, isDesktop && s.containerDesktop]} style={{ zIndex: 10, elevation: 10 }}>
 
         <AppText style={s.title}>{t('gameOver.title', 'Game Over!')}</AppText>
 
@@ -211,7 +215,7 @@ export default function GameOverScreen({ gameResults, roomCode, isHost, players 
       </ScrollView>
 
       {/* Confetti Celebration overlay */}
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <View style={[StyleSheet.absoluteFill, { zIndex: -1, elevation: -1 }]} pointerEvents="none">
         <ConfettiCannon
           count={250}
           origin={{ x: width / 2, y: -20 }}

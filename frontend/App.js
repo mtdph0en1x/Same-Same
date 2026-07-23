@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View, Text, TouchableOpacity, useWindowDimensions, ScrollView, Modal } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, useWindowDimensions, ScrollView, Modal, Linking } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, Fredoka_400Regular, Fredoka_500Medium, Fredoka_600SemiBold, Fredoka_700Bold } from '@expo-google-fonts/fredoka';
 import { Nunito_300Light, Nunito_400Regular, Nunito_500Medium, Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold, Nunito_900Black } from '@expo-google-fonts/nunito';
@@ -70,6 +71,46 @@ function AppContent() {
   const [gameResults, setGameResults] = useState(null);
   
   const [topPlayers, setTopPlayers] = useState([]);
+  const [sessionId, setSessionId] = useState(null);
+
+  useEffect(() => {
+    const initSession = async () => {
+      try {
+        let sid = await AsyncStorage.getItem('sessionId');
+        if (!sid) {
+          sid = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+          await AsyncStorage.setItem('sessionId', sid);
+        }
+        setSessionId(sid);
+        
+        const savedRoom = await AsyncStorage.getItem('activeRoomCode');
+        if (savedRoom) {
+          socket.connect();
+          socket.emit('rejoin_room', { roomCode: savedRoom, sessionId: sid });
+        }
+      } catch (e) {
+        console.error('Session init error:', e);
+      }
+    };
+    initSession();
+  }, []);
+
+  const handleSetRoomCode = async (code) => {
+    setRoomCode(code);
+    try {
+      if (code) {
+        await AsyncStorage.setItem('activeRoomCode', code);
+      } else {
+        await AsyncStorage.removeItem('activeRoomCode');
+      }
+    } catch (e) {
+      console.error('AsyncStorage error:', e);
+    }
+  };
+
+  const handleSetPlayerData = (data) => {
+    setPlayerData({ ...data, sessionId });
+  };
 
   useEffect(() => {
     // Fetch global top 4 players by XP
@@ -123,8 +164,13 @@ function AppContent() {
     });
     socket.on('force_lobby', (data) => {
       // Server pulled us back to the lobby (host pressed Play Again)
-      setRoomCode(data.roomCode);
-      setIsHost(data.host === socket.id);
+      handleSetRoomCode(data.roomCode);
+      
+      // Use AsyncStorage or a hack to check host to avoid stale closure
+      AsyncStorage.getItem('sessionId').then(sid => {
+         setIsHost(data.host === socket.id || data.host === sid);
+      });
+      
       setPlayers(data.players || []);
       setTeams(data.teams || null);
       setRoundResults(null);
@@ -134,14 +180,14 @@ function AppContent() {
     });
     socket.on('joined_room', (data) => {
       // Also handle quick_play joining a public room
-      setRoomCode(data.roomCode);
+      handleSetRoomCode(data.roomCode);
       setIsHost(data.host);
       setPlayers(data.players || []);
       setTeams(data.teams || null);
       setCurrentScreen('Lobby');
     });
     socket.on('room_created', (data) => {
-      setRoomCode(data.roomCode);
+      handleSetRoomCode(data.roomCode);
       setIsHost(true);
       setPlayers(data.players || []);
       setTeams(data.teams || null);
@@ -356,8 +402,8 @@ function AppContent() {
               {currentScreen === 'Home' && (
                 <HomeScreen
                   setScreen={setCurrentScreen}
-                  setRoomCode={setRoomCode}
-                  setPlayerData={setPlayerData}
+                  setRoomCode={handleSetRoomCode}
+                  setPlayerData={handleSetPlayerData}
                   setIsHost={setIsHost}
                   setLobbyIntent={setLobbyIntent}
                   setIsGuest={setIsGuest}
@@ -381,8 +427,8 @@ function AppContent() {
                   setScreen={setCurrentScreen}
                   getDisplayName={() => playerData?.name || user?.email?.split('@')[0] || guestName || 'Player'}
                   profileData={{ avatar: playerData?.avatar, level: playerData?.level }}
-                  setPlayerData={setPlayerData}
-                  setRoomCode={setRoomCode}
+                  setPlayerData={handleSetPlayerData}
+                  setRoomCode={handleSetRoomCode}
                   setIsHost={setIsHost}
                   setLobbyIntent={setLobbyIntent}
                 />
@@ -390,7 +436,7 @@ function AppContent() {
               {currentScreen === 'Lobby' && (
                 <LobbyScreen
                   roomCode={roomCode}
-                  setRoomCode={setRoomCode}
+                  setRoomCode={handleSetRoomCode}
                   isHost={isHost}
                   setIsHost={setIsHost}
                   lobbyIntent={lobbyIntent}
@@ -421,6 +467,9 @@ function AppContent() {
                   roomCode={roomCode}
                   isHost={isHost}
                   players={players}
+                  setScreen={setCurrentScreen}
+                  setRoomCode={handleSetRoomCode}
+                  sessionId={sessionId}
                 />
               )}
             </View>

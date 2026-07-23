@@ -56,6 +56,7 @@ class GameSession {
             const playerFrames = {};
             this.players.forEach(p => { playerNames[p.id] = p.name; playerAvatars[p.id] = p.avatar; playerFrames[p.id] = p.frame; });
 
+            this.isGameOver = true;
             this.io.to(this.roomId).emit('game_over', {
                 scores:       this.scores,
                 teams:        this.teams,
@@ -313,6 +314,10 @@ class GameSession {
         this.reviewVotes = new Set();
         this.reviewMaxSteps = Math.max(1, this.timeline.length);
         this.reviewCurrentStep = -1;
+        this.lastWordSnapshot = wordSnapshot;
+        this.lastGroups = groups;
+        this.lastScoreUpdates = scoreUpdates;
+        this.lastRejectedWords = rejectedWordsList;
 
         this.io.to(this.roomId).emit('round_ended', {
             timeline:     this.timeline,
