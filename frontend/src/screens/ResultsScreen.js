@@ -305,6 +305,7 @@ export default function ResultsScreen({ roundResults, roomCode, isHost, players 
             style={styles.boardScroll} 
             contentContainerStyle={styles.boardContent}
             scrollEnabled={step >= maxSteps || step === -1}
+            keyboardShouldPersistTaps="handled"
           >
             {step === -1 ? (
                 <View style={styles.centerCard}>

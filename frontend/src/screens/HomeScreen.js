@@ -218,7 +218,12 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
         </View>
       )}
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={{ flex: 1 }} 
+        contentContainerStyle={{ flexGrow: 1 }} 
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={[s.dualWindow, isDesktop && s.dualWindowDesktop, { flex: 1 }]}>
 
           {/* ── LEFT PANEL — Profile (ID Card) ── */}

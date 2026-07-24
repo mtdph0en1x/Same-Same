@@ -152,6 +152,10 @@ io.on('connection', (socket) => {
         roomManager.playAgain(io, socket, roomCode);
     });
 
+    socket.on('rematch_vote', ({ roomCode }) => {
+        roomManager.rematchVote(io, socket, roomCode);
+    });
+
     socket.on('get_available_packs', ({ lang = 'en' } = {}) => {
         const packs = getPackNames(lang);
         socket.emit('available_packs', { packs });

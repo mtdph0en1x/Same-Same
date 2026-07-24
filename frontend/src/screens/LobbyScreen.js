@@ -433,7 +433,11 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
       {/* Full-screen countdown for private or hosted public rooms */}
       {countdown !== null && (!isPublic || !isHostless) && <CountdownOverlay count={countdown} />}
 
-      <ScrollView contentContainerStyle={[styles.container, !isDesktop && { padding: 16 }, isDesktop && styles.containerDesktop]} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={[styles.container, !isDesktop && { padding: 16 }, isDesktop && styles.containerDesktop]} 
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
 
         {/* Unified Header */}
         <View style={[

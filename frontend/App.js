@@ -193,6 +193,13 @@ function AppContent() {
       setTeams(data.teams || null);
       setCurrentScreen('Lobby');
     });
+    socket.on('host_changed', (data) => {
+      AsyncStorage.getItem('sessionId').then(sid => {
+        if (data.newHostId === socket.id || data.newHostId === sid) {
+          setIsHost(true);
+        }
+      });
+    });
     return () => {
       socket.off('game_started');
       socket.off('room_update');
@@ -202,6 +209,7 @@ function AppContent() {
       socket.off('force_lobby');
       socket.off('joined_room');
       socket.off('room_created');
+      socket.off('host_changed');
     };
   }, []);
 

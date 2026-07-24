@@ -62,7 +62,19 @@ export default function GameOverScreen({ gameResults, roomCode, isHost, players 
   const { scores = {}, playerNames = {}, playerAvatars = {}, playerFrames = {}, teams, teamScores, isPublic } = gameResults;
 
   const [displayScores, setDisplayScores] = useState({});
+  const [rematchCount, setRematchCount] = useState(null);
+  const [hasVoted, setHasVoted] = useState(false);
   const hasTallied = useRef(false);
+
+  useEffect(() => {
+    socket.on('rematch_started', ({ count }) => setRematchCount(count));
+    socket.on('rematch_tick', ({ count }) => setRematchCount(count));
+    
+    return () => {
+      socket.off('rematch_started');
+      socket.off('rematch_tick');
+    };
+  }, []);
 
   useEffect(() => {
     if (hasTallied.current) return;
@@ -144,7 +156,14 @@ export default function GameOverScreen({ gameResults, roomCode, isHost, players 
   }
 
   const myPlayer = players.find(p => p.id === socket.id || p.id === sessionId);
-  const handlePlayAgain = () => socket.emit('play_again', { roomCode });
+  const handlePlayAgain = () => {
+    if (isPublic) {
+      socket.emit('rematch_vote', { roomCode });
+      setHasVoted(true);
+    } else {
+      socket.emit('play_again', { roomCode });
+    }
+  };
   const handleQuickPlay = () => socket.emit('quick_play', { name: myPlayer?.name || 'Player', avatar: myPlayer?.avatar, level: myPlayer?.level || 1, sessionId: sessionId || socket.id });
   const handleLeave     = () => {
     socket.emit('leave_room', { roomCode });
@@ -154,7 +173,11 @@ export default function GameOverScreen({ gameResults, roomCode, isHost, players 
 
   return (
     <SafeAreaView style={s.safeArea}>
-      <ScrollView contentContainerStyle={[s.container, isDesktop && s.containerDesktop]} style={{ zIndex: 10, elevation: 10 }}>
+      <ScrollView 
+        contentContainerStyle={[s.container, isDesktop && s.containerDesktop]} 
+        style={{ zIndex: 10, elevation: 10 }}
+        keyboardShouldPersistTaps="handled"
+      >
 
         <AppText style={s.title}>{t('gameOver.title', 'Game Over!')}</AppText>
 
@@ -190,8 +213,20 @@ export default function GameOverScreen({ gameResults, roomCode, isHost, players 
         {/* Controls */}
         <View style={s.controls}>
           {isPublic ? (
-            <NeoButton style={s.btnPrimary} onPress={handlePlayAgain}>
-              <AppText style={s.btnPrimaryText}>{t('gameOver.playAgainGroup', '🔄 Play Again with Group')}</AppText>
+            <NeoButton 
+              style={[s.btnPrimary, hasVoted && s.btnPrimaryVoted]} 
+              onPress={handlePlayAgain}
+              disabled={hasVoted}
+            >
+              <AppText style={s.btnPrimaryText}>
+                {hasVoted 
+                  ? (rematchCount !== null ? `✅ Ready! (${rematchCount}s)` : '✅ Ready!')
+                  : (rematchCount !== null 
+                      ? `🔄 Party Up! (${rematchCount}s)` 
+                      : t('gameOver.playAgainGroup', '🔄 Party Up with Group')
+                    )
+                }
+              </AppText>
             </NeoButton>
           ) : isHost ? (
             <NeoButton style={s.btnPrimary} onPress={handlePlayAgain}>
@@ -264,6 +299,7 @@ const s = StyleSheet.create({
   restScore:           { fontFamily: theme.fonts.headingBold, fontSize: 16, color: theme.colors.primary },
   controls:            { width: '100%', gap: 10, marginTop: 8 },
   btnPrimary:          { backgroundColor: theme.colors.primary, paddingVertical: 14, borderRadius: theme.borderRadius.md, borderWidth: 3, borderColor: '#000', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0 },
+  btnPrimaryVoted:     { backgroundColor: '#10B981' },
   btnPrimaryText:      { fontFamily: theme.fonts.headingBold, fontSize: 18, color: '#000' },
   btnSecondary:        { backgroundColor: '#fff', paddingVertical: 12, borderRadius: theme.borderRadius.md, borderWidth: 3, borderColor: '#000', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0 },
   btnSecondaryText:    { fontFamily: theme.fonts.headingBold, fontSize: 16, color: '#000' },

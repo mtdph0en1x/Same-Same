@@ -171,6 +171,16 @@ function createRoom(io, socket, playerData) {
 
 // ── Quick Play: find an open public lobby or create a new one ────────────────
 function findOrCreatePublicRoom(io, socket, playerData) {
+    const sessionId = playerData.sessionId || socket.id;
+    socket.sessionId = sessionId;
+
+    // Explicitly leave any existing rooms to prevent ghost duplication
+    for (const [code, r] of Object.entries(rooms)) {
+        if (r.players.some(p => p.id === sessionId)) {
+            leaveRoom(io, socket, code);
+        }
+    }
+
     // Find an existing public room that hasn't started and has room
     const openRoom = Object.entries(rooms).find(([code, room]) => {
         return room.isPublic &&
@@ -178,9 +188,6 @@ function findOrCreatePublicRoom(io, socket, playerData) {
                room.config.lang === (playerData.lang || 'en') &&
                room.players.length < MAX_PLAYERS;
     });
-
-    const sessionId = playerData.sessionId || socket.id;
-    socket.sessionId = sessionId;
 
     const player = {
         id: sessionId,
@@ -247,15 +254,14 @@ function findOrCreatePublicRoom(io, socket, playerData) {
     }
 }
 
-// ── Play Again: reset game session and return everyone to the lobby ────────────
 function playAgain(io, socket, roomCode) {
     const room = rooms[roomCode];
-    if (!room) return;
+    if (!room || room.isPublic) return; // Public rooms use rematchVote now
 
     const pId = socket.sessionId || socket.id;
-    if (!room.isHostless && room.host !== pId) return;
+    if (room.host !== pId) return;
 
-    // Clear game state
+    // Clear game state for private rooms
     if (room.gameSession) {
         room.gameSession = null;
     }
@@ -274,10 +280,149 @@ function playAgain(io, socket, roomCode) {
         teams: room.teams,
         isPublic: room.isPublic,
     });
+}
 
-    // For hostless public rooms, restart the countdown if enough players remain
-    if (room.isHostless && room.players.length >= MIN_PLAYERS) {
-        setTimeout(() => startPublicCountdown(io, roomCode), 2000);
+function rematchVote(io, socket, roomCode) {
+    const room = rooms[roomCode];
+    if (!room || !room.isPublic) return; // Only applies to Public rooms (Custom or Hostless)
+
+    // Ensure the game is actually over
+    if (!room.gameSession || !room.gameSession.isGameOver) return;
+
+    const pId = socket.sessionId || socket.id;
+    const player = room.players.find(p => p.id === pId);
+    if (!player) return;
+
+    if (!player.wantsRematch) {
+        player.wantsRematch = true;
+        
+        // If this is the FIRST vote, start the rematch countdown
+        if (!room.rematchCountdown) {
+            startRematchCountdown(io, roomCode);
+        }
+    }
+}
+
+function startRematchCountdown(io, roomCode) {
+    const room = rooms[roomCode];
+    if (!room) return;
+
+    let count = 15; // 15 seconds to party up
+    io.to(roomCode).emit('rematch_started', { count });
+
+    room.rematchCountdown = setInterval(() => {
+        if (!rooms[roomCode]) {
+            clearInterval(room.rematchCountdown);
+            return;
+        }
+
+        count--;
+        if (count > 0) {
+            io.to(roomCode).emit('rematch_tick', { count });
+        } else {
+            clearInterval(room.rematchCountdown);
+            room.rematchCountdown = null;
+            executeRematchTransition(io, roomCode);
+        }
+    }, 1000);
+}
+
+function executeRematchTransition(io, roomCode) {
+    const room = rooms[roomCode];
+    if (!room) return;
+
+    const readyPlayers = room.players.filter(p => p.wantsRematch);
+    const afkPlayers = room.players.filter(p => !p.wantsRematch);
+
+    // If nobody wanted to rematch (extremely rare if timer started), just wipe gameSession
+    if (readyPlayers.length === 0) {
+        room.gameSession = null;
+        return;
+    }
+
+    if (room.isHostless) {
+        // Party Up logic: move readyPlayers to a NEW Custom Public room
+        const hostPlayer = readyPlayers[0]; // first to vote gets host
+        const newCode = generateRoomCode();
+        
+        const newTeams = {};
+        readyPlayers.forEach(p => {
+            p.wantsRematch = false; // reset
+            newTeams[p.id] = assignTeam(newTeams);
+        });
+
+        rooms[newCode] = {
+            host: hostPlayer.id,
+            players: readyPlayers,
+            teams: newTeams,
+            gameSession: null,
+            countdown: null,
+            config: { ...room.config, isPublic: true },
+            isPublic: true,
+            isHostless: false, // Normal room!
+            votes: {}
+        };
+
+        // Transition players
+        readyPlayers.forEach(p => {
+            if (p.socket) {
+                p.socket.leave(roomCode);
+                p.socket.join(newCode);
+                
+                // Send them to lobby of NEW room
+                p.socket.emit('force_lobby', {
+                    roomCode: newCode,
+                    players: safePlayerList(rooms[newCode].players),
+                    host: rooms[newCode].host,
+                    config: rooms[newCode].config,
+                    teams: rooms[newCode].teams,
+                    isPublic: true,
+                });
+            }
+        });
+
+        // Remove readyPlayers from OLD room
+        room.players = afkPlayers;
+        room.teams = pruneTeams(room.teams, room.players);
+        
+        // If old room is permanent and empty, reset it. Otherwise it stays alive for AFK players to rot.
+        if (room.players.length === 0) {
+            if (room.isPermanent) {
+                room.gameSession = null;
+                room.host = null;
+            } else {
+                delete rooms[roomCode];
+            }
+        }
+
+    } else {
+        // Custom Public Lobby logic: Kick AFK players, keep room intact
+        afkPlayers.forEach(p => {
+            if (p.socket) {
+                p.socket.emit('kicked', { message: 'You were removed for inactivity.' });
+                p.socket.leave(roomCode);
+            }
+        });
+
+        room.players = readyPlayers;
+        room.players.forEach(p => p.wantsRematch = false); // reset
+        room.teams = pruneTeams(room.teams, room.players);
+        room.gameSession = null; // Wipe session
+
+        // Ensure host is still in the room. If host was AFK, pass host to first voter
+        const hostExists = room.players.find(p => p.id === room.host);
+        if (!hostExists) {
+            room.host = room.players[0].id;
+        }
+
+        io.to(roomCode).emit('force_lobby', {
+            roomCode,
+            players: safePlayerList(room.players),
+            host: room.host,
+            config: room.config,
+            teams: room.teams,
+            isPublic: true,
+        });
     }
 }
 
@@ -753,6 +898,7 @@ module.exports = {
     leaveRoom,
     startGame,
     playAgain,
+    rematchVote,
     submitWord,
     voteNextStep,
     forceNextStep,
