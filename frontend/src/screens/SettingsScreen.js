@@ -32,6 +32,7 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
   const [editName, setEditName] = useState('');
   const [nameError, setNameError] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [avatarMessage, setAvatarMessage] = useState('');
 
   useEffect(() => {
     fetchProfile();
@@ -119,32 +120,14 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
       const daysSince = (Date.now() - lastChange.getTime()) / (1000 * 60 * 60 * 24);
       if (daysSince < 7) {
         const daysLeft = Math.ceil(7 - daysSince);
-        const msg = t('settings.avatarLockedDesc', `You can only change your avatar once a week. Try again in ${daysLeft} days.`);
-        if (Platform.OS === 'web') {
-          window.alert(msg);
-        } else {
-          Alert.alert(t('settings.avatarLocked', 'Avatar Locked'), msg);
-        }
+        setAvatarMessage(t('settings.avatarLockedDesc', `Locked! Try again in ${daysLeft} days.`));
         return;
       }
     }
 
-    // 2. Warn them about the 7-day limit before they pick
-    const warnMsg = t('settings.avatarWarning', 'Choose wisely! You can only change your avatar once every 7 days. All images are scanned by AI.');
-    if (Platform.OS === 'web') {
-      if (window.confirm(warnMsg)) {
-        openImagePicker();
-      }
-    } else {
-      Alert.alert(
-        t('settings.changeAvatar', 'Change Avatar'),
-        warnMsg,
-        [
-          { text: t('common.cancel', 'Cancel'), style: 'cancel' },
-          { text: t('common.continue', 'Continue'), onPress: openImagePicker }
-        ]
-      );
-    }
+    // Clear any previous message and just open the picker directly (they are warned by the static UI text)
+    setAvatarMessage('');
+    openImagePicker();
   };
 
   const openImagePicker = async () => {
@@ -279,8 +262,8 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
                   <AppText style={{ fontSize: 14 }}>✏️</AppText>
                 </View>
               </NeoButton>
-              <AppText style={{ fontSize: 10, color: '#6B7280', fontFamily: theme.fonts.bodyBold, textAlign: 'center', maxWidth: 100 }}>
-                {t('settings.avatar7Days', 'Once every 7 days')}
+              <AppText style={{ fontSize: 10, color: avatarMessage ? '#EF4444' : '#6B7280', fontFamily: theme.fonts.bodyBold, textAlign: 'center', maxWidth: 100 }}>
+                {avatarMessage || t('settings.avatar7Days', 'Once every 7 days')}
               </AppText>
             </View>
             
