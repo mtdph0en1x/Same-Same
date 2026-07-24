@@ -9,8 +9,10 @@
 **Same Same?** is a real-time multiplayer word-association party game. Each round, players are shown a category and race to name as many matching words as they can within a time limit. Scoring depends on the round type — sometimes you want to think like everyone else, sometimes you want to be the odd one out.
 
 Live URLs:
-- **Frontend (Vercel):** deployed from `frontend/`
-- **Backend (Render):** deployed from `backend/`, port 3000 locally
+- **Live Game:** [https://www.same-same.fun/](https://www.same-same.fun/)
+- **Frontend:** Vercel (deployed from `frontend/`)
+- **Backend:** Render (deployed from `backend/`)
+- **Database/Auth:** Supabase
 
 ---
 
@@ -259,8 +261,10 @@ Before a commercial launch, the following features are prioritized to transition
 - **HomeScreen Refactor:** ✅ Consolidated all play options into a single, clean 'Play' panel, removing arbitrary Public/Private tabs. Standardized all action buttons with native subtext support.
 
 ### Layer 6 — Infrastructure & Launch ✅ Done
+- **Live Domain:** [https://www.same-same.fun/](https://www.same-same.fun/)
 - **Backend Scaling:** Deployed Node.js/Socket.io backend to Render.
 - **Frontend Hosting:** Deployed React Native Web frontend to Vercel.
+- **Database & Auth:** Supabase in production.
 
 ---
 

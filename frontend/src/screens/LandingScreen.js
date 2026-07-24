@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import AppText from '../components/AppText';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, SafeAreaView, Platform, useWindowDimensions, ScrollView, Image, Animated, PanResponder } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, SafeAreaView, Platform, useWindowDimensions, ScrollView, Image, Animated, PanResponder, Modal } from 'react-native';
 import NeoButton from '../components/NeoButton';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
@@ -10,10 +10,130 @@ import { useTranslation } from 'react-i18next';
 
 WebBrowser.maybeCompleteAuthSession();
 
+function langModal(visible, setVisible, i18n, t) {
+  const languages = [
+    { code: 'en', label: 'English', emoji: '🇬🇧' },
+    { code: 'es', label: 'Español', emoji: '🇪🇸' },
+    { code: 'ru', label: 'Русский', emoji: '🇷🇺' },
+    { code: 'uk', label: 'Українська', emoji: '🇺🇦' }
+  ];
+
+  return (
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={() => setVisible(false)}>
+      <View style={s.modalOverlay}>
+        <View style={s.modalContent}>
+          <NeoButton style={s.closeBtn} onPress={() => setVisible(false)}>
+            <AppText style={s.closeBtnText}>✕</AppText>
+          </NeoButton>
+          <AppText style={s.modalTitle}>{t('settings.language', 'Select Language')}</AppText>
+          <View style={{ gap: 12, marginTop: 10 }}>
+            {languages.map((l) => (
+              <NeoButton 
+                key={l.code}
+                style={[
+                  { padding: 16, borderRadius: theme.borderRadius.md, borderWidth: 3, borderColor: '#000', alignItems: 'center' },
+                  i18n.language.startsWith(l.code) ? { backgroundColor: theme.colors.primary } : { backgroundColor: '#f3f4f6' }
+                ]} 
+                onPress={() => {
+                  i18n.changeLanguage(l.code);
+                  setVisible(false);
+                }}
+              >
+                <AppText style={{ fontFamily: ['ru', 'uk'].includes(l.code) ? theme.fonts.headingBoldFallback : theme.fonts.headingBold, fontWeight: 'bold', fontSize: 18, color: '#000' }}>
+                  {l.emoji} {l.label}
+                </AppText>
+              </NeoButton>
+            ))}
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function RulesModal({ visible, setVisible, t, ruleSlide, setRuleSlide }) {
+  const rules = [
+    {
+      emoji: '📞',
+      title: t('landing.rule1_title', '1. CALLING IS BETTER'),
+      body: t('landing.rule1_body', 'Invite friends to voice chat (e.g. Discord, Zoom)')
+    },
+    {
+      emoji: '🤝',
+      title: t('landing.rule2_title', '2. JOIN TOGETHER'),
+      body: t('landing.rule2_body', 'Enter the same room code to play together')
+    },
+    {
+      emoji: '👯',
+      title: t('landing.rule3_title', '3. SAME SAME MODE'),
+      body: t('landing.rule3_body', 'Think alike! Write the exact same words as other players to score.')
+    },
+    {
+      emoji: '😈',
+      title: t('landing.rule4_title', '4. BUT DIFFERENT MODE'),
+      body: t('landing.rule4_body', 'Write unique words that nobody else thinks of to score!')
+    },
+    {
+      emoji: '⚡',
+      title: t('landing.rule5_title', '5. RUSH MODE'),
+      body: t('landing.rule5_body', 'A completely different random category for every single word!')
+    }
+  ];
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={() => setVisible(false)}>
+      <View style={[s.modalOverlay, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+        <View style={[s.modalContent, { backgroundColor: theme.colors.secondary, borderRadius: 24, paddingBottom: 24, borderWidth: 4, width: '100%', maxWidth: 450 }]}>
+          <NeoButton style={[s.closeBtn, { position: 'absolute', top: -16, right: -16, zIndex: 10 }]} onPress={() => setVisible(false)}>
+            <AppText style={s.closeBtnText}>✕</AppText>
+          </NeoButton>
+          
+          <AppText style={[s.rulesTitleMini, { textAlign: 'center', fontSize: 24, marginTop: 10 }]}>{t('landing.rulesTitle', 'HOW TO PLAY')}</AppText>
+          
+          <View style={[s.ruleSlideMini, { minHeight: 140, marginVertical: 24 }]}>
+            <Text style={[s.ruleEmojiMini, { fontSize: 64 }]}>{rules[ruleSlide].emoji}</Text>
+            <View style={s.ruleTextContainerMini}>
+              <AppText style={[s.ruleHeadlineMini, { fontSize: 22 }]}>{rules[ruleSlide].title}</AppText>
+              <AppText style={[s.ruleBodyMini, { fontSize: 16, lineHeight: 22 }]}>{rules[ruleSlide].body}</AppText>
+            </View>
+          </View>
+
+          <View style={s.paginationMini}>
+            <TouchableOpacity onPress={() => setRuleSlide(prev => (prev - 1 + rules.length) % rules.length)}>
+              <Text style={s.arrowMini}>◀</Text>
+            </TouchableOpacity>
+            
+            <View style={s.dotsContainerMini}>
+              {rules.map((_, i) => (
+                <View key={i} style={[s.dotMini, i === ruleSlide && s.activeDotMini]} />
+              ))}
+            </View>
+
+            <TouchableOpacity onPress={() => setRuleSlide(prev => (prev + 1) % rules.length)}>
+              <Text style={s.arrowMini}>▶</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('guest'); // 'guest' | 'auth'
+  const [ruleSlide, setRuleSlide] = useState(0);
+  const [langModalVisible, setLangModalVisible] = useState(false);
+  const [rulesModalVisible, setRulesModalVisible] = useState(false);
+
+  useEffect(() => {
+    if (!rulesModalVisible) return;
+    const interval = setInterval(() => {
+      setRuleSlide(prev => (prev + 1) % 5);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [rulesModalVisible]);
 
   const { width } = useWindowDimensions();
   const isDesktop = width > 800;
@@ -123,12 +243,9 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
         setNameError(data.error || t('landing.failedToValidateUsername'));
         return;
       }
-      // Note: we don't catch unique constraints here because guests aren't in Supabase profiles yet.
-      // But if we did, we'd handle it.
       setIsGuest(true);
     } catch (err) {
       console.warn('Username check failed:', err);
-      // Let them in if server check fails, or could block them
       setIsGuest(true);
     } finally {
       setLoading(false);
@@ -192,11 +309,20 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
                 <AppText style={[s.tabText, activeTab === 'guest' && s.activeTabText]}>{t('landing.visitorPassTab')}</AppText>
               </NeoButton>
               <NeoButton
-                style={[s.tab, activeTab === 'auth' && s.activeTab, { borderRightWidth: 0 }]}
+                style={[s.tab, activeTab === 'auth' && s.activeTab, isDesktop && { borderRightWidth: 0 }]}
                 onPress={() => goToTab('auth')}
               >
                 <AppText style={[s.tabText, activeTab === 'auth' && s.activeTabText]}>{t('landing.samesameidTab')}</AppText>
               </NeoButton>
+              {!isDesktop && (
+                <NeoButton 
+                  style={[s.tab, { flex: 0, paddingHorizontal: 12, backgroundColor: '#fff', borderRightWidth: 0, borderLeftWidth: 3, borderColor: '#000' }]} 
+                  onPress={() => setLangModalVisible(true)}
+                  activeOpacity={0.8}
+                >
+                  <AppText style={[s.tabText, { fontSize: 14, color: '#000' }]}>🌐 {(i18n.language || 'en').substring(0, 2).toUpperCase()}</AppText>
+                </NeoButton>
+              )}
             </View>
 
             {/* ── Swipeable content rail ─────────────────────────────── */}
@@ -223,7 +349,7 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
                           <AppText style={{ fontSize: 40 * tScale }}>👤</AppText>
                         </View>
                       </View>
-                      <View>
+                      <View style={{ width: '100%', alignItems: 'center' }}>
                         <TextInput
                           style={[s.input, { width: '85%', textAlign: 'center' }]}
                           onChangeText={(t) => { setGuestName(t); setNameError(''); }}
@@ -236,7 +362,7 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
                     </View>
                   </View>
                   {/* Guest bottom action */}
-                  <View style={{ height: 100, paddingHorizontal: 24, paddingVertical: 16, alignItems: 'center', justifyContent: 'center' }}>
+                  <View style={{ paddingHorizontal: 24, paddingVertical: 16, alignItems: 'center', gap: 12 }}>
                     <NeoButton
                       style={[s.guestBtn, { width: '100%', marginBottom: 0 }, loading && { opacity: 0.7 }]}
                       onPress={handleGuestLogin}
@@ -248,6 +374,11 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
                         <AppText style={[s.guestBtnText, { fontSize: 16 * tScale }]}>{t('landing.enterAsGuest')}</AppText>
                       )}
                     </NeoButton>
+                    <TouchableOpacity onPress={() => setRulesModalVisible(true)} style={{ paddingVertical: 8 }}>
+                      <AppText style={{ fontFamily: theme.fonts.headingBold, color: '#FCD34D', textDecorationLine: 'underline', fontSize: 18, letterSpacing: 2, textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 1 }}>
+                        {t('landing.howToPlay', 'HOW TO PLAY')}
+                      </AppText>
+                    </TouchableOpacity>
                   </View>
                 </View>
 
@@ -274,10 +405,15 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
                     </View>
                   </View>
                   {/* Auth bottom action */}
-                  <View style={{ height: 100, paddingHorizontal: 24, paddingVertical: 16, alignItems: 'center', justifyContent: 'center' }}>
-                    <AppText style={{ fontFamily: theme.fonts.bodyBold, fontSize: 11 * tScale, color: '#333', textAlign: 'center', paddingHorizontal: 10 }}>
+                  <View style={{ paddingHorizontal: 24, paddingVertical: 16, alignItems: 'center', gap: 12 }}>
+                    <AppText style={{ fontFamily: theme.fonts.bodyBold, fontSize: 11 * tScale, color: '#9CA3AF', textAlign: 'center', paddingHorizontal: 10 }}>
                       {t('landing.legalDisclaimer')}
                     </AppText>
+                    <TouchableOpacity onPress={() => setRulesModalVisible(true)} style={{ paddingVertical: 8 }}>
+                      <AppText style={{ fontFamily: theme.fonts.headingBold, color: '#FCD34D', textDecorationLine: 'underline', fontSize: 18, letterSpacing: 2, textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 1 }}>
+                        {t('landing.howToPlay', 'HOW TO PLAY')}
+                      </AppText>
+                    </TouchableOpacity>
                   </View>
                 </View>
 
@@ -286,12 +422,22 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
           </View>
 
 
-          {/* COLUMN 2: UPDATES */}
+          {/* COLUMN 2: UPDATES FEED */}
           {isDesktop && (
             <View style={[s.col, s.colNews, { backgroundColor: '#F3F4F6' }, { flex: 7 }]}>
-              <View style={[s.colHeader, { backgroundColor: theme.colors.accent }]}>
-                <AppText style={s.colTitle}>{t('landing.transmissions')}</AppText>
-                <AppText style={s.colSubtitle}>{t('landing.systemUpdates')}</AppText>
+              <View style={[s.colHeader, { backgroundColor: theme.colors.accent, position: 'relative' }]}>
+                <View>
+                  <AppText style={s.colTitle}>{t('landing.transmissions')}</AppText>
+                  <AppText style={s.colSubtitle}>{t('landing.systemUpdates')}</AppText>
+                </View>
+                <View style={{ position: 'absolute', right: 32, top: 24 }}>
+                  <NeoButton 
+                    style={{ backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 2, borderColor: '#000' }}
+                    onPress={() => setLangModalVisible(true)}
+                  >
+                    <AppText style={{ fontFamily: theme.fonts.headingBold, fontSize: 14, color: '#000' }}>🌐 {(i18n.language || 'en').substring(0, 2).toUpperCase()}</AppText>
+                  </NeoButton>
+                </View>
               </View>
               <View style={s.colNewsBody}>
                 
@@ -307,18 +453,14 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
                   <AppText style={s.newsBody}>{t('landing.news_server_body')}</AppText>
                 </View>
 
-                <View style={s.newsItem}>
-                  <AppText style={s.newsDate}>{t('landing.news_rules_date')}</AppText>
-                  <AppText style={s.newsHeadline}>{t('landing.news_rules_headline')}</AppText>
-                  <AppText style={s.newsBody}>{t('landing.news_rules_body')}</AppText>
-                </View>
-
               </View>
             </View>
           )}
 
         </View>
       </View>
+      {langModal(langModalVisible, setLangModalVisible, i18n, t)}
+      <RulesModal visible={rulesModalVisible} setVisible={setRulesModalVisible} t={t} ruleSlide={ruleSlide} setRuleSlide={setRuleSlide} />
     </SafeAreaView>
   );
 }
@@ -363,7 +505,7 @@ const s = StyleSheet.create({
     borderRightColor: '#000',
   },
   activeTab: {
-    backgroundColor: '#FBBF24', // Matching the ID card yellow
+    backgroundColor: '#FCD34D', // Matching the ID card yellow
   },
   tabText: {
     fontFamily: theme.fonts.headingBold,
@@ -378,7 +520,6 @@ const s = StyleSheet.create({
   colHeader: {
     paddingVertical: 24,
     paddingHorizontal: 32,
-    alignItems: 'center',
     borderBottomWidth: 4,
     borderBottomColor: '#000',
   },
@@ -411,11 +552,11 @@ const s = StyleSheet.create({
     position: 'relative',
     overflow: 'visible',
     backgroundColor: 'transparent',
-    marginBottom: 20, // Add some bottom spacing for the "By linking an account..." text
+    marginBottom: 0, 
   },
   idCardContent: {
     position: 'absolute',
-    top: '30%', left: 0, right: 0, bottom: 0,
+    top: '38%', left: 0, right: 0, bottom: 0,
     paddingHorizontal: '16%',
     alignItems: 'center',
   },
@@ -455,17 +596,21 @@ const s = StyleSheet.create({
     marginBottom: 4,
   },
   guestBtn: {
-    backgroundColor: '#000',
+    backgroundColor: '#FCD34D',
     padding: 18,
     alignItems: 'center',
     borderWidth: 3,
     borderColor: '#000',
     borderRadius: theme.borderRadius.md,
     marginBottom: '5%',
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
   },
   guestBtnText: {
     fontFamily: theme.fonts.headingBold,
-    color: '#fff',
+    color: '#000',
     letterSpacing: 1,
   },
 
@@ -558,5 +703,105 @@ const s = StyleSheet.create({
     fontSize: 14,
     color: '#333',
     lineHeight: 20,
+  },
+
+  // Rules Modal Styles
+  rulesTitleMini: {
+    fontFamily: theme.fonts.headingBold,
+    color: '#fff',
+    fontSize: 14,
+    letterSpacing: 2,
+    marginBottom: 16,
+    textTransform: 'uppercase',
+  },
+  ruleSlideMini: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    minHeight: 80,
+  },
+  ruleEmojiMini: {
+    fontSize: 40,
+    marginRight: 16,
+  },
+  ruleTextContainerMini: {
+    flex: 1,
+  },
+  ruleHeadlineMini: {
+    fontFamily: theme.fonts.headingBold,
+    color: '#fff',
+    fontSize: 18,
+    marginBottom: 4,
+  },
+  ruleBodyMini: {
+    fontFamily: theme.fonts.body,
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  paginationMini: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+  },
+  arrowMini: {
+    color: '#fff',
+    fontSize: 18,
+    padding: 10,
+    fontFamily: theme.fonts.headingBold,
+  },
+  dotsContainerMini: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  dotMini: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  activeDotMini: {
+    backgroundColor: '#fff',
+    width: 24,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    padding: theme.spacing.xl,
+    borderTopLeftRadius: theme.borderRadius.md,
+    borderTopRightRadius: theme.borderRadius.md,
+    paddingBottom: 40,
+    borderWidth: 3,
+    borderBottomWidth: 0,
+    borderColor: '#000',
+  },
+  closeBtn: {
+    alignSelf: 'flex-end',
+    padding: theme.spacing.sm,
+    backgroundColor: theme.colors.destructive,
+    borderWidth: 3,
+    borderColor: '#000',
+    borderRadius: theme.borderRadius.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+  },
+  closeBtnText: {
+    fontSize: 20,
+    color: '#000',
+    fontFamily: theme.fonts.headingBold,
+  },
+  modalTitle: {
+    fontFamily: theme.fonts.headingBold,
+    fontSize: 32,
+    color: '#000',
+    marginBottom: theme.spacing.lg,
+    textAlign: 'center',
   },
 });

@@ -260,6 +260,10 @@ class GameSession {
                             
                             // Resolve the group
                             timeline.push({ type: 'resolve_group', group, isMatch: group.playerIds.length > 1 });
+                        } else if (wordObj.text.trim()) {
+                            timeline.push({ type: 'reveal_word', playerId: p.id, wordIndex: i, text: wordObj.text.trim() });
+                            revealed.add(`${p.id}-${i}`);
+                            timeline.push({ type: 'resolve_group', group: { playerIds: [{ id: p.id, wordIndex: i }] }, isMatch: false });
                         }
                     }
                 }
@@ -285,6 +289,10 @@ class GameSession {
                             
                             // Resolve the group
                             timeline.push({ type: 'resolve_group', group, isMatch: group.playerIds.length > 1 });
+                        } else if (words[i] && words[i].text.trim()) {
+                            timeline.push({ type: 'reveal_word', playerId: p.id, wordIndex: i, text: words[i].text.trim() });
+                            revealed.add(`${p.id}-${i}`);
+                            timeline.push({ type: 'resolve_group', group: { playerIds: [{ id: p.id, wordIndex: i }] }, isMatch: false });
                         }
                     }
                 }

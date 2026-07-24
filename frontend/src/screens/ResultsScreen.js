@@ -20,10 +20,8 @@ const BoardCard = ({ cardInfo, isRevealed, isResolved, roundType, isDesktop }) =
     if (isRevealed && !hasAnimated.current) {
       hasAnimated.current = true;
       SoundManager.playSfx('woosh');
-      Animated.parallel([
-        Animated.spring(scale, { toValue: 1, friction: 6, useNativeDriver: false }),
-        Animated.spring(flip, { toValue: 180, friction: 8, tension: 40, useNativeDriver: false })
-      ]).start();
+      Animated.spring(scale, { toValue: 1, friction: 6, useNativeDriver: false }).start();
+      Animated.spring(flip, { toValue: 180, friction: 8, tension: 40, useNativeDriver: false }).start();
     }
   }, [isRevealed]);
 
@@ -175,6 +173,9 @@ export default function ResultsScreen({ roundResults, roomCode, isHost, players 
                         pointsStr = '0';
                     }
                 }
+            } else {
+                matchState = 'fail';
+                pointsStr = '0';
             }
         }
         

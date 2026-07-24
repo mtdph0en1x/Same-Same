@@ -1,6 +1,7 @@
 const natural = require('natural');
 const JaroWinklerDistance = natural.JaroWinklerDistance;
 const PorterStemmer = natural.PorterStemmer;
+const LevenshteinDistance = natural.LevenshteinDistance;
 const { supabase } = require('./supabase');
 
 // ---------------------------------------------------------------------------
@@ -117,7 +118,18 @@ function calculateScores(playerWords, roundType, modifiers = [], teams = null) {
             for (const g of groups) {
                 if (roundType === 'Blitz' && g.topicIndex !== i) continue;
 
-                const isMatch = modifiers.includes('Hardcore') ? (g.canonical.toLowerCase() === w.toLowerCase()) : (g.stem === stem || JaroWinklerDistance(g.canonical, w) > 0.85);
+                let isMatch = false;
+                if (modifiers.includes('Hardcore')) {
+                    isMatch = g.canonical.toLowerCase() === w.toLowerCase();
+                } else if (g.stem === stem) {
+                    isMatch = true;
+                } else {
+                    const maxLen = Math.max(g.canonical.length, w.length);
+                    const dist = LevenshteinDistance(g.canonical, w);
+                    const lr = 1 - (dist / maxLen);
+                    const jw = JaroWinklerDistance(g.canonical, w);
+                    isMatch = lr >= 0.8 || (jw > 0.85 && Math.abs(g.canonical.length - w.length) <= 2);
+                }
                 if (isMatch) {
                     // Only add this player once per group
                     if (!g.playerIds.find(p => p.id === playerId)) {

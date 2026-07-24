@@ -39,6 +39,18 @@ export default {
       news_rules_date: 'REGLAS RÁPIDAS',
       news_rules_headline: 'Cómo jugar',
       news_rules_body: '1. Responde a la indicación.\n2. Intenta coincidir con la mayoría.\n3. ¡Sobrevive el mayor tiempo posible!',
+      rulesTitle: 'CÓMO JUGAR',
+      howToPlay: 'CÓMO JUGAR',
+      rule1_title: '1. MEJOR LLAMAR',
+      rule1_body: 'Invita a tus amigos al chat de voz (ej. Discord, Zoom)',
+      rule2_title: '2. JUGAR JUNTOS',
+      rule2_body: 'Ingresa el mismo código de sala para jugar juntos',
+      rule3_title: '3. SAME SAME MODE',
+      rule3_body: '¡Piensa igual! Escribe las mismas palabras que los demás jugadores para puntuar.',
+      rule4_title: '4. BUT DIFFERENT MODE',
+      rule4_body: '¡Escribe palabras únicas que a nadie más se le ocurran para puntuar!',
+      rule5_title: '5. RUSH MODE',
+      rule5_body: '¡Una categoría aleatoria completamente diferente para cada palabra!',
     },
 
     // ── HomeScreen ────────────────────────────────────────────────────────────

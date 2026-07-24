@@ -1,5 +1,15 @@
 const GameSession = require('./gameSession');
 const { getPackNames } = require('./gameLogic');
+const leoProfanity = require('leo-profanity');
+
+function sanitizeName(name, defaultName = 'Guest') {
+    if (!name || typeof name !== 'string') return defaultName;
+    let cleanName = leoProfanity.clean(name).trim();
+    if (cleanName.length === 0 || /^\*+$/.test(cleanName)) {
+        return defaultName + '_' + Math.floor(Math.random() * 1000);
+    }
+    return cleanName.substring(0, 20);
+}
 
 const rooms = {};
 const MIN_PLAYERS      = 2;
@@ -137,6 +147,7 @@ function safePlayerList(players) {
 }
 
 function createRoom(io, socket, playerData) {
+    playerData.name = sanitizeName(playerData.name, 'Host');
     const roomCode = generateRoomCode();
     const sessionId = playerData.sessionId || socket.id;
     socket.sessionId = sessionId;
@@ -171,6 +182,7 @@ function createRoom(io, socket, playerData) {
 
 // ── Quick Play: find an open public lobby or create a new one ────────────────
 function findOrCreatePublicRoom(io, socket, playerData) {
+    playerData.name = sanitizeName(playerData.name, 'Player');
     const sessionId = playerData.sessionId || socket.id;
     socket.sessionId = sessionId;
 
@@ -485,6 +497,7 @@ function startPublicCountdown(io, roomCode) {
 }
 
 function joinRoom(io, socket, roomCode, playerData) {
+    playerData.name = sanitizeName(playerData.name, 'Player');
     const room = rooms[roomCode];
     if (!room) {
         socket.emit('room_error', { message: 'Room not found.' });

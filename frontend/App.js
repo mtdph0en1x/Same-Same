@@ -30,11 +30,10 @@ SplashScreen.preventAutoHideAsync();
 
 // ── Mock data for chrome ────────────────────────────────────────────────────
 const NEWS_ITEMS = [
-  '🎉 Couch Royale — new mode coming soon!',
-  '🏆 Weekend Tournament: Saturday 8 PM UTC',
-  '🐛 Fixed: lobby disconnect issues in 4v4',
-  '🎨 5 new avatars now unlocked for all players',
-  '🔥 New record: 5,218 concurrent players!',
+  '🎉 Welcome to Same Same? The Bluffing Party Game!',
+  '🌍 Join a public lobby to play with the world!',
+  '👑 Host a private room and invite your friends!',
+  '🔥 Try out the new Blitz mode for lightning-fast rounds!',
 ];
 const TOP_PLAYERS = [
   { rank: 1, name: 'AlienKing',   pts: '2,450', avatar: '👽' },
@@ -245,17 +244,6 @@ function AppContent() {
         <Text style={chrome.phLogo}>Same Same?</Text>
         <Text style={chrome.phTagline}>The Bluffing Party Game</Text>
       </View>
-
-      {isDesktop && (
-        <View style={chrome.phCenter}>
-          <View style={chrome.onlinePill}>
-            <View style={chrome.onlineDot} />
-            <Text style={chrome.onlineText}>3,241 online</Text>
-          </View>
-          <Text style={chrome.phSep}>·</Text>
-          <Text style={chrome.phStat}>287 active games</Text>
-        </View>
-      )}
 
       <Text style={chrome.phVersion}>v0.9 β</Text>
     </View>

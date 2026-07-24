@@ -39,6 +39,18 @@ export default {
       news_rules_date: 'QUICK RULES',
       news_rules_headline: 'How to play',
       news_rules_body: '1. Answer the prompt.\n2. Try to match the majority.\n3. Survive the longest!',
+      rulesTitle: 'HOW TO PLAY',
+      howToPlay: 'HOW TO PLAY',
+      rule1_title: '1. CALLING IS BETTER',
+      rule1_body: 'Invite friends to voice chat (e.g. Discord, Zoom)',
+      rule2_title: '2. JOIN TOGETHER',
+      rule2_body: 'Enter the same room code to play together',
+      rule3_title: '3. SAME SAME MODE',
+      rule3_body: 'Think alike! Write the exact same words as other players to score.',
+      rule4_title: '4. BUT DIFFERENT MODE',
+      rule4_body: 'Write unique words that nobody else thinks of to score!',
+      rule5_title: '5. RUSH MODE',
+      rule5_body: 'A completely different random category for every single word!',
     },
 
     // ── HomeScreen ────────────────────────────────────────────────────────────
