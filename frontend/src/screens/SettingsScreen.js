@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 import AppText from '../components/AppText';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, TextInput, Alert, useWindowDimensions } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, TextInput, Alert, useWindowDimensions, Platform } from 'react-native';
 import NeoButton from '../components/NeoButton';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
@@ -119,23 +119,32 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
       const daysSince = (Date.now() - lastChange.getTime()) / (1000 * 60 * 60 * 24);
       if (daysSince < 7) {
         const daysLeft = Math.ceil(7 - daysSince);
-        Alert.alert(
-          t('settings.avatarLocked', 'Avatar Locked'),
-          t('settings.avatarLockedDesc', `You can only change your avatar once a week. Try again in ${daysLeft} days.`)
-        );
+        const msg = t('settings.avatarLockedDesc', `You can only change your avatar once a week. Try again in ${daysLeft} days.`);
+        if (Platform.OS === 'web') {
+          window.alert(msg);
+        } else {
+          Alert.alert(t('settings.avatarLocked', 'Avatar Locked'), msg);
+        }
         return;
       }
     }
 
     // 2. Warn them about the 7-day limit before they pick
-    Alert.alert(
-      t('settings.changeAvatar', 'Change Avatar'),
-      t('settings.avatarWarning', 'Choose wisely! You can only change your avatar once every 7 days. All images are scanned by AI.'),
-      [
-        { text: t('common.cancel', 'Cancel'), style: 'cancel' },
-        { text: t('common.continue', 'Continue'), onPress: openImagePicker }
-      ]
-    );
+    const warnMsg = t('settings.avatarWarning', 'Choose wisely! You can only change your avatar once every 7 days. All images are scanned by AI.');
+    if (Platform.OS === 'web') {
+      if (window.confirm(warnMsg)) {
+        openImagePicker();
+      }
+    } else {
+      Alert.alert(
+        t('settings.changeAvatar', 'Change Avatar'),
+        warnMsg,
+        [
+          { text: t('common.cancel', 'Cancel'), style: 'cancel' },
+          { text: t('common.continue', 'Continue'), onPress: openImagePicker }
+        ]
+      );
+    }
   };
 
   const openImagePicker = async () => {
@@ -257,18 +266,23 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
         {/* Identity & Level Progress */}
         <View style={[s.card, isSmall && { padding: 16 }]}>
           <View style={[s.identityRow, isSmall && { flexDirection: 'column', alignItems: 'center' }]}>
-            <NeoButton onPress={pickImage} style={{ position: 'relative' }}>
-              {isUploading ? (
-                <View style={{ width: 100, height: 100, borderRadius: 50, justifyContent: 'center', alignItems: 'center', backgroundColor: '#e5e7eb' }}>
-                  <ActivityIndicator size="large" color="#000" />
+            <View style={{ alignItems: 'center', gap: 8 }}>
+              <NeoButton onPress={pickImage} style={{ position: 'relative' }}>
+                {isUploading ? (
+                  <View style={{ width: 100, height: 100, borderRadius: 50, justifyContent: 'center', alignItems: 'center', backgroundColor: '#e5e7eb' }}>
+                    <ActivityIndicator size="large" color="#000" />
+                  </View>
+                ) : (
+                  <FramedAvatar url={avatar} fallbackName={username} frame={active_frame || 'none'} size={100} />
+                )}
+                <View style={{ position: 'absolute', bottom: -5, right: -5, backgroundColor: '#fff', borderRadius: 15, padding: 4, borderWidth: 2, borderColor: '#000' }}>
+                  <AppText style={{ fontSize: 14 }}>✏️</AppText>
                 </View>
-              ) : (
-                <FramedAvatar url={avatar} fallbackName={username} frame={active_frame || 'none'} size={100} />
-              )}
-              <View style={{ position: 'absolute', bottom: -5, right: -5, backgroundColor: '#fff', borderRadius: 15, padding: 4, borderWidth: 2, borderColor: '#000' }}>
-                <AppText style={{ fontSize: 14 }}>✏️</AppText>
-              </View>
-            </NeoButton>
+              </NeoButton>
+              <AppText style={{ fontSize: 10, color: '#6B7280', fontFamily: theme.fonts.bodyBold, textAlign: 'center', maxWidth: 100 }}>
+                {t('settings.avatar7Days', 'Once every 7 days')}
+              </AppText>
+            </View>
             
             <View style={[s.identityInfo, isSmall && { alignItems: 'center' }]}>
               {isEditingName ? (
