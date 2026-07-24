@@ -289,7 +289,7 @@ Before a commercial launch, the following features are prioritized to transition
 ## Testing & CI
 
 - **Backend Tests:** Run `npm test` in the `backend/` directory.
-  - **Unit Tests:** `gameLogic.test.js` covers scoring mechanics (solo/team variants, deduplication, fuzzy matches).
+  - **Unit Tests:** `gameLogic.test.js` covers scoring mechanics (deduplication, fuzzy matches). `roomManager.test.js` covers Quick Play isolation/duplication prevention and the Party Up system (AFK purging, host promotion, and room transitions).
   - **Integration Tests:** `integration.test.js` covers socket room lifecycle, configuration, player kicking, and full game round flows.
   - *Note:* The tests use lightweight CJS mocks for the `natural` library's ESM-only dependencies to avoid Babel compilation overhead, while retaining standard Jaro-Winkler logic.
 - **CI/CD:** GitHub Actions (`backend-tests.yml`) runs tests on every push. `mobile-build.yml` runs EAS builds for the app on tags.
