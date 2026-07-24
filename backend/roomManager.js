@@ -283,6 +283,10 @@ function playAgain(io, socket, roomCode) {
     }
     room.votes = {};
 
+    // Clean up any offline ghost players before returning to lobby
+    room.players = room.players.filter(p => !p.isOffline);
+    room.teams = pruneTeams(room.teams, room.players);
+
     // Broadcast lobby return to all connected players
     io.to(roomCode).emit('force_lobby', {
         roomCode,
@@ -738,35 +742,38 @@ function handleDisconnect(io, socket) {
             const p = rooms[code].players.find(p => p.id === pId);
             if (!p || !p.disconnected) return; // They reconnected!
 
-            room.players = room.players.filter(p => p.id !== pId);
-            room.teams   = pruneTeams(room.teams, room.players);
-
-            if (room.players.length === 0) {
-                if (room.isPermanent) {
-                    room.gameSession = null;
-                    room.countdown   = null;
-                    room.votes       = {};
-                    room.teams       = {};
-                    room.host        = null;
-                } else {
-                    delete rooms[code];
-                }
-                return;
-            }
-
             if (room.gameSession) {
-                room.gameSession.removePlayer(pId);
-            }
+                // Game is running! Mark them offline instead of kicking them.
+                p.isOffline = true;
+                room.gameSession.markPlayerOffline(pId);
+                io.to(code).emit('player_offline', { playerId: pId });
+            } else {
+                room.players = room.players.filter(p => p.id !== pId);
+                room.teams   = pruneTeams(room.teams, room.players);
 
-            if (room.host === pId) {
-                const newHost = room.players[0];
-                room.host = newHost.id;
-                io.to(code).emit('host_changed', { newHostId: newHost.id, newHostName: newHost.name });
-            }
+                if (room.players.length === 0) {
+                    if (room.isPermanent) {
+                        room.gameSession = null;
+                        room.countdown   = null;
+                        room.votes       = {};
+                        room.teams       = {};
+                        room.host        = null;
+                    } else {
+                        delete rooms[code];
+                    }
+                    return;
+                }
 
-            const safePlayers = safePlayerList(room.players);
-            io.to(code).emit('player_joined', { players: safePlayers, teams: room.teams });
-        }, 30000); // 30 second grace period
+                if (room.host === pId) {
+                    const newHost = room.players[0];
+                    room.host = newHost.id;
+                    io.to(code).emit('host_changed', { newHostId: newHost.id, newHostName: newHost.name });
+                }
+
+                const safePlayers = safePlayerList(room.players);
+                io.to(code).emit('player_joined', { players: safePlayers, teams: room.teams });
+            }
+        }, 120000); // 2 minute grace period
     }
 }
 
@@ -789,6 +796,7 @@ function rejoinRoom(io, socket, roomCode, sessionId) {
     }
     
     player.disconnected = false;
+    player.isOffline = false;
     player.socket = socket;
     socket.sessionId = sessionId;
     
@@ -807,6 +815,8 @@ function rejoinRoom(io, socket, roomCode, sessionId) {
     
     if (room.gameSession) {
         const gs = room.gameSession;
+        const gsPlayer = gs.players.find(p => p.id === sessionId);
+        if (gsPlayer) gsPlayer.isOffline = false;
         
         if (gs.isGameOver) {
             const playerNames = {};

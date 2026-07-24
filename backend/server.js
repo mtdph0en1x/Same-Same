@@ -63,6 +63,7 @@ const io = new Server(server, {
 const roomManager = require('./roomManager');
 const { supabase } = require('./supabase');
 const { loadTopics, getPackNames } = require('./gameLogic');
+const announcementsManager = require('./announcementsManager');
 
 // Socket Rate Limiter State
 const socketRateLimits = new Map();
@@ -100,6 +101,9 @@ io.use(async (socket, next) => {
 
 io.on('connection', (socket) => {
     console.log(`User connected: ${socket.id} (Auth: ${socket.userId || 'Guest'})`);
+
+    // Send latest announcements immediately
+    socket.emit('announcements_data', announcementsManager.getAnnouncements());
 
     // Global event rate limiter to drop spam
     socket.use(([event, ...args], next) => {
@@ -257,6 +261,7 @@ if (require.main === module) {
         try {
             await loadTopics();
             roomManager.seedDefaultLobbies();
+            announcementsManager.startAutoRefresh();
             
             const PORT = process.env.PORT || 3000;
             server.listen(PORT, () => {

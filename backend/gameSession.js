@@ -140,6 +140,17 @@ class GameSession {
         this.checkRoundEarlyEnd();
     }
 
+    markPlayerOffline(playerId) {
+        const player = this.players.find(p => p.id === playerId);
+        if (player) {
+            player.isOffline = true;
+        }
+        if (this.playerWords[playerId]) {
+            this.playerWords[playerId].done = true; // Skip them in the round timer
+        }
+        this.checkRoundEarlyEnd();
+    }
+
     checkRoundEarlyEnd() {
         // Only consider players who are still in the session
         const activeIds = new Set(this.players.map(p => p.id));

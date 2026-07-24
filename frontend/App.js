@@ -29,13 +29,7 @@ import './src/i18n';
 
 SplashScreen.preventAutoHideAsync();
 
-// ── Mock data for chrome ────────────────────────────────────────────────────
-const NEWS_ITEMS = [
-  '🎉 Welcome to Same Same? The Bluffing Party Game!',
-  '🌍 Join a public lobby to play with the world!',
-  '👑 Host a private room and invite your friends!',
-  '🔥 Try out the new Blitz mode for lightning-fast rounds!',
-];
+// Mock data for chrome has been replaced with Supabase data
 const TOP_PLAYERS = [
   { rank: 1, name: 'AlienKing',   pts: '2,450', avatar: '👽' },
   { rank: 2, name: 'RocketRacer', pts: '2,100', avatar: '🚀' },
@@ -77,6 +71,18 @@ function AppContent() {
   
   const [topPlayers, setTopPlayers] = useState([]);
   const [sessionId, setSessionId] = useState(null);
+
+  const [newsItems, setNewsItems] = useState([]);
+  const [transmissions, setTransmissions] = useState([]);
+
+  useEffect(() => {
+    const handleAnnouncements = (data) => {
+      setNewsItems(data.newsItems || []);
+      setTransmissions(data.transmissions || []);
+    };
+    socket.on('announcements_data', handleAnnouncements);
+    return () => socket.off('announcements_data', handleAnnouncements);
+  }, []);
 
   useEffect(() => {
     const initSession = async () => {
@@ -263,7 +269,7 @@ function AppContent() {
         <Text style={chrome.newsBadgeText}>📢</Text>
       </View>
       <Text style={chrome.newsText} numberOfLines={1}>
-        {NEWS_ITEMS.join('   ·   ')}
+        {newsItems.length > 0 ? newsItems.join('   ·   ') : 'Loading news...'}
       </Text>
     </View>
   );
@@ -414,7 +420,7 @@ function AppContent() {
                 />
               )}
               {currentScreen === 'Landing' && (
-                <LandingScreen setIsGuest={setIsGuest} guestName={guestName} setGuestName={setGuestName} />
+                <LandingScreen setIsGuest={setIsGuest} guestName={guestName} setGuestName={setGuestName} transmissions={transmissions} />
               )}
               {currentScreen === 'Settings' && (
                 <SettingsScreen

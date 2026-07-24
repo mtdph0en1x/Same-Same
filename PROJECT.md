@@ -431,6 +431,8 @@ We are actively migrating the frontend UI to use `react-i18next`.
 - **Social Banner:** Added a custom `banner.jpg` (1200x630) to the public folder for rich link unfurling.
 
 ### Bug Fixes & Polish
+- **Dynamic Announcements:** Migrated the hardcoded top News Bar and Transmissions feed to a new Supabase `announcements` table. To protect database quotas, the backend aggressively caches the table in memory (refreshing every 5 minutes) and instantly serves the cached array to connecting clients via the `announcements_data` socket event.
 - **"Play Again" Room Duplication Bug:** Fixed a critical issue where the host clicking "Play Again" from the GameOver screen would inadvertently trigger the creation of a *new* room, while guests rejoined the *old* room. The frontend now correctly registers a `"rejoin"` intent when forced back to the lobby by the server, keeping all players synced in the original room.
+- **Offline Player Ghosting:** Overhauled the disconnection logic to handle aggressive browser background-tab suspension (especially on iOS/PC). Instead of permanently kicking players after 30 seconds of inactivity during an active game, the server now waits 2 minutes and then marks them as "Offline" (Ghosts). The game skips waiting for their input, but their scores are preserved and they remain visible on the Leaderboard. If they wake their device, they seamlessly reconnect and drop right back into the active game.
 - **Moderation:** Integrated `leo-profanity` in the backend (`roomManager.js`) to automatically sanitize offensive usernames across multiple languages.
 - **Mock Testing:** Fixed broken jest mocks in `__mocks__/natural.js` by adding the missing `LevenshteinDistance` function.

@@ -119,7 +119,7 @@ function RulesModal({ visible, setVisible, t, ruleSlide, setRuleSlide }) {
   );
 }
 
-export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
+export default function LandingScreen({ setIsGuest, guestName, setGuestName, transmissions = [] }) {
   const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('guest'); // 'guest' | 'auth'
@@ -441,17 +441,18 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName }) {
               </View>
               <View style={s.colNewsBody}>
                 
-                <View style={s.newsItem}>
-                  <AppText style={s.newsDate}>{t('landing.news_v094_date')}</AppText>
-                  <AppText style={s.newsHeadline}>{t('landing.news_v094_headline')}</AppText>
-                  <AppText style={s.newsBody}>{t('landing.news_v094_body')}</AppText>
-                </View>
-
-                <View style={s.newsItem}>
-                  <AppText style={s.newsDate}>{t('landing.news_server_date')}</AppText>
-                  <AppText style={s.newsHeadline}>{t('landing.news_server_headline')}</AppText>
-                  <AppText style={s.newsBody}>{t('landing.news_server_body')}</AppText>
-                </View>
+                {transmissions.map((item) => (
+                  <View key={item.id} style={s.newsItem}>
+                    {item.dateLabel ? <AppText style={s.newsDate}>{item.dateLabel}</AppText> : null}
+                    <AppText style={s.newsHeadline}>{item.headline}</AppText>
+                    {item.body ? <AppText style={s.newsBody}>{item.body}</AppText> : null}
+                  </View>
+                ))}
+                {transmissions.length === 0 && (
+                  <View style={s.newsItem}>
+                    <AppText style={s.newsBody}>No new transmissions at this time.</AppText>
+                  </View>
+                )}
 
               </View>
             </View>
