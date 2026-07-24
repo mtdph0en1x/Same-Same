@@ -339,10 +339,10 @@ Options in rough order of effort:
 |---|---|---|
 | **Reactive / manual** | Add a "report" button → writes to a `reports` table → review via Supabase dashboard | Zero |
 | **`moderation_status` column** | Add `pending\|approved\|rejected` to `profiles`. Flagged avatars serve a placeholder until approved. | Low |
-| **AI scan on upload** | ✅ Client POSTs image to backend → backend checks 3-day rate limit → backend calls Google Vision SafeSearch → backend writes to Supabase Storage if clean, and instantly rejects if NSFW. | Medium |
+| **AI scan on upload (✅ IMPLEMENTED)** | Client POSTs image to backend → backend checks 7-day rate limit → backend calls Google Vision SafeSearch → backend writes to Supabase Storage if clean, and instantly rejects if NSFW. | Google Vision API: First 1,000 checks/month are FREE. After that, it is **$1.50 per 1,000 checks**. With a strict 7-day rate limit per user, this keeps costs highly predictable and manageable. |
 | **Preset avatars only** | Replace free upload with ~20 curated illustrated avatars baked into assets. Zero moderation needed. Fits the neobrutalist aesthetic well. | Medium (design) |
 
-Backend already has the Supabase service role key (`backend/supabase.js`), so an upload-proxy endpoint is the natural fit if going the AI route.
+Backend already has the Supabase service role key (`backend/supabase.js`), so an upload-proxy endpoint was implemented to handle the AI moderation route securely.
 
 ---
 
@@ -431,7 +431,7 @@ We are actively migrating the frontend UI to use `react-i18next`.
 - **Social Banner:** Added a custom `banner.jpg` (1200x630) to the public folder for rich link unfurling.
 
 ### Bug Fixes & Polish
-- **AI Avatar Auto-Moderation & Rate Limiting:** Integrated Google Cloud Vision SafeSearch to automatically reject NSFW avatar uploads (`adult`, `violence`, `racy`, etc.). Added a strict 3-day rate limit (`last_avatar_change` in Supabase) to prevent players from spamming the storage bucket and exhausting API quotas.
+- **AI Avatar Auto-Moderation & Rate Limiting:** Integrated Google Cloud Vision SafeSearch to automatically reject NSFW avatar uploads (`adult`, `violence`, `racy`, etc.). Added a strict 7-day rate limit (`last_avatar_change` in Supabase) to prevent players from spamming the storage bucket and exhausting the Google Vision API quotas.
 - **Dynamic Announcements:** Migrated the hardcoded top News Bar and Transmissions feed to a new Supabase `announcements` table. To protect database quotas, the backend aggressively caches the table in memory (refreshing every 5 minutes) and instantly serves the cached array to connecting clients via the `announcements_data` socket event.
 - **"Play Again" Room Duplication Bug:** Fixed a critical issue where the host clicking "Play Again" from the GameOver screen would inadvertently trigger the creation of a *new* room, while guests rejoined the *old* room. The frontend now correctly registers a `"rejoin"` intent when forced back to the lobby by the server, keeping all players synced in the original room.
 - **Offline Player Ghosting:** Overhauled the disconnection logic to handle aggressive browser background-tab suspension (especially on iOS/PC). Instead of permanently kicking players after 30 seconds of inactivity during an active game, the server now waits 2 minutes and then marks them as "Offline" (Ghosts). The game skips waiting for their input, but their scores are preserved and they remain visible on the Leaderboard. If they wake their device, they seamlessly reconnect and drop right back into the active game.
