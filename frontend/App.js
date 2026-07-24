@@ -170,6 +170,7 @@ function AppContent() {
     socket.on('force_lobby', (data) => {
       // Server pulled us back to the lobby (host pressed Play Again)
       handleSetRoomCode(data.roomCode);
+      setLobbyIntent('rejoin');
       
       // Use AsyncStorage or a hack to check host to avoid stale closure
       AsyncStorage.getItem('sessionId').then(sid => {

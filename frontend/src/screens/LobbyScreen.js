@@ -11,6 +11,7 @@ import { theme } from '../styles/theme';
 import FramedAvatar from '../components/FramedAvatar';
 import { usePostHog } from 'posthog-react-native';
 import SoundManager from '../utils/SoundManager';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const MIN_PLAYERS      = 2;
 const MIN_TEAM_PLAYERS = 4;
@@ -289,6 +290,10 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
       socket.emit('join_room', { roomCode, playerData });
     } else if (lobbyIntent === 'quick_play') {
       socket.emit('quick_play', playerData);
+    } else if (lobbyIntent === 'rejoin') {
+      AsyncStorage.getItem('sessionId').then(sid => {
+        socket.emit('rejoin_room', { roomCode, sessionId: sid || socket.id });
+      });
     }
 
 
