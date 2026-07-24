@@ -7,6 +7,9 @@ const rateLimit = require('express-rate-limit');
 
 const app = express();
 
+// Trust the first proxy (Render's load balancer) so express-rate-limit gets the correct client IP
+app.set('trust proxy', 1);
+
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS 
     ? process.env.ALLOWED_ORIGINS.split(',') 
     : ['http://localhost:8081', 'http://localhost:3000', 'https://same-same-one.vercel.app', 'https://same-same.fun', 'https://www.same-same.fun'];
