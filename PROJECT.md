@@ -214,7 +214,7 @@ Drop a new `.json` file in `backend/categories/`. The file must be a JSON array 
 ### Immediate Next Steps (Commercial Readiness)
 Before a commercial launch, the following features are prioritized to transition the game from a functioning beta to a polished product:
 1. **Topic / Content Engine (✅ Done):** Created a scalable way to serve diverse topics (e.g., via a Supabase `topics` table) to ensure high replayability. This system lays the groundwork for multi-language support.
-2. **Lightweight Cosmetics (✅ Done):** Since deep progression doesn't fit the party game genre, implemented a simple cosmetic system for players to stand out using unlockable/selectable **Profile Picture (PFP) Frames**.
+2. **Lightweight Cosmetics (✅ Done):** Since deep progression doesn't fit the party game genre, implemented a simple cosmetic system for players to stand out using unlockable/selectable **Profile Picture (PFP) Frames**. Fully wired up the `SettingsScreen` UI so players can equip their unlocked frames instantly.
 3. **"Juice" & Polish (✅ Done):** Enhanced the core loop with micro-animations, sound design (`SoundManager`), haptic feedback, and cinematic reveal animations to make the game feel premium.
 4. **Username Moderation & Safety (✅ Done):** Implemented a lightweight profanity filter on the backend for display names and custom room names to protect the public lobby experience.
 

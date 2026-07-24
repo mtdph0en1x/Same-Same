@@ -88,6 +88,30 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
     }
   };
 
+  const setFrame = async (frameName) => {
+    if (frameName === profile.active_frame) return;
+
+    // Optimistic UI update
+    setProfile({ ...profile, active_frame: frameName });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(()=>{});
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ active_frame: frameName })
+        .eq('id', user.id);
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+    } catch (err) {
+      console.error('Failed to equip frame:', err);
+      // Revert on error
+      setProfile({ ...profile, active_frame: profile.active_frame });
+      Alert.alert(t('settings.equipError', 'Failed to equip frame'), err.message);
+    }
+  };
+
   const pickImage = async () => {
     try {
       let result = await ImagePicker.launchImageLibraryAsync({

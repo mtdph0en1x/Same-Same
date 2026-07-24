@@ -73,7 +73,7 @@ app.post('/upload-avatar', avatarLimiter, async (req, res) => {
             return res.status(401).json({ error: 'Unauthorized.' });
         }
 
-        // 1. Rate Limit Check: Once every 3 days (approx. once a week logic)
+        // 1. Rate Limit Check: Once a week logic
         const { data: profile } = await supabase
             .from('profiles')
             .select('last_avatar_change')
@@ -83,8 +83,8 @@ app.post('/upload-avatar', avatarLimiter, async (req, res) => {
         if (profile?.last_avatar_change) {
             const lastChange = new Date(profile.last_avatar_change);
             const daysSince = (Date.now() - lastChange.getTime()) / (1000 * 60 * 60 * 24);
-            if (daysSince < 3) { // Hard limit: 3 days
-                return res.status(429).json({ error: 'You can only change your avatar once every 3 days.' });
+            if (daysSince < 7) { // Hard limit: 7 days
+                return res.status(429).json({ error: 'You can only change your avatar once a week.' });
             }
         }
 
