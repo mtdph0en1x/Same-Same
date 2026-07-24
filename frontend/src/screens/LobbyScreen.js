@@ -9,6 +9,7 @@ import NeoButton from '../components/NeoButton';
 import { socket } from '../socket';
 import { theme } from '../styles/theme';
 import FramedAvatar from '../components/FramedAvatar';
+import { usePostHog } from 'posthog-react-native';
 import SoundManager from '../utils/SoundManager';
 
 const MIN_PLAYERS      = 2;
@@ -211,6 +212,7 @@ const DEFAULT_CONFIG = {
 };
 
 export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, lobbyIntent, playerData, setScreen }) {
+  const posthog = usePostHog();
   const { t, i18n } = useTranslation();
   const [players, setPlayers]       = useState([]);
   const [status, setStatus]         = useState(t('lobby.connecting', 'Connecting...'));
@@ -375,7 +377,10 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
     };
   }, []);
 
-  const handleStartGame = () => socket.emit('start_game', { roomCode });
+  const handleStartGame = () => {
+    posthog.capture('Started Game', { room_code: roomCode, is_public: isPublic });
+    socket.emit('start_game', { roomCode });
+  };
   const handleKick      = (targetId) => socket.emit('kick_player', { roomCode, targetId });
   const handleLeave = () => {
     socket.emit('leave_room', { roomCode });

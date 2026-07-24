@@ -22,6 +22,7 @@ import { socket } from '../socket';
 import { useTranslation } from 'react-i18next';
 import Button from '../components/Button';
 import FramedAvatar from '../components/FramedAvatar';
+import { usePostHog } from 'posthog-react-native';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -99,6 +100,7 @@ function langModal(visible, setVisible, i18n, t) {
 // Main HomeScreen
 // ─────────────────────────────────────────────────────────────────────────────
 export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setIsHost, setLobbyIntent, setIsGuest, guestName }) {
+  const posthog = usePostHog();
   const { t, i18n } = useTranslation();
   const { user } = useContext(AuthContext);
   const [name, setName] = useState('');
@@ -157,6 +159,9 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
   const handleQuickPlay = () => {
     const displayName = getDisplayName();
     if (!displayName) return Alert.alert(t('home.nameRequired'), t('home.enterNameFirst'));
+    
+    posthog.capture('Clicked Quick Play', { has_account: !!user });
+    
     const playerData = { name: displayName, avatar: profileData?.avatar, level: profileData?.level || 1, frame: profileData?.active_frame || 'none', lang: (i18n.language || 'en').substring(0, 2) };
     setPlayerData(playerData);
     setIsHost(false);
@@ -167,6 +172,9 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
   const handleHostGame = () => {
     const displayName = getDisplayName();
     if (!displayName) return Alert.alert(t('home.nameRequired'), t('home.enterNameToContinue'));
+    
+    posthog.capture('Clicked Host Game', { has_account: !!user });
+    
     setPlayerData({ name: displayName, avatar: profileData?.avatar || 'alien', frame: profileData?.active_frame || 'none', lang: (i18n.language || 'en').substring(0, 2) });
     setIsHost(true);
     setLobbyIntent('host_game');
@@ -178,6 +186,9 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
     if (!displayName || !code || code.length < 4)
       return Alert.alert(t('home.oops'), t('home.enterValidCode'));
     setJoinModalVisible(false);
+    
+    posthog.capture('Clicked Join Game', { has_account: !!user, room_code: code.toUpperCase() });
+    
     setPlayerData({ name: displayName, avatar: profileData?.avatar || 'alien', frame: profileData?.active_frame || 'none', lang: (i18n.language || 'en').substring(0, 2) });
     setRoomCode(code.toUpperCase());
     setIsHost(false);

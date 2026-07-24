@@ -10,6 +10,7 @@ import { socket } from '../socket';
 import { theme } from '../styles/theme';
 import FramedAvatar from '../components/FramedAvatar';
 import SoundManager from '../utils/SoundManager';
+import { usePostHog } from 'posthog-react-native';
 
 const TEAM_COLORS = { A: '#E11D48', B: '#2563EB' };
 
@@ -32,6 +33,7 @@ function WordChip({ word }) {
 }
 
 export default function GameScreen({ roomCode, gameData, players, teams }) {
+  const posthog = usePostHog();
   const { t } = useTranslation();
   const [currentWord, setCurrentWord]       = useState('');
   const [submittedWords, setSubmittedWords] = useState([]);
@@ -86,6 +88,11 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
 
     if (next.length >= wordsPerRound) {
       setIsDone(true);
+      posthog.capture('Finished Round Words', { 
+        room_code: roomCode, 
+        round_number: gameData.roundNumber,
+        time_left: timeLeft
+      });
     } else {
       // Keep focus on input for fast typing
       setTimeout(() => inputRef.current?.focus(), 50);

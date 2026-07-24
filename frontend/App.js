@@ -24,6 +24,7 @@ import { socket } from './src/socket';
 import { theme } from './src/styles/theme';
 import { supabase } from './src/supabase';
 import SoundManager from './src/utils/SoundManager';
+import { PostHogProvider } from 'posthog-react-native';
 import './src/i18n';
 
 SplashScreen.preventAutoHideAsync();
@@ -44,9 +45,14 @@ const TOP_PLAYERS = [
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <PostHogProvider apiKey={process.env.EXPO_PUBLIC_POSTHOG_API_KEY || 'dummy_key'} options={{
+      host: process.env.EXPO_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
+      disabled: !process.env.EXPO_PUBLIC_POSTHOG_API_KEY,
+    }}>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </PostHogProvider>
   );
 }
 
