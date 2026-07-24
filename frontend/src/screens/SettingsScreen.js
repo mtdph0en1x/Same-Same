@@ -113,6 +113,32 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
   };
 
   const pickImage = async () => {
+    // 1. Check if they are locked out before even opening the picker
+    if (profile?.last_avatar_change) {
+      const lastChange = new Date(profile.last_avatar_change);
+      const daysSince = (Date.now() - lastChange.getTime()) / (1000 * 60 * 60 * 24);
+      if (daysSince < 7) {
+        const daysLeft = Math.ceil(7 - daysSince);
+        Alert.alert(
+          t('settings.avatarLocked', 'Avatar Locked'),
+          t('settings.avatarLockedDesc', `You can only change your avatar once a week. Try again in ${daysLeft} days.`)
+        );
+        return;
+      }
+    }
+
+    // 2. Warn them about the 7-day limit before they pick
+    Alert.alert(
+      t('settings.changeAvatar', 'Change Avatar'),
+      t('settings.avatarWarning', 'Choose wisely! You can only change your avatar once every 7 days. All images are scanned by AI.'),
+      [
+        { text: t('common.cancel', 'Cancel'), style: 'cancel' },
+        { text: t('common.continue', 'Continue'), onPress: openImagePicker }
+      ]
+    );
+  };
+
+  const openImagePicker = async () => {
     try {
       let result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -122,13 +148,13 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
         base64: true,
       });
 
-      if (!result.canceled) {
+      if (!result.canceled && result.assets && result.assets.length > 0) {
         setIsUploading(true);
         const base64 = result.assets[0].base64;
         const uri = result.assets[0].uri;
-        const extMatch = uri.match(/\.([a-zA-Z]+)$/);
+        
+        const extMatch = uri.match(/\.([a-zA-Z0-9]+)$/);
         const ext = extMatch ? extMatch[1] : 'jpeg';
-        const filePath = `${user.id}/avatar.${ext}`;
 
         // Get the Supabase session token to prove identity
         const { data: { session } } = await supabase.auth.getSession();
@@ -150,7 +176,12 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
           throw new Error(data.error || 'Failed to upload image.');
         }
 
-        setProfile({ ...profile, avatar: data.avatarUrl });
+        // Optimistically update the UI AND locally save the new timestamp so the frontend locks them out immediately
+        setProfile({ 
+          ...profile, 
+          avatar: data.avatarUrl,
+          last_avatar_change: new Date().toISOString()
+        });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(()=>{});
       }
     } catch (err) {
