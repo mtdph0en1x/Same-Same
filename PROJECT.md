@@ -213,10 +213,10 @@ Drop a new `.json` file in `backend/categories/`. The file must be a JSON array 
 
 ### Immediate Next Steps (Commercial Readiness)
 Before a commercial launch, the following features are prioritized to transition the game from a functioning beta to a polished product:
-1. **Topic / Content Engine:** Create a scalable way to serve diverse topics (e.g., via a Supabase `topics` table) to ensure high replayability. This system will also lay the groundwork for multi-language support.
-2. **Lightweight Cosmetics (Layer 4):** Since deep progression doesn't fit the party game genre, implement a simple cosmetic system for players to stand out. Specifically, add unlockable/selectable **Profile Picture (PFP) Frames** to reward engagement without feeling like a grind.
-3. **"Juice" & Polish (Layer 5):** Enhance the core loop with micro-animations and sound design. Add transitions between screens, countdown audio, and reveal animations to make the game feel premium.
-4. **Username Moderation & Safety:** Implement a lightweight profanity filter on the backend for display names and custom room names to protect the public lobby experience.
+1. **Topic / Content Engine (✅ Done):** Created a scalable way to serve diverse topics (e.g., via a Supabase `topics` table) to ensure high replayability. This system lays the groundwork for multi-language support.
+2. **Lightweight Cosmetics (✅ Done):** Since deep progression doesn't fit the party game genre, implemented a simple cosmetic system for players to stand out using unlockable/selectable **Profile Picture (PFP) Frames**.
+3. **"Juice" & Polish (✅ Done):** Enhanced the core loop with micro-animations, sound design (`SoundManager`), haptic feedback, and cinematic reveal animations to make the game feel premium.
+4. **Username Moderation & Safety (✅ Done):** Implemented a lightweight profanity filter on the backend for display names and custom room names to protect the public lobby experience.
 
 ### Layer 1 ✅ Done
 - Configurable couch lobbies (rounds, time, word count, round types, category pack)
@@ -339,7 +339,7 @@ Options in rough order of effort:
 |---|---|---|
 | **Reactive / manual** | Add a "report" button → writes to a `reports` table → review via Supabase dashboard | Zero |
 | **`moderation_status` column** | Add `pending\|approved\|rejected` to `profiles`. Flagged avatars serve a placeholder until approved. | Low |
-| **AI scan on upload** | Client POSTs image to backend → backend calls Sightengine (100 free/day) or Google Vision SafeSearch → backend writes URL to Supabase if clean | Medium |
+| **AI scan on upload** | ✅ Client POSTs image to backend → backend checks 3-day rate limit → backend calls Google Vision SafeSearch → backend writes to Supabase Storage if clean, and instantly rejects if NSFW. | Medium |
 | **Preset avatars only** | Replace free upload with ~20 curated illustrated avatars baked into assets. Zero moderation needed. Fits the neobrutalist aesthetic well. | Medium (design) |
 
 Backend already has the Supabase service role key (`backend/supabase.js`), so an upload-proxy endpoint is the natural fit if going the AI route.
@@ -431,6 +431,7 @@ We are actively migrating the frontend UI to use `react-i18next`.
 - **Social Banner:** Added a custom `banner.jpg` (1200x630) to the public folder for rich link unfurling.
 
 ### Bug Fixes & Polish
+- **AI Avatar Auto-Moderation & Rate Limiting:** Integrated Google Cloud Vision SafeSearch to automatically reject NSFW avatar uploads (`adult`, `violence`, `racy`, etc.). Added a strict 3-day rate limit (`last_avatar_change` in Supabase) to prevent players from spamming the storage bucket and exhausting API quotas.
 - **Dynamic Announcements:** Migrated the hardcoded top News Bar and Transmissions feed to a new Supabase `announcements` table. To protect database quotas, the backend aggressively caches the table in memory (refreshing every 5 minutes) and instantly serves the cached array to connecting clients via the `announcements_data` socket event.
 - **"Play Again" Room Duplication Bug:** Fixed a critical issue where the host clicking "Play Again" from the GameOver screen would inadvertently trigger the creation of a *new* room, while guests rejoined the *old* room. The frontend now correctly registers a `"rejoin"` intent when forced back to the lobby by the server, keeping all players synced in the original room.
 - **Offline Player Ghosting:** Overhauled the disconnection logic to handle aggressive browser background-tab suspension (especially on iOS/PC). Instead of permanently kicking players after 30 seconds of inactivity during an active game, the server now waits 2 minutes and then marks them as "Offline" (Ghosts). The game skips waiting for their input, but their scores are preserved and they remain visible on the Leaderboard. If they wake their device, they seamlessly reconnect and drop right back into the active game.

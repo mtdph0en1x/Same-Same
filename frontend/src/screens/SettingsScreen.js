@@ -106,29 +106,27 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
         const ext = extMatch ? extMatch[1] : 'jpeg';
         const filePath = `${user.id}/avatar.${ext}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(filePath, decode(base64), {
-            contentType: `image/${ext}`,
-            upsert: true
-          });
-        
-        if (uploadError) throw uploadError;
+        // Get the Supabase session token to prove identity
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Not authenticated');
 
-        const { data: publicUrlData } = supabase.storage
-          .from('avatars')
-          .getPublicUrl(filePath);
-        
-        const avatarUrl = publicUrlData.publicUrl + '?t=' + Date.now();
+        const res = await fetch(`${process.env.EXPO_PUBLIC_SERVER_URL || 'http://localhost:3000'}/upload-avatar`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            token: session.access_token,
+            base64Image: base64,
+            ext: ext
+          })
+        });
 
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ avatar: avatarUrl })
-          .eq('id', user.id);
+        const data = await res.json();
         
-        if (updateError) throw updateError;
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to upload image.');
+        }
 
-        setProfile({ ...profile, avatar: avatarUrl });
+        setProfile({ ...profile, avatar: data.avatarUrl });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(()=>{});
       }
     } catch (err) {

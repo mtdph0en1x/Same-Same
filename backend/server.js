@@ -12,7 +12,7 @@ const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
     : ['http://localhost:8081', 'http://localhost:3000', 'https://same-same-one.vercel.app', 'https://same-same.fun', 'https://www.same-same.fun'];
 
 app.use(cors({ origin: ALLOWED_ORIGINS }));
-app.use(express.json());
+app.use(express.json({ limit: '5mb' }));
 
 // Initialize profanity filter for English and Russian
 leoProfanity.loadDictionary('en');
@@ -50,6 +50,77 @@ app.post('/check-username', usernameLimiter, (req, res) => {
     }
     
     res.json({ success: true });
+});
+
+const { checkImageSafety } = require('./vision');
+
+// HTTP Rate limiter for avatar uploads (max 5 requests per hour to prevent API spam)
+const avatarLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 5,
+    message: { error: 'Too many upload attempts. Please try again later.' }
+});
+
+app.post('/upload-avatar', avatarLimiter, async (req, res) => {
+    const { token, base64Image, ext } = req.body;
+    if (!token || !base64Image) {
+        return res.status(400).json({ error: 'Missing token or image data.' });
+    }
+
+    try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        if (authError || !user) {
+            return res.status(401).json({ error: 'Unauthorized.' });
+        }
+
+        // 1. Rate Limit Check: Once every 3 days (approx. once a week logic)
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('last_avatar_change')
+            .eq('id', user.id)
+            .single();
+
+        if (profile?.last_avatar_change) {
+            const lastChange = new Date(profile.last_avatar_change);
+            const daysSince = (Date.now() - lastChange.getTime()) / (1000 * 60 * 60 * 24);
+            if (daysSince < 3) { // Hard limit: 3 days
+                return res.status(429).json({ error: 'You can only change your avatar once every 3 days.' });
+            }
+        }
+
+        // 2. Google Vision Auto-Moderation
+        const safetyResult = await checkImageSafety(base64Image);
+        if (!safetyResult.isSafe) {
+            return res.status(400).json({ error: safetyResult.reason });
+        }
+
+        // 3. Upload to Supabase Storage (Service Role bypasses RLS)
+        const filePath = `${user.id}/avatar.${ext || 'jpeg'}`;
+        const buffer = Buffer.from(base64Image, 'base64');
+        
+        const { error: uploadError } = await supabase.storage
+            .from('avatars')
+            .upload(filePath, buffer, {
+                contentType: `image/${ext || 'jpeg'}`,
+                upsert: true
+            });
+        
+        if (uploadError) throw uploadError;
+
+        // 4. Update Profile
+        const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
+        const avatarUrl = publicUrlData.publicUrl + '?t=' + Date.now();
+
+        await supabase.from('profiles').update({ 
+            avatar: avatarUrl,
+            last_avatar_change: new Date().toISOString()
+        }).eq('id', user.id);
+
+        res.json({ success: true, avatarUrl });
+    } catch (err) {
+        console.error('Avatar upload error:', err);
+        res.status(500).json({ error: 'Server error processing upload.' });
+    }
 });
 
 const server = http.createServer(app);
