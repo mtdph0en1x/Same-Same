@@ -197,11 +197,7 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
     setScreen('Landing');
   };
 
-  const setFrame = async (f) => {
-    if (!profile) return;
-    setProfile({ ...profile, active_frame: f });
-    await supabase.from('profiles').update({ active_frame: f }).eq('id', user.id);
-  };
+
 
   if (loading) {
     return (
