@@ -10,6 +10,7 @@ const mockIo = {
 const createMockSocket = (id) => ({
     id,
     join: jest.fn(),
+    leave: jest.fn(),
     emit: jest.fn()
 });
 
@@ -78,6 +79,126 @@ describe('roomManager', () => {
             expect(esRoom).toBeDefined();
             expect(esRoom.players.length).toBe(1);
             expect(esRoom.players[0].id).toBe('es1');
+        });
+
+        it('removes the player from any existing rooms before joining a new one', () => {
+            const socket = createMockSocket('ghost1');
+            
+            // Player joins a custom room first
+            roomManager.rooms['GHOST'] = {
+                players: [{ id: 'ghost1', name: 'Ghost' }],
+                host: 'ghost1',
+                teams: {},
+                isPublic: false
+            };
+            
+            // Player clicks Quick Play (this calls findOrCreatePublicRoom)
+            roomManager.findOrCreatePublicRoom(mockIo, socket, { name: 'Ghost', lang: 'en' });
+            
+            // The GHOST room becomes empty and should be deleted
+            expect(roomManager.rooms['GHOST']).toBeUndefined();
+            
+            // The player should now be in exactly ONE public room
+            const publicRooms = Object.values(roomManager.rooms).filter(r => r.isPublic);
+            expect(publicRooms.length).toBe(1);
+            expect(publicRooms[0].players[0].id).toBe('ghost1');
+        });
+    });
+
+    describe('Party Up Logic', () => {
+        beforeEach(() => {
+            jest.useFakeTimers();
+        });
+
+        afterEach(() => {
+            jest.useRealTimers();
+        });
+
+        it('Hostless Party Up: moves voters to a NEW custom public room and promotes host', () => {
+            // Setup a fake hostless public room (e.g., Quick Play) that just finished a game
+            roomManager.rooms['HOSTLESS'] = {
+                isPublic: true,
+                isHostless: true,
+                isPermanent: false,
+                players: [
+                    { id: 'p1', name: 'Voter 1', wantsRematch: false },
+                    { id: 'p2', name: 'Voter 2', wantsRematch: false },
+                    { id: 'p3', name: 'AFK Player', wantsRematch: false }
+                ],
+                teams: {},
+                config: { lang: 'en' },
+                gameSession: { isGameOver: true }
+            };
+
+            const socket1 = createMockSocket('p1');
+            const socket2 = createMockSocket('p2');
+
+            // P1 and P2 vote for a rematch. P3 goes AFK.
+            roomManager.rematchVote(mockIo, socket1, 'HOSTLESS');
+            roomManager.rematchVote(mockIo, socket2, 'HOSTLESS');
+
+            expect(roomManager.rooms['HOSTLESS'].rematchCountdown).toBeDefined();
+            expect(roomManager.rooms['HOSTLESS'].players.find(p => p.id === 'p1').wantsRematch).toBe(true);
+
+            // Fast forward 16 seconds to trigger executeRematchTransition
+            jest.advanceTimersByTime(16000);
+
+            // The original room should now ONLY contain the AFK player (or be deleted if it was temporary and empty, but it's not empty)
+            const oldRoom = roomManager.rooms['HOSTLESS'];
+            expect(oldRoom.players.length).toBe(1);
+            expect(oldRoom.players[0].id).toBe('p3');
+
+            // A new Custom Public room should have been created for P1 and P2
+            const newRooms = Object.values(roomManager.rooms).filter(r => r !== oldRoom);
+            expect(newRooms.length).toBe(1);
+            
+            const newRoom = newRooms[0];
+            expect(newRoom.isPublic).toBe(true);
+            expect(newRoom.isHostless).toBe(false); // It is a normal room now!
+            expect(newRoom.host).toBe('p1'); // First voter became host!
+            expect(newRoom.players.length).toBe(2);
+            expect(newRoom.players.map(p => p.id)).toContain('p1');
+            expect(newRoom.players.map(p => p.id)).toContain('p2');
+            
+            // Their votes should be reset
+            expect(newRoom.players[0].wantsRematch).toBe(false);
+        });
+
+        it('Custom Public Party Up: kicks AFK players and keeps voters in the SAME room', () => {
+            roomManager.rooms['CUSTOM'] = {
+                isPublic: true,
+                isHostless: false,
+                host: 'p1',
+                players: [
+                    { id: 'p1', name: 'Host Voter', wantsRematch: false },
+                    { id: 'p2', name: 'Guest Voter', wantsRematch: false },
+                    { id: 'p3', name: 'Guest AFK', wantsRematch: false }
+                ],
+                teams: {},
+                config: { lang: 'en' },
+                gameSession: { isGameOver: true }
+            };
+
+            const socket1 = createMockSocket('p1');
+            const socket2 = createMockSocket('p2');
+
+            // P1 and P2 vote for a rematch
+            roomManager.rematchVote(mockIo, socket1, 'CUSTOM');
+            roomManager.rematchVote(mockIo, socket2, 'CUSTOM');
+
+            // Fast forward timer
+            jest.advanceTimersByTime(16000);
+
+            // The original room should still exist
+            const room = roomManager.rooms['CUSTOM'];
+            expect(room).toBeDefined();
+
+            // The AFK player should be gone
+            expect(room.players.length).toBe(2);
+            expect(room.players.map(p => p.id)).not.toContain('p3');
+
+            // The host should still be p1
+            expect(room.host).toBe('p1');
         });
     });
 });
