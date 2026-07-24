@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useContext } from 'react';
+import ErrorBoundary from './src/components/ErrorBoundary';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View, Text, TouchableOpacity, useWindowDimensions, ScrollView, Modal, Linking } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -39,14 +40,16 @@ const TOP_PLAYERS = [
 
 export default function App() {
   return (
-    <PostHogProvider apiKey={process.env.EXPO_PUBLIC_POSTHOG_API_KEY || 'dummy_key'} options={{
-      host: process.env.EXPO_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
-      disabled: !process.env.EXPO_PUBLIC_POSTHOG_API_KEY,
-    }}>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </PostHogProvider>
+    <ErrorBoundary>
+      <PostHogProvider apiKey={process.env.EXPO_PUBLIC_POSTHOG_API_KEY || 'dummy_key'} options={{
+        host: process.env.EXPO_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
+        disabled: !process.env.EXPO_PUBLIC_POSTHOG_API_KEY,
+      }}>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </PostHogProvider>
+    </ErrorBoundary>
   );
 }
 
@@ -258,7 +261,7 @@ function AppContent() {
         <Text style={chrome.phTagline}>The Bluffing Party Game</Text>
       </View>
 
-      <Text style={chrome.phVersion}>v0.9 β</Text>
+      <Text style={chrome.phVersion}>v1.0</Text>
     </View>
   );
 
@@ -303,11 +306,11 @@ function AppContent() {
       <Text style={chrome.footerCopy}>© 2026 Same Same</Text>
       {isDesktop && (
         <View style={chrome.footerLinks}>
-          {['Terms', 'Privacy', 'Contact', 'Credits'].map(link => (
-            <TouchableOpacity key={link} onPress={() => { 
-              if (link === 'Credits') setCreditsVisible(true); 
+          {['Privacy', 'Contact', 'Credits'].map(link => (
+            <TouchableOpacity key={link} onPress={() => {
+              if (link === 'Credits') setCreditsVisible(true);
               else if (link === 'Contact') setContactVisible(true);
-              else if (link === 'Terms' || link === 'Privacy') alert(`${link} will be added before official launch.`);
+              else if (link === 'Privacy') Linking.openURL('https://www.same-same.fun/privacy');
             }}>
               <Text style={chrome.footerLink}>{link}</Text>
             </TouchableOpacity>
@@ -362,9 +365,9 @@ function AppContent() {
               
               <TouchableOpacity 
                 style={{ backgroundColor: '#fff', padding: 14, borderRadius: 12, borderWidth: 2, borderColor: '#000', width: '100%', alignItems: 'center', marginBottom: 12 }}
-                onPress={() => Linking.openURL('mailto:hello@samesamegame.com')}
+                onPress={() => Linking.openURL('mailto:samesamefun@gmail.com')}
               >
-                <Text style={{ fontFamily: 'Fredoka_600SemiBold', fontSize: 16 }}>✉️ hello@samesamegame.com</Text>
+                <Text style={{ fontFamily: 'Fredoka_600SemiBold', fontSize: 16 }}>✉️ samesamefun@gmail.com</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
@@ -390,7 +393,8 @@ function AppContent() {
           <View style={[
             styles.appWindow, 
             !isDesktop && { width: '100%', alignSelf: 'center', marginBottom: 10 },
-            { flexDirection: isDesktop ? 'row' : 'column' }
+            { flexDirection: isDesktop ? 'row' : 'column' },
+            ['Settings', 'GlobalLeaderboard', 'Landing'].includes(currentScreen) && { overflow: 'visible' },
           ]}>
             {/* Subtle inner pattern */}
             <View style={styles.appWindowPattern} pointerEvents="none" />
@@ -407,7 +411,7 @@ function AppContent() {
               )
             )}
             
-            <View style={[{ position: 'relative', overflow: 'hidden', flex: 1 }]}>
+            <View style={[{ position: 'relative', flex: 1, overflow: ['Settings', 'GlobalLeaderboard', 'Landing'].includes(currentScreen) ? 'visible' : 'hidden' }]}>
               {currentScreen === 'Home' && (
                 <HomeScreen
                   setScreen={setCurrentScreen}

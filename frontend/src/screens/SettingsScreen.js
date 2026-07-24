@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 import AppText from '../components/AppText';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, TextInput, Alert, useWindowDimensions, Platform } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, TextInput, Alert, useWindowDimensions, Platform, Linking } from 'react-native';
 import NeoButton from '../components/NeoButton';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
@@ -22,6 +22,8 @@ const UNLOCK_THRESHOLDS = [
 export default function SettingsScreen({ setScreen, setIsGuest }) {
   const { width } = useWindowDimensions();
   const isSmall = width < 400;
+  const isDesktop = width > 800;
+
 
   const { t, i18n } = useTranslation();
   const { user } = useContext(AuthContext);
@@ -191,6 +193,62 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
 
 
 
+  const AboutCard = (
+    <View style={[s.card, isSmall && { padding: 16 }]}>
+      <AppText style={[s.sectionTitle, isSmall && { textAlign: 'center' }]}>
+        {t('settings.aboutLegal', 'About & Legal')}
+      </AppText>
+
+      <TouchableOpacity
+        style={s.aboutRow}
+        onPress={() => Linking.openURL('https://www.same-same.fun/privacy')}
+        activeOpacity={0.7}
+      >
+        <AppText style={s.aboutRowIcon}>🔒</AppText>
+        <AppText style={s.aboutRowLabel}>{t('settings.privacyPolicy', 'Privacy Policy')}</AppText>
+        <AppText style={s.aboutRowChevron}>›</AppText>
+      </TouchableOpacity>
+
+      <View style={s.aboutDivider} />
+
+      <TouchableOpacity
+        style={s.aboutRow}
+        onPress={() => Linking.openURL('mailto:samesamefun@gmail.com')}
+        activeOpacity={0.7}
+      >
+        <AppText style={s.aboutRowIcon}>✉️</AppText>
+        <AppText style={s.aboutRowLabel}>{t('settings.contactUs', 'Contact Us')}</AppText>
+        <AppText style={s.aboutRowChevron}>›</AppText>
+      </TouchableOpacity>
+
+      <View style={s.aboutDivider} />
+
+      <TouchableOpacity
+        style={s.aboutRow}
+        onPress={() => Alert.alert(
+          'Audio Credits',
+          [
+            '• Ticking Clock — schmutz (CC0)',
+            '• Rejection Buzzer — Jacco18 (CC0)',
+            '• Stamp Thump — mpuffenbarger (CC0)',
+            '• Fanfare — plasterbrain (CC0)',
+            '• Card Woosh — florianreichelt (CC0)',
+            '• Match Correct — Gronkjaer (CC0)',
+            '• Score Tally — xtrgamr (CC-BY 4.0)',
+          ].join('\n'),
+          [{ text: 'Close', style: 'cancel' }]
+        )}
+        activeOpacity={0.7}
+      >
+        <AppText style={s.aboutRowIcon}>🎵</AppText>
+        <AppText style={s.aboutRowLabel}>{t('settings.audioCredits', 'Audio Credits')}</AppText>
+        <AppText style={s.aboutRowChevron}>›</AppText>
+      </TouchableOpacity>
+
+      <AppText style={s.aboutVersion}>Same Same? v1.0</AppText>
+    </View>
+  );
+
   if (loading) {
     return (
       <View style={[s.container, { justifyContent: 'center' }]}>
@@ -201,16 +259,19 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
 
   if (!profile) {
     return (
-      <View style={s.container}>
-        <AppText style={s.title}>{t('settings.guestTitle', 'Guest Profile')}</AppText>
-        <AppText style={s.desc}>{t('settings.guestDesc', 'Create an account to track stats and unlock frames!')}</AppText>
-        <NeoButton style={s.backBtn} onPress={() => setScreen('Home')}>
-          <AppText style={s.backBtnText}>{t('settings.backToHome', 'Back to Home')}</AppText>
-        </NeoButton>
-        <NeoButton style={s.logoutBtn} onPress={handleLogout}>
-          <AppText style={s.logoutBtnText}>{t('settings.signOutChangeName', 'Sign Out / Change Name')}</AppText>
-        </NeoButton>
-      </View>
+      <SafeAreaView style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={[s.container, { padding: isSmall ? theme.spacing.md : theme.spacing.xl }]}>
+          <NeoButton style={s.backBtn} onPress={() => setScreen('Home')}>
+            <AppText style={s.backBtnText}>{t('settings.backToHome', '← Back')}</AppText>
+          </NeoButton>
+          <AppText style={s.title}>{t('settings.guestTitle', 'Guest Profile')}</AppText>
+          <AppText style={s.desc}>{t('settings.guestDesc', 'Create an account to track stats and unlock frames!')}</AppText>
+          <NeoButton style={s.logoutBtn} onPress={handleLogout}>
+            <AppText style={s.logoutBtnText}>{t('settings.signOutChangeName', 'Sign Out / Change Name')}</AppText>
+          </NeoButton>
+          {!isDesktop && AboutCard}
+        </ScrollView>
+      </SafeAreaView>
     );
   }
 
@@ -349,6 +410,10 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
           </View>
         </View>
 
+        {/* About & Legal — mobile only (desktop has footer links) */}
+        {!isDesktop && AboutCard}
+
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -394,4 +459,11 @@ const s = StyleSheet.create({
   timelineLabelUnlocked: { color: '#111' },
   timelineStatusUnlocked: { fontFamily: theme.fonts.bodyBold, color: '#10B981', marginTop: 4 },
   timelineStatusLocked: { fontFamily: theme.fonts.bodyBold, color: '#9CA3AF', marginTop: 4 },
+
+  aboutRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, gap: 12 },
+  aboutRowIcon: { fontSize: 20, width: 28, textAlign: 'center' },
+  aboutRowLabel: { flex: 1, fontFamily: theme.fonts.bodyBold, fontSize: 16, color: '#111' },
+  aboutRowChevron: { fontFamily: theme.fonts.body, fontSize: 22, color: '#9CA3AF' },
+  aboutDivider: { height: 1, backgroundColor: '#E5E7EB', marginHorizontal: 4 },
+  aboutVersion: { marginTop: 16, textAlign: 'center', fontFamily: theme.fonts.body, fontSize: 13, color: '#9CA3AF' },
 });

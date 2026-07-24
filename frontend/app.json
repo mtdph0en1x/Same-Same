@@ -13,9 +13,11 @@
       "backgroundColor": "#FFF1F2"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "fun.same-same.app"
     },
     "android": {
+      "package": "fun.same_same.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",

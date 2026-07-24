@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — Same Same?</title>
+  <meta name="description" content="Privacy Policy for Same Same?, the real-time multiplayer word-association party game." />
+  <meta name="robots" content="index, follow" />
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: #f5e6d3;
+      background-image:
+        radial-gradient(circle at 15% 20%, rgba(255,182,100,0.25) 0%, transparent 40%),
+        radial-gradient(circle at 85% 75%, rgba(255,100,130,0.2) 0%, transparent 40%);
+      min-height: 100vh;
+      color: #1a1a1a;
+    }
+
+    /* ─── Header ─────────────────────────────────────── */
+    header {
+      background: rgba(0,0,0,0.85);
+      padding: 14px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid rgba(255,255,255,0.08);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .logo {
+      font-family: 'Fredoka', sans-serif;
+      font-weight: 700;
+      font-size: 26px;
+      color: #FBBF24;
+      text-shadow: 2px 2px 0 #000;
+      transform: rotate(-2deg);
+      display: inline-block;
+      text-decoration: none;
+    }
+
+    .back-btn {
+      font-family: 'Nunito', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.7);
+      text-decoration: none;
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 6px 16px;
+      border-radius: 20px;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .back-btn:hover {
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+    }
+
+    /* ─── Main card ───────────────────────────────────── */
+    main {
+      max-width: 780px;
+      margin: 48px auto 80px;
+      padding: 0 24px;
+    }
+
+    .card {
+      background: #FDFBF7;
+      border: 3px solid #1a1a1a;
+      border-radius: 16px;
+      box-shadow: 8px 8px 0 #1a1a1a;
+      padding: 48px 48px 56px;
+    }
+
+    @media (max-width: 600px) {
+      .card { padding: 28px 22px 36px; }
+      main  { margin: 24px auto 60px; }
+    }
+
+    /* ─── Typography ─────────────────────────────────── */
+    .page-label {
+      display: inline-block;
+      font-family: 'Fredoka', sans-serif;
+      font-weight: 600;
+      font-size: 13px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      background: #1a1a1a;
+      color: #FBBF24;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-family: 'Fredoka', sans-serif;
+      font-weight: 700;
+      font-size: 36px;
+      line-height: 1.15;
+      color: #1a1a1a;
+      margin-bottom: 8px;
+    }
+
+    .effective-date {
+      font-size: 13px;
+      color: #6b7280;
+      font-weight: 500;
+      margin-bottom: 36px;
+      padding-bottom: 28px;
+      border-bottom: 2px dashed #e5e7eb;
+    }
+
+    h2 {
+      font-family: 'Fredoka', sans-serif;
+      font-weight: 600;
+      font-size: 21px;
+      color: #1a1a1a;
+      margin: 36px 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h2 .icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: #FBBF24;
+      border: 2px solid #1a1a1a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+      box-shadow: 2px 2px 0 #1a1a1a;
+    }
+
+    p {
+      font-size: 15px;
+      line-height: 1.75;
+      color: #374151;
+      margin-bottom: 14px;
+    }
+
+    ul {
+      list-style: none;
+      margin: 0 0 14px 0;
+      padding: 0;
+    }
+
+    ul li {
+      font-size: 15px;
+      line-height: 1.7;
+      color: #374151;
+      padding: 4px 0 4px 22px;
+      position: relative;
+    }
+
+    ul li::before {
+      content: '→';
+      position: absolute;
+      left: 0;
+      color: #FBBF24;
+      font-weight: 700;
+    }
+
+    a {
+      color: #d97706;
+      font-weight: 600;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    a:hover { color: #92400e; }
+
+    .highlight-box {
+      background: #FEF3C7;
+      border: 2px solid #F59E0B;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin: 20px 0;
+      font-size: 14px;
+      color: #78350F;
+      line-height: 1.65;
+    }
+
+    .highlight-box strong { font-weight: 700; }
+
+    .divider {
+      border: none;
+      border-top: 2px dashed #e5e7eb;
+      margin: 8px 0 8px;
+    }
+
+    /* ─── Contact box ────────────────────────────────── */
+    .contact-box {
+      background: #1a1a1a;
+      border-radius: 12px;
+      padding: 24px 28px;
+      margin-top: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .contact-box p {
+      color: rgba(255,255,255,0.75);
+      font-size: 14px;
+      margin: 0;
+    }
+
+    .contact-box strong { color: #fff; }
+
+    .contact-link {
+      font-family: 'Fredoka', sans-serif;
+      font-weight: 600;
+      font-size: 16px;
+      background: #FBBF24;
+      color: #1a1a1a;
+      text-decoration: none;
+      padding: 10px 22px;
+      border-radius: 10px;
+      border: 2px solid #1a1a1a;
+      box-shadow: 3px 3px 0 #000;
+      transition: transform 0.15s, box-shadow 0.15s;
+      flex-shrink: 0;
+    }
+
+    .contact-link:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0 #000;
+      color: #1a1a1a;
+    }
+
+    /* ─── Footer ─────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 13px;
+      color: rgba(0,0,0,0.35);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a class="logo" href="https://www.same-same.fun/">Same Same?</a>
+    <a class="back-btn" href="https://www.same-same.fun/">← Back to Game</a>
+  </header>
+
+  <main>
+    <div class="card">
+
+      <span class="page-label">Legal</span>
+      <h1>Privacy Policy</h1>
+      <p class="effective-date">Effective date: July 2026 &nbsp;·&nbsp; Last updated: July 2026</p>
+
+      <p>
+        Same Same? ("<strong>we</strong>", "<strong>us</strong>", "<strong>our</strong>") is a real-time multiplayer word-association
+        party game available at <a href="https://www.same-same.fun/">same-same.fun</a>.
+        This Privacy Policy explains what information we collect when you play Same Same?, how we use it, and your rights.
+      </p>
+
+      <div class="highlight-box">
+        <strong>Short version:</strong> We collect only what's needed to run the game. We don't sell your data.
+        You can play as a guest with no account required.
+      </div>
+
+      <!-- ────────────────────────────────────── -->
+      <h2><span class="icon">📋</span> 1. Information We Collect</h2>
+
+      <p><strong>If you create an account</strong> (email/password or Google Sign-In):</p>
+      <ul>
+        <li>Your email address (used for login only)</li>
+        <li>Your chosen display name (username)</li>
+        <li>Your profile picture / avatar, if you upload one</li>
+        <li>Game statistics: games played, wins, win rate, XP level</li>
+      </ul>
+
+      <p><strong>If you play as a guest</strong>, we only collect:</p>
+      <ul>
+        <li>The display name you choose for the session (not stored after you leave)</li>
+      </ul>
+
+      <p><strong>Automatically, for all players:</strong></p>
+      <ul>
+        <li>Gameplay events (e.g. "joined a game", "started a game") sent to PostHog analytics — no personally identifiable information is attached to these events for guest players</li>
+        <li>Standard server logs (IP address, timestamp) generated by our hosting provider (Render)</li>
+      </ul>
+
+      <hr class="divider" />
+
+      <!-- ────────────────────────────────────── -->
+      <h2><span class="icon">🔧</span> 2. Third-Party Services</h2>
+      <p>We use the following third-party services to operate the game:</p>
+      <ul>
+        <li><strong>Supabase</strong> — database and authentication. Stores your profile, stats, and avatar. <a href="https://supabase.com/privacy" target="_blank" rel="noopener">Supabase Privacy Policy</a></li>
+        <li><strong>Google Sign-In (via Supabase Auth)</strong> — optional login method. We receive your email and display name from Google. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a></li>
+        <li><strong>Google Cloud Vision API</strong> — used to automatically scan profile pictures for inappropriate content before they are stored. Images are sent to Google for analysis and are not stored by Google after the check.</li>
+        <li><strong>Groq API</strong> — powers the in-game AI Judge that validates word submissions during play. Words you submit are sent to Groq for evaluation and are not stored.</li>
+        <li><strong>PostHog</strong> — product analytics. Tracks in-game events to help us understand how the game is played. No personally identifiable data is sent for guest sessions. <a href="https://posthog.com/privacy" target="_blank" rel="noopener">PostHog Privacy Policy</a></li>
+        <li><strong>Vercel</strong> — frontend hosting. <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener">Vercel Privacy Policy</a></li>
+        <li><strong>Render</strong> — backend hosting. <a href="https://render.com/privacy" target="_blank" rel="noopener">Render Privacy Policy</a></li>
+      </ul>
+
+      <hr class="divider" />
+
+      <!-- ────────────────────────────────────── -->
+      <h2><span class="icon">🎯</span> 3. How We Use Your Information</h2>
+      <ul>
+        <li>To identify you and save your game progress and statistics</li>
+        <li>To display your username and avatar to other players in shared lobbies</li>
+        <li>To moderate uploaded profile pictures for inappropriate content</li>
+        <li>To validate word submissions using the AI Judge</li>
+        <li>To understand how the game is played and improve it (analytics)</li>
+        <li>To filter usernames and room names for profanity</li>
+      </ul>
+
+      <p>We do <strong>not</strong> use your data for advertising, sell it to third parties, or share it with anyone except the services listed above.</p>
+
+      <hr class="divider" />
+
+      <!-- ────────────────────────────────────── -->
+      <h2><span class="icon">🖼️</span> 4. Profile Pictures (Avatars)</h2>
+      <p>
+        If you upload a profile picture, it is stored in Supabase Storage and displayed to other players in game lobbies.
+        Before storage, it is scanned by the <strong>Google Cloud Vision SafeSearch API</strong> to detect and reject
+        nudity, violence, or other inappropriate content. We enforce a rate limit of one avatar upload per 7 days per account.
+      </p>
+      <p>
+        You can delete your avatar at any time by updating your profile in Settings. If you delete your account, your avatar
+        is deleted from storage.
+      </p>
+
+      <hr class="divider" />
+
+      <!-- ────────────────────────────────────── -->
+      <h2><span class="icon">🗄️</span> 5. Data Retention</h2>
+      <ul>
+        <li>Account profiles and stats are retained for as long as your account exists</li>
+        <li>Game session data (room state, words submitted during a round) is held in memory only and deleted when the session ends — it is never written to the database</li>
+        <li>Server logs are retained according to Render's standard data retention policy</li>
+      </ul>
+
+      <hr class="divider" />
+
+      <!-- ────────────────────────────────────── -->
+      <h2><span class="icon">🌍</span> 6. International Transfers</h2>
+      <p>
+        Same Same? is operated from the EU. Our third-party providers (Supabase, Google, Render, Vercel, Groq, PostHog)
+        may process data in the United States or other countries. Where required, these providers operate under appropriate
+        data transfer mechanisms (e.g. Standard Contractual Clauses).
+      </p>
+
+      <hr class="divider" />
+
+      <!-- ────────────────────────────────────── -->
+      <h2><span class="icon">⚖️</span> 7. Your Rights (GDPR)</h2>
+      <p>If you are located in the EU/EEA, you have the right to:</p>
+      <ul>
+        <li><strong>Access</strong> — request a copy of the personal data we hold about you</li>
+        <li><strong>Rectification</strong> — correct inaccurate data (you can update your username and avatar directly in-app)</li>
+        <li><strong>Erasure</strong> — request deletion of your account and all associated data</li>
+        <li><strong>Portability</strong> — request your data in a machine-readable format</li>
+        <li><strong>Object</strong> — object to processing based on legitimate interests</li>
+      </ul>
+      <p>To exercise any of these rights, contact us at <a href="mailto:samesamefun@gmail.com">samesamefun@gmail.com</a>. We will respond within 30 days.</p>
+
+      <hr class="divider" />
+
+      <!-- ────────────────────────────────────── -->
+      <h2><span class="icon">🍪</span> 8. Cookies &amp; Local Storage</h2>
+      <p>
+        Same Same? uses browser <strong>Local Storage</strong> (not cookies) to remember your session and language preference
+        across visits. No third-party tracking cookies are set. Our analytics provider (PostHog) may use a first-party
+        cookie to identify returning sessions — you can opt out by enabling "Do Not Track" in your browser.
+      </p>
+
+      <hr class="divider" />
+
+      <!-- ────────────────────────────────────── -->
+      <h2><span class="icon">👶</span> 9. Children's Privacy</h2>
+      <p>
+        Same Same? is not directed at children under 13. We do not knowingly collect personal data from children under 13.
+        If you believe a child has provided us with personal data, please contact us and we will delete it promptly.
+      </p>
+
+      <hr class="divider" />
+
+      <!-- ────────────────────────────────────── -->
+      <h2><span class="icon">🔄</span> 10. Changes to This Policy</h2>
+      <p>
+        We may update this Privacy Policy from time to time. The effective date at the top of this page will reflect
+        the date of the latest revision. Continued use of Same Same? after a policy update constitutes acceptance
+        of the revised policy.
+      </p>
+
+      <!-- ─── Contact ──────────────────────────────────── -->
+      <div class="contact-box">
+        <div>
+          <p><strong>Questions about your data?</strong></p>
+          <p>We're happy to help — reach out any time.</p>
+        </div>
+        <a class="contact-link" href="mailto:samesamefun@gmail.com">✉️ Contact Us</a>
+      </div>
+
+    </div>
+  </main>
+
+  <footer>
+    © 2026 Same Same? &nbsp;·&nbsp;
+    <a href="https://www.same-same.fun/">Play the Game</a>
+  </footer>
+
+</body>
+</html>
