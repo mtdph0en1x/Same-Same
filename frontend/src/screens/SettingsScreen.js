@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 import AppText from '../components/AppText';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, TextInput, Alert, useWindowDimensions, Platform, Linking } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, TextInput, Alert, Modal, useWindowDimensions, Platform, Linking } from 'react-native';
 import NeoButton from '../components/NeoButton';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
@@ -35,6 +35,7 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
   const [nameError, setNameError] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [avatarMessage, setAvatarMessage] = useState('');
+  const [creditsVisible, setCreditsVisible] = useState(false);
 
   useEffect(() => {
     fetchProfile();
@@ -225,19 +226,7 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
 
       <TouchableOpacity
         style={s.aboutRow}
-        onPress={() => Alert.alert(
-          'Audio Credits',
-          [
-            '• Ticking Clock — schmutz (CC0)',
-            '• Rejection Buzzer — Jacco18 (CC0)',
-            '• Stamp Thump — mpuffenbarger (CC0)',
-            '• Fanfare — plasterbrain (CC0)',
-            '• Card Woosh — florianreichelt (CC0)',
-            '• Match Correct — Gronkjaer (CC0)',
-            '• Score Tally — xtrgamr (CC-BY 4.0)',
-          ].join('\n'),
-          [{ text: 'Close', style: 'cancel' }]
-        )}
+        onPress={() => setCreditsVisible(true)}
         activeOpacity={0.7}
       >
         <AppText style={s.aboutRowIcon}>🎵</AppText>
@@ -260,6 +249,32 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
   if (!profile) {
     return (
       <SafeAreaView style={{ flex: 1 }}>
+        <Modal visible={creditsVisible} animationType="slide" transparent onRequestClose={() => setCreditsVisible(false)}>
+          <View style={s.creditsOverlay}>
+            <View style={s.creditsModal}>
+              <AppText style={s.creditsTitle}>🎵 Audio Credits</AppText>
+              <ScrollView style={{ maxHeight: 260 }}>
+                {[
+                  { name: 'Ticking Clock', creator: 'schmutz', license: 'CC0', url: 'https://freesound.org/s/366679/' },
+                  { name: 'Rejection Buzzer', creator: 'Jacco18', license: 'CC0', url: 'https://freesound.org/s/419023/' },
+                  { name: 'Stamp Thump', creator: 'mpuffenbarger', license: 'CC0', url: 'https://freesound.org/s/683031/' },
+                  { name: 'Fanfare', creator: 'plasterbrain', license: 'CC0', url: 'https://freesound.org/s/397353/' },
+                  { name: 'Card Woosh', creator: 'florianreichelt', license: 'CC0', url: 'https://freesound.org/s/683101/' },
+                  { name: 'Match Correct', creator: 'Gronkjaer', license: 'CC0', url: 'https://freesound.org/s/654321/' },
+                  { name: 'Score Tally', creator: 'xtrgamr', license: 'CC-BY 4.0', url: 'https://freesound.org/s/253546/' },
+                ].map((sound, i) => (
+                  <TouchableOpacity key={i} onPress={() => Linking.openURL(sound.url)} style={s.creditRow}>
+                    <AppText style={s.creditName}>• {sound.name}</AppText>
+                    <AppText style={s.creditDetail}>{sound.creator} · {sound.license}</AppText>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              <TouchableOpacity style={s.creditsClose} onPress={() => setCreditsVisible(false)}>
+                <AppText style={s.creditsCloseText}>Close</AppText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
         <ScrollView contentContainerStyle={[s.container, { padding: isSmall ? theme.spacing.md : theme.spacing.xl }]}>
           <NeoButton style={s.backBtn} onPress={() => setScreen('Home')}>
             <AppText style={s.backBtnText}>{t('settings.backToHome', '← Back')}</AppText>
@@ -285,6 +300,32 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
+      <Modal visible={creditsVisible} animationType="slide" transparent onRequestClose={() => setCreditsVisible(false)}>
+        <View style={s.creditsOverlay}>
+          <View style={s.creditsModal}>
+            <AppText style={s.creditsTitle}>🎵 Audio Credits</AppText>
+            <ScrollView style={{ maxHeight: 260 }}>
+              {[
+                { name: 'Ticking Clock', creator: 'schmutz', license: 'CC0', url: 'https://freesound.org/s/366679/' },
+                { name: 'Rejection Buzzer', creator: 'Jacco18', license: 'CC0', url: 'https://freesound.org/s/419023/' },
+                { name: 'Stamp Thump', creator: 'mpuffenbarger', license: 'CC0', url: 'https://freesound.org/s/683031/' },
+                { name: 'Fanfare', creator: 'plasterbrain', license: 'CC0', url: 'https://freesound.org/s/397353/' },
+                { name: 'Card Woosh', creator: 'florianreichelt', license: 'CC0', url: 'https://freesound.org/s/683101/' },
+                { name: 'Match Correct', creator: 'Gronkjaer', license: 'CC0', url: 'https://freesound.org/s/654321/' },
+                { name: 'Score Tally', creator: 'xtrgamr', license: 'CC-BY 4.0', url: 'https://freesound.org/s/253546/' },
+              ].map((sound, i) => (
+                <TouchableOpacity key={i} onPress={() => Linking.openURL(sound.url)} style={s.creditRow}>
+                  <AppText style={s.creditName}>• {sound.name}</AppText>
+                  <AppText style={s.creditDetail}>{sound.creator} · {sound.license}</AppText>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity style={s.creditsClose} onPress={() => setCreditsVisible(false)}>
+              <AppText style={s.creditsCloseText}>Close</AppText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
       <ScrollView contentContainerStyle={[s.container, { padding: containerPadding }]}>
         
         {/* Header */}
@@ -466,4 +507,13 @@ const s = StyleSheet.create({
   aboutRowChevron: { fontFamily: theme.fonts.body, fontSize: 22, color: '#9CA3AF' },
   aboutDivider: { height: 1, backgroundColor: '#E5E7EB', marginHorizontal: 4 },
   aboutVersion: { marginTop: 16, textAlign: 'center', fontFamily: theme.fonts.body, fontSize: 13, color: '#9CA3AF' },
+
+  creditsOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  creditsModal: { backgroundColor: '#FDFBF7', borderTopLeftRadius: 20, borderTopRightRadius: 20, borderWidth: 3, borderColor: '#000', borderBottomWidth: 0, padding: 24, paddingBottom: 40 },
+  creditsTitle: { fontFamily: theme.fonts.headingBold, fontSize: 22, color: '#111', marginBottom: 16 },
+  creditRow: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },
+  creditName: { fontFamily: theme.fonts.bodyBold, fontSize: 15, color: '#111' },
+  creditDetail: { fontFamily: theme.fonts.body, fontSize: 13, color: '#6B7280', marginTop: 2 },
+  creditsClose: { marginTop: 20, backgroundColor: '#1a1a1a', borderRadius: 12, borderWidth: 2, borderColor: '#000', paddingVertical: 14, alignItems: 'center' },
+  creditsCloseText: { fontFamily: theme.fonts.headingBold, fontSize: 16, color: '#fff' },
 });

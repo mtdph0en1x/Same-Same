@@ -98,8 +98,8 @@ function AppContent() {
         setSessionId(sid);
         
         const savedRoom = await AsyncStorage.getItem('activeRoomCode');
+        socket.connect();
         if (savedRoom) {
-          socket.connect();
           socket.emit('rejoin_room', { roomCode: savedRoom, sessionId: sid });
         }
       } catch (e) {
