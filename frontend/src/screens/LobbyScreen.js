@@ -383,7 +383,13 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
   }, []);
 
   const handleStartGame = () => {
-    posthog.capture('Started Game', { room_code: roomCode, is_public: isPublic });
+    posthog.capture('Started Game', { 
+      room_code: roomCode, 
+      is_public: isPublic,
+      time_limit: config.timeLimit,
+      round_count: config.totalRounds,
+      game_modes: config.roundTypes
+    });
     socket.emit('start_game', { roomCode });
   };
   const handleKick      = (targetId) => socket.emit('kick_player', { roomCode, targetId });

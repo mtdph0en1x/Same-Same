@@ -413,4 +413,24 @@ We are actively migrating the frontend UI to use `react-i18next`.
 - **Detection:** The web client automatically reads `window.navigator.language` to set the default locale.
 - **Selector:** A scalable `LanguageModal` is accessible from the Mobile Tab Bar and Desktop Play Panel in `HomeScreen.js`, allowing users to hot-swap languages instantly.
 
+---
 
+## Recent Updates
+
+### Analytics & Telemetry (PostHog)
+- **Integration:** Added `posthog-react-native` to track player engagement and game flow.
+- **Events Tracked:**
+  - `Clicked Quick Play`: Tracks when players attempt to join public matchmaking (with auth status).
+  - `Clicked Host Game`: Tracks creation of private couch lobbies.
+  - `Clicked Join Game`: Tracks attempts to join private lobbies with room codes.
+  - `Started Game`: Tracks when a host initiates a match from the lobby (includes public/private status and room code).
+  - `Finished Round Words`: Tracks when players submit their final word for a round (captures remaining time, round number, and room code).
+
+### SEO & Social Sharing
+- **Open Graph Metadata:** Injected dynamic meta tags into `index.html` to generate beautiful link previews on Telegram, Discord, and Twitter.
+- **Social Banner:** Added a custom `banner.jpg` (1200x630) to the public folder for rich link unfurling.
+
+### Bug Fixes & Polish
+- **"Play Again" Room Duplication Bug:** Fixed a critical issue where the host clicking "Play Again" from the GameOver screen would inadvertently trigger the creation of a *new* room, while guests rejoined the *old* room. The frontend now correctly registers a `"rejoin"` intent when forced back to the lobby by the server, keeping all players synced in the original room.
+- **Moderation:** Integrated `leo-profanity` in the backend (`roomManager.js`) to automatically sanitize offensive usernames across multiple languages.
+- **Mock Testing:** Fixed broken jest mocks in `__mocks__/natural.js` by adding the missing `LevenshteinDistance` function.

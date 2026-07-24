@@ -63,6 +63,8 @@ function langModal(visible, setVisible, i18n, t) {
     { code: 'uk', label: 'Українська', emoji: '🇺🇦' }
   ];
 
+  const posthog = usePostHog();
+
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={() => setVisible(false)}>
       <View style={s.modalOverlay}>
@@ -80,6 +82,7 @@ function langModal(visible, setVisible, i18n, t) {
                   i18n.language.startsWith(l.code) ? { backgroundColor: theme.colors.primary } : { backgroundColor: '#f3f4f6' }
                 ]} 
                 onPress={() => {
+                  posthog.capture('Changed Language', { language: l.code });
                   i18n.changeLanguage(l.code);
                   setVisible(false);
                 }}

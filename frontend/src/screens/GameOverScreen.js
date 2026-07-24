@@ -11,6 +11,7 @@ import { theme } from '../styles/theme';
 import FramedAvatar from '../components/FramedAvatar';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import SoundManager from '../utils/SoundManager';
+import { usePostHog } from 'posthog-react-native';
 
 const MEDAL = { 0: '🥇', 1: '🥈', 2: '🥉' };
 const PODIUM_COLORS = {
@@ -59,11 +60,21 @@ function PodiumPlayer({ player, rank, avatars, names, frames, delay, displayScor
 
 export default function GameOverScreen({ gameResults, roomCode, isHost, players = [], setScreen, setRoomCode, sessionId }) {
   const { t } = useTranslation();
+  const posthog = usePostHog();
   const { scores = {}, playerNames = {}, playerAvatars = {}, playerFrames = {}, teams, teamScores, isPublic } = gameResults;
 
   const [displayScores, setDisplayScores] = useState({});
-  const [rematchCount, setRematchCount] = useState(null);
+  const [hasRevealed, setHasRevealed]     = useState(false);
+
+  useEffect(() => {
+    posthog.capture('Game Completed', {
+      room_code: roomCode,
+      is_public: isPublic,
+      player_count: players.length
+    });
+  }, []);
   const [hasVoted, setHasVoted] = useState(false);
+  const [rematchCount, setRematchCount] = useState(null);
   const hasTallied = useRef(false);
 
   useEffect(() => {
@@ -157,6 +168,7 @@ export default function GameOverScreen({ gameResults, roomCode, isHost, players 
 
   const myPlayer = players.find(p => p.id === socket.id || p.id === sessionId);
   const handlePlayAgain = () => {
+    posthog.capture('Clicked Play Again', { room_code: roomCode, is_public: isPublic });
     if (isPublic) {
       socket.emit('rematch_vote', { roomCode });
       setHasVoted(true);
