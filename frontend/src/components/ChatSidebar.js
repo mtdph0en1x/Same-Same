@@ -56,6 +56,7 @@ export default function ChatSidebar({ roomCode, playerData, isSidebarOpen, setIs
   const [activeStickers, setActiveStickers] = useState(STICKERS);
   const [savedLoadout, setSavedLoadout] = useState([]);
   const [lockerVisible, setLockerVisible] = useState(false);
+  const [isMobileReactionsOpen, setIsMobileReactionsOpen] = useState(false);
   const activeStickersRef = useRef(STICKERS);
   const timeoutRef = useRef(null);
 
@@ -226,7 +227,7 @@ export default function ChatSidebar({ roomCode, playerData, isSidebarOpen, setIs
             onPress={() => setIsSidebarOpen(!isSidebarOpen)}
           >
             <AppText style={{fontFamily: theme.fonts.bodyBold}}>
-               {isSidebarOpen ? t('chat.hideChat', '▼ Hide Chat & Emojis') : t('chat.showChat', '▲ Show Chat & Emojis')}
+               {isSidebarOpen ? t('chat.hideChat', '▼ Hide Chat') : t('chat.showChat', '▲ Show Chat')}
             </AppText>
           </TouchableOpacity>
 
@@ -243,20 +244,6 @@ export default function ChatSidebar({ roomCode, playerData, isSidebarOpen, setIs
                 </ScrollView>
               </View>
               <View style={styles.sidebarBottomMobile}>
-                <View style={styles.reactionBar}>
-                  {hotbarStickers.map(s => (
-                    <TouchableOpacity key={s.id} onPress={() => sendReaction(s.id)} style={styles.reactionBtn}>
-                      {s.url ? (
-                        <Image source={{ uri: s.url }} style={{ width: s.width ? (s.width/s.height)*24 : 24, height: 24, resizeMode: 'contain' }} />
-                      ) : (
-                        <AppText style={{fontSize: 24}}>{s.emoji}</AppText>
-                      )}
-                    </TouchableOpacity>
-                  ))}
-                  <TouchableOpacity onPress={() => setLockerVisible(true)} style={[styles.reactionBtn, {marginLeft: 8, justifyContent: 'center'}]}>
-                    <AppText style={{fontSize: 20}}>⚙️</AppText>
-                  </TouchableOpacity>
-                </View>
 
                 <View style={styles.chatInputRow}>
                   <TextInput 
@@ -274,6 +261,32 @@ export default function ChatSidebar({ roomCode, playerData, isSidebarOpen, setIs
               </View>
             </View>
           )}
+
+          {/* Floating Mobile Reactions */}
+          <View style={styles.mobileReactionsWrapper} pointerEvents="box-none">
+            {isMobileReactionsOpen && (
+              <View style={styles.mobileReactionsList}>
+                <TouchableOpacity onPress={() => { setLockerVisible(true); setIsMobileReactionsOpen(false); }} style={styles.mobileReactionBtn}>
+                  <AppText style={{fontSize: 24}}>⚙️</AppText>
+                </TouchableOpacity>
+                {hotbarStickers.map(s => (
+                  <TouchableOpacity key={s.id} onPress={() => sendReaction(s.id)} style={styles.mobileReactionBtn}>
+                    {s.url ? (
+                      <Image source={{ uri: s.url }} style={{ width: s.width ? (s.width/s.height)*32 : 32, height: 32, resizeMode: 'contain' }} />
+                    ) : (
+                      <AppText style={{fontSize: 32}}>{s.emoji}</AppText>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+            <TouchableOpacity 
+              style={styles.mobileReactionsFab} 
+              onPress={() => setIsMobileReactionsOpen(!isMobileReactionsOpen)}
+            >
+              <AppText style={{fontSize: 24, textAlign: 'center'}}>{isMobileReactionsOpen ? '✖️' : '😊'}</AppText>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
       
@@ -427,5 +440,39 @@ const styles = StyleSheet.create({
     borderTopWidth: 3,
     borderColor: '#000',
     backgroundColor: '#fff',
+  },
+  mobileReactionsWrapper: {
+    position: 'absolute',
+    right: 15,
+    bottom: 60,
+    alignItems: 'center',
+    zIndex: 250,
+  },
+  mobileReactionsList: {
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderRadius: 30,
+    padding: 10,
+    gap: 12,
+    marginBottom: 10,
+    borderWidth: 2,
+    borderColor: '#000',
+    alignItems: 'center',
+  },
+  mobileReactionBtn: {
+    padding: 4,
+  },
+  mobileReactionsFab: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: theme.colors.primary,
+    borderWidth: 3,
+    borderColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
   }
 });

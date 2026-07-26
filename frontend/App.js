@@ -279,13 +279,13 @@ function AppContent() {
   if (!fontsLoaded) return null;
 
   const PageHeader = (
-    <View style={chrome.pageHeader}>
+    <View style={[chrome.pageHeader, !isDesktop && { paddingVertical: 4, paddingHorizontal: 12 }]}>
       <View style={chrome.phLeft}>
-        <Text style={chrome.phLogo}>Same Same?</Text>
-        <Text style={chrome.phTagline}>The Associations Party Game</Text>
+        <Text style={[chrome.phLogo, !isDesktop && { fontSize: 18 }]}>Same Same?</Text>
+        <Text style={[chrome.phTagline, !isDesktop && { fontSize: 9 }]}>The Associations Party Game</Text>
       </View>
 
-      <Text style={chrome.phVersion}>v1.0</Text>
+      <Text style={[chrome.phVersion, !isDesktop && { fontSize: 9 }]}>v1.0</Text>
     </View>
   );
 
@@ -542,6 +542,7 @@ function AppContent() {
                 isSidebarOpen={isSidebarOpen} 
                 setIsSidebarOpen={setIsSidebarOpen} 
                 isDesktop={isDesktop}
+                currentScreen={currentScreen}
               />
             )}
           </View>
@@ -549,7 +550,7 @@ function AppContent() {
 
         {/* ── Persistent bottom chrome ── */}
         {ActivityBar}
-        {PageFooter}
+        {isDesktop && PageFooter}
         </View>
       </View>
   );
