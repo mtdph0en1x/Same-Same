@@ -3,7 +3,9 @@ import AppText from './AppText';
 import { View, Image, Text, Animated, Easing } from 'react-native';
 import { theme } from '../styles/theme';
 
-export default function FramedAvatar({ url, fallbackName, frame, size = 56, style }) {
+export default function FramedAvatar({ url, fallbackName, frame: originalFrame, size = 56, style }) {
+    // TEMPORARY: Disable all frames client-side as requested
+    const frame = 'none';
     const borderRadius = size / 2;
     const animVal = useRef(new Animated.Value(0)).current;
 

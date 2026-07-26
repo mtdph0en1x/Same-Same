@@ -8,7 +8,7 @@ import { theme } from '../styles/theme';
 const SHADOW_X = 4;
 const SHADOW_Y = 4;
 
-export default function Button({ title, onPress, type = 'primary', style, icon, subtext }) {
+export default function Button({ title, onPress, type = 'primary', style, icon, subtext, color }) {
   const translateX = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(0)).current;
 
@@ -51,7 +51,7 @@ export default function Button({ title, onPress, type = 'primary', style, icon, 
     if (onPress) onPress();
   };
 
-  const bg = type === 'primary' ? theme.colors.primary : type === 'secondary' ? theme.colors.secondary : '#E5E7EB';
+  const bg = color || (type === 'primary' ? theme.colors.primary : type === 'secondary' ? theme.colors.secondary : '#E5E7EB');
 
   return (
     // Black shadow block — sized by the button sitting on top with a negative offset

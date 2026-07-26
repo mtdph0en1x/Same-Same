@@ -414,21 +414,21 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
                 title={t('home.browseLobbies')}
                 subtext={t('home.browseLobbiesSub')}
                 onPress={() => setScreen('LobbyBrowser')}
-                type="tertiary"
+                color="#38BDF8"
               />
 
               <Button
                 title={t('home.leaderboards')}
                 subtext={t('home.leaderboardsSub')}
                 onPress={() => setScreen('GlobalLeaderboard')}
-                type="tertiary"
+                color="#F472B6"
               />
 
               <Button
                 title={t('home.howToPlay', 'How to Play')}
                 subtext={t('home.howToPlaySub', 'Learn the rules and modes')}
                 onPress={() => setRulesModalVisible(true)}
-                type="tertiary"
+                color="#FB923C"
               />
 
               <View style={[s.dividerRow, { marginTop: 24, marginBottom: 10 }]}>

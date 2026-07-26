@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import AppText from './AppText';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, Animated, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, Animated, ScrollView, Image } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { socket } from '../socket';
+import { supabase } from '../supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import StickerLockerModal from './StickerLockerModal';
 import { theme } from '../styles/theme';
 
 const STICKERS = [
@@ -11,6 +14,7 @@ const STICKERS = [
   { id: 'facepalm', emoji: '🤦‍♂️' },
   { id: 'mindblown', emoji: '🤯' },
   { id: 'skull', emoji: '💀' },
+  { id: 'crow', url: 'https://placehold.co/120x80.png?text=Meme', width: 120, height: 80 },
 ];
 
 const FloatingReaction = ({ reaction, onComplete }) => {
@@ -33,7 +37,11 @@ const FloatingReaction = ({ reaction, onComplete }) => {
         opacity
       }
     ]}>
-      <AppText style={{ fontSize: 60 }}>{reaction.emoji}</AppText>
+      {reaction.url ? (
+        <Image source={{ uri: reaction.url }} style={{ width: reaction.width || 60, height: reaction.height || 60, resizeMode: 'contain' }} />
+      ) : (
+        <AppText style={{ fontSize: 60 }}>{reaction.emoji}</AppText>
+      )}
       <AppText style={styles.reactionSender}>{reaction.senderName}</AppText>
     </Animated.View>
   );
@@ -45,18 +53,58 @@ export default function ChatSidebar({ roomCode, playerData, isSidebarOpen, setIs
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [latestMessage, setLatestMessage] = useState(null);
+  const [activeStickers, setActiveStickers] = useState(STICKERS);
+  const [savedLoadout, setSavedLoadout] = useState([]);
+  const [lockerVisible, setLockerVisible] = useState(false);
+  const activeStickersRef = useRef(STICKERS);
   const timeoutRef = useRef(null);
+
+  useEffect(() => {
+    async function fetchStickers() {
+      try {
+        const { data, error } = await supabase
+          .from('stickers')
+          .select('*')
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true });
+        
+        let initialLoadout = [];
+        try {
+          const stored = await AsyncStorage.getItem('@same_same_sticker_loadout');
+          if (stored) {
+            initialLoadout = JSON.parse(stored);
+          }
+        } catch(e) { console.log(e); }
+
+        if (data && data.length > 0) {
+          setActiveStickers(data);
+          
+          if (initialLoadout.length === 0) {
+             initialLoadout = data.slice(0, 5).map(s => s.id);
+          }
+          setSavedLoadout(initialLoadout);
+          activeStickersRef.current = data;
+        }
+      } catch (e) {
+        console.log('Failed to fetch dynamic stickers, falling back to default.');
+      }
+    }
+    fetchStickers();
+  }, []);
 
   useEffect(() => {
     if (!roomCode) return;
 
     const handleReaction = ({ reactionId, senderName, xOffset }) => {
-      const sticker = STICKERS.find(s => s.id === reactionId);
+      const sticker = activeStickersRef.current.find(s => s.id === reactionId);
       if (!sticker) return;
       
       setReactions(prev => [...prev, {
         instanceId: Math.random().toString(),
         emoji: sticker.emoji,
+        url: sticker.url,
+        width: sticker.width,
+        height: sticker.height,
         senderName,
         xOffset
       }]);
@@ -92,6 +140,15 @@ export default function ChatSidebar({ roomCode, playerData, isSidebarOpen, setIs
     setReactions(prev => prev.filter(r => r.instanceId !== instanceId));
   };
 
+  const saveLocker = async (newLoadout) => {
+    setSavedLoadout(newLoadout);
+    try {
+      await AsyncStorage.setItem('@same_same_sticker_loadout', JSON.stringify(newLoadout));
+    } catch(e) { console.log(e); }
+  };
+
+  const hotbarStickers = activeStickers.filter(s => savedLoadout.includes(s.id));
+
   return (
     <>
       {/* Floating Reactions Layer (covers the whole appWindow) */}
@@ -123,11 +180,18 @@ export default function ChatSidebar({ roomCode, playerData, isSidebarOpen, setIs
 
               <View style={styles.sidebarBottom}>
                 <View style={styles.reactionBar}>
-                  {STICKERS.map(s => (
+                  {hotbarStickers.map(s => (
                     <TouchableOpacity key={s.id} onPress={() => sendReaction(s.id)} style={styles.reactionBtn}>
-                      <AppText style={{fontSize: 24}}>{s.emoji}</AppText>
+                      {s.url ? (
+                        <Image source={{ uri: s.url }} style={{ width: s.width ? (s.width/s.height)*24 : 24, height: 24, resizeMode: 'contain' }} />
+                      ) : (
+                        <AppText style={{fontSize: 24}}>{s.emoji}</AppText>
+                      )}
                     </TouchableOpacity>
                   ))}
+                  <TouchableOpacity onPress={() => setLockerVisible(true)} style={[styles.reactionBtn, {marginLeft: 8, justifyContent: 'center'}]}>
+                    <AppText style={{fontSize: 20}}>⚙️</AppText>
+                  </TouchableOpacity>
                 </View>
 
                 <View style={styles.chatInputRow}>
@@ -180,11 +244,18 @@ export default function ChatSidebar({ roomCode, playerData, isSidebarOpen, setIs
               </View>
               <View style={styles.sidebarBottomMobile}>
                 <View style={styles.reactionBar}>
-                  {STICKERS.map(s => (
+                  {hotbarStickers.map(s => (
                     <TouchableOpacity key={s.id} onPress={() => sendReaction(s.id)} style={styles.reactionBtn}>
-                      <AppText style={{fontSize: 24}}>{s.emoji}</AppText>
+                      {s.url ? (
+                        <Image source={{ uri: s.url }} style={{ width: s.width ? (s.width/s.height)*24 : 24, height: 24, resizeMode: 'contain' }} />
+                      ) : (
+                        <AppText style={{fontSize: 24}}>{s.emoji}</AppText>
+                      )}
                     </TouchableOpacity>
                   ))}
+                  <TouchableOpacity onPress={() => setLockerVisible(true)} style={[styles.reactionBtn, {marginLeft: 8, justifyContent: 'center'}]}>
+                    <AppText style={{fontSize: 20}}>⚙️</AppText>
+                  </TouchableOpacity>
                 </View>
 
                 <View style={styles.chatInputRow}>
@@ -205,6 +276,15 @@ export default function ChatSidebar({ roomCode, playerData, isSidebarOpen, setIs
           )}
         </View>
       )}
+      
+      <StickerLockerModal
+        visible={lockerVisible}
+        setVisible={setLockerVisible}
+        allStickers={activeStickers}
+        savedLoadout={savedLoadout}
+        onSave={saveLocker}
+        t={t}
+      />
     </>
   );
 }

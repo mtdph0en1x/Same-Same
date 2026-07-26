@@ -406,7 +406,7 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
           <AppText style={s.xpText}>{t('settings.xpProgress', { current: Math.floor(xp), next: nextLevelXp })}</AppText>
         </View>
 
-        {/* Frame Selection */}
+        {/* Frame Selection (Temporarily Disabled)
         <View style={[s.card, isSmall && { padding: 16 }]}>
           <AppText style={[s.sectionTitle, isSmall && { textAlign: 'center' }]}>{t('settings.equipFrame', 'Equip Frame')}</AppText>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.frameScroll}>
@@ -420,8 +420,9 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
             ))}
           </ScrollView>
         </View>
+        */}
 
-        {/* Progression Timeline */}
+        {/* Progression Timeline (Temporarily Disabled)
         <View style={[s.card, isSmall && { padding: 16 }]}>
           <AppText style={[s.sectionTitle, isSmall && { textAlign: 'center' }]}>{t('settings.progression', 'Progression')}</AppText>
           <AppText style={[s.desc, isSmall && { textAlign: 'center' }]}>{t('settings.progressionDesc', 'Keep playing to earn XP, level up, and unlock new cosmetic frames!')}</AppText>
@@ -450,6 +451,7 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
             })}
           </View>
         </View>
+        */}
 
         {/* About & Legal — mobile only (desktop has footer links) */}
         {!isDesktop && AboutCard}
