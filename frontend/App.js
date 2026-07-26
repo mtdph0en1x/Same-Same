@@ -98,6 +98,15 @@ function AppContent() {
         }
         setSessionId(sid);
         
+        const savedIsGuest = await AsyncStorage.getItem('isGuest');
+        if (savedIsGuest === 'true') {
+           setIsGuest(true);
+           const savedName = await AsyncStorage.getItem('guestName');
+           if (savedName) setGuestName(savedName);
+           const savedAvatar = await AsyncStorage.getItem('guestAvatar');
+           if (savedAvatar) setGuestAvatar(savedAvatar);
+        }
+
         const savedRoom = await AsyncStorage.getItem('activeRoomCode');
         socket.connect();
         if (savedRoom) {
@@ -109,6 +118,18 @@ function AppContent() {
     };
     initSession();
   }, []);
+
+  useEffect(() => {
+    AsyncStorage.setItem('isGuest', isGuest ? 'true' : 'false').catch(e => console.error('Save isGuest error:', e));
+  }, [isGuest]);
+
+  useEffect(() => {
+    if (guestName) AsyncStorage.setItem('guestName', guestName).catch(e => console.error('Save guestName error:', e));
+  }, [guestName]);
+
+  useEffect(() => {
+    if (guestAvatar) AsyncStorage.setItem('guestAvatar', guestAvatar).catch(e => console.error('Save guestAvatar error:', e));
+  }, [guestAvatar]);
 
   const handleSetRoomCode = async (code) => {
     setRoomCode(code);
