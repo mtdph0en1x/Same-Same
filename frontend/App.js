@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useContext } from 'react';
 import ErrorBoundary from './src/components/ErrorBoundary';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View, Text, TouchableOpacity, useWindowDimensions, ScrollView, Modal, Linking } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, useWindowDimensions, ScrollView, Modal, Linking, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, Fredoka_400Regular, Fredoka_500Medium, Fredoka_600SemiBold, Fredoka_700Bold } from '@expo-google-fonts/fredoka';
@@ -164,8 +164,11 @@ function AppContent() {
       });
   }, []);
 
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const isDesktop = width > 800;
+  
+  const BASE_HEIGHT = 1150;
+  const scaleFactor = (isDesktop && height < BASE_HEIGHT) ? height / BASE_HEIGHT : 1;
 
   let [fontsLoaded] = useFonts({
     Fredoka_400Regular, Fredoka_500Medium, Fredoka_600SemiBold, Fredoka_700Bold,
@@ -405,12 +408,28 @@ function AppContent() {
           </View>
         </Modal>
 
+        <View style={[
+          isDesktop ? {
+            width: `${100 / scaleFactor}%`,
+            height: `${100 / scaleFactor}%`,
+            transform: [{ scale: scaleFactor }],
+            transformOrigin: 'top left',
+            position: 'absolute',
+            top: 0,
+            left: 0
+          } : { flex: 1 }
+        ]}>
         {/* ── Persistent top chrome ── */}
         {PageHeader}
         {isDesktop && NewsBar}
 
         {/* ── Window area — all screens render here ── */}
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.windowArea, !isDesktop && { paddingHorizontal: 8, paddingVertical: 8 }]}>
+        {React.createElement(
+          isDesktop ? View : ScrollView,
+          isDesktop 
+            ? { style: [{ flex: 1, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }, styles.windowArea] } 
+            : { style: { flex: 1 }, contentContainerStyle: [styles.windowArea, { paddingHorizontal: 8, paddingVertical: 8 }] },
+
           <View style={[
             styles.appWindow, 
             !isDesktop && { width: '100%', alignSelf: 'center', marginBottom: 10 },
@@ -526,11 +545,12 @@ function AppContent() {
               />
             )}
           </View>
-        </ScrollView>
+        )}
 
         {/* ── Persistent bottom chrome ── */}
         {ActivityBar}
         {PageFooter}
+        </View>
       </View>
   );
 }

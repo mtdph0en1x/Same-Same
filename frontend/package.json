@@ -42,8 +42,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "export": "expo export -p web",
-    "test": "jest"
+    "export": "expo export -p web"
   },
   "private": true,
   "devDependencies": {

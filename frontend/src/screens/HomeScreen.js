@@ -115,12 +115,13 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
   const [activeTab, setActiveTab] = useState('play');
   const [rulesModalVisible, setRulesModalVisible] = useState(false);
 
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const isDesktop = width > 800;
   
-  // Calculate a dynamic scale factor for the ID card based on panel width
+  // Calculate a dynamic scale factor for the ID card based on panel width and window height
   const panelWidth = isDesktop ? width * 0.3 : width;
-  const tScale = Math.min(Math.max(panelWidth / 700, 0.65), 1.4);
+  const heightConstraint = isDesktop ? Math.min(1, height / 1150) : 1;
+  const tScale = Math.min(Math.max(panelWidth / 700, 0.65), 1.4) * heightConstraint;
 
   // Animations
   const [animVal] = useState(new Animated.Value(0));
