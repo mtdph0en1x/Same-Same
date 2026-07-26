@@ -1,0 +1,123 @@
+# ==============================================================================
+# Same Same? Game Pack — 100 Topics with Real Human Cognitive Associations
+# ==============================================================================
+
+# --- FOOD & DRINK ---
+pizza: cheese, crust, pepperoni, delivery, slice, sauce, oven, topping, dough, Italy
+coffee: mug, caffeine, espresso, morning, beans, brew, milk, sugar, barista, roast
+breakfast: eggs, bacon, toast, pancakes, cereal, juice, morning, syrup, waffle, coffee
+dessert: cake, ice cream, sweet, chocolate, pie, sugar, pudding, cookie, bakery, pastry
+picnic: basket, blanket, park, sandwich, ants, summer, grass, cooler, outdoor, lemonade
+barbecue: grill, ribs, charcoal, steak, smoke, sauce, burgers, summer, backyard, meat
+chocolate: cocoa, candy, dark, milk, sweet, bar, fudge, truffle, dessert, hazelnut
+bakery: bread, pastry, oven, cake, croissant, flour, fresh, donuts, baker, yeast
+fruit: apple, banana, sweet, fresh, juice, orange, vitamins, tree, seed, smoothie
+soup: bowl, spoon, broth, noodles, hot, chicken, winter, vegetable, ladle, stew
+
+# --- NATURE & EARTH ---
+ocean: water, waves, beach, fish, shark, salt, blue, deep, seaweed, coral
+jungle: trees, monkeys, vines, tropical, wild, tiger, green, canopy, snake, safari
+mountain: peak, snow, climbing, hike, high, rock, summit, slope, Everest, trail
+desert: sand, camel, cactus, heat, sun, dry, oasis, dune, thirsty, dust
+forest: trees, wood, leaves, nature, wolves, bears, shade, trail, pine, green
+volcano: lava, eruption, ash, magma, heat, mountain, smoke, crater, disaster, fire
+island: beach, palm, ocean, tropical, sand, isolated, resort, islander, boat, sun
+river: stream, flow, water, bridge, boat, fish, bank, current, kayak, rapid
+cave: dark, bats, stalactite, rock, underground, echo, torch, damp, stone, explorer
+garden: flowers, plants, dirt, hose, seeds, weeds, rose, watering, green, lawn
+
+# --- PLACES & LOCATIONS ---
+kitchen: stove, fridge, sink, cooking, knife, pan, counter, oven, chef, cabinets
+bedroom: bed, pillow, mattress, sleep, blanket, closet, lamp, alarm, pyjamas, dream
+bathroom: shower, toilet, sink, soap, towel, mirror, toothbrush, bath, shampoo, tile
+attic: dust, boxes, roof, storage, cobwebs, stairs, old, trunk, memories, ladder
+garage: car, tools, workbench, lawnmower, parking, oil, storage, door, tires, bicycle
+school: teacher, desk, student, classroom, homework, exam, books, pencil, blackboard, grade
+office: desk, computer, boss, chair, meetings, paper, coffee, work, stapler, printer
+hospital: doctor, nurse, bed, medicine, surgery, emergency, ambulance, patient, mask, bandage
+library: books, quiet, silence, shelves, reading, librarian, study, borrowing, paper, desk
+airport: plane, luggage, security, terminal, passport, pilot, gate, flight, runway, delay
+
+# --- POP CULTURE & ENTERTAINMENT ---
+cinema: movie, popcorn, screen, seats, film, Hollywood, projector, tickets, trailer, theater
+superhero: cape, powers, villain, comics, mask, Marvel, Batman, hero, save, DC
+music: song, guitar, rhythm, melody, singer, radio, headphones, concert, album, notes
+gaming: console, controller, pixels, screen, level, multiplayer, score, arcade, quest, gamer
+circus: clown, acrobat, tent, popcorn, ringmaster, lion, juggling, trapeze, peanuts, show
+festival: stage, crowd, music, tent, wristband, dancing, food trucks, lights, mud, summer
+magic: wand, top hat, rabbit, illusion, spell, wizard, trick, cards, disappearance, magic
+disco: mirror ball, dancing, 70s, music, lights, floor, bellbottoms, groove, DJ, funk
+theater: stage, actors, play, curtain, drama, applause, script, broadway, costumes, ticket
+carnival: ferris wheel, games, prizes, rides, cotton candy, roller coaster, fun, tickets, booth
+
+# --- TRAVEL & TRANSPORT ---
+cruise: ship, ocean, captain, deck, buffet, island, port, vacation, pool, cabin
+train: tracks, locomotive, station, ticket, conductor, platform, whistle, rails, passenger, caboose
+submarine: underwater, periscope, sonar, deep, navy, torpedo, hatch, ocean, sub, captain
+spaceship: astronaut, rocket, space, stars, launch, orbit, NASA, zero gravity, fuel, alien
+highway: cars, speed, lanes, asphalt, traffic, exit, toll, road trip, trucks, signs
+bicycle: pedals, wheels, helmet, chain, handlebars, seat, frame, cycling, bell, tire
+camping: tent, campfire, marshmallows, sleeping bag, woods, lantern, hike, outdoor, stars, forest
+hotel: room, bed, keycard, lobby, room service, reception, maid, pool, elevator, reservation
+safari: lion, binoculars, jeep, Africa, wild, camera, savanna, guide, elephant, wilderness
+subway: underground, metro, train, platform, tokens, turnstile, tracks, commute, crowd, station
+
+# --- FANTASY & SCI-FI ---
+dragon: fire, scales, wings, cave, treasure, wings, knight, myth, gold, fly
+pirate: eyepatch, treasure, ship, parrot, skull, sword, rum, gold, sea, captain
+robot: metal, circuits, AI, android, wires, futuristic, steel, battery, automation, tech
+wizard: wand, spell, robe, staff, spellbook, magic, beard, potion, hat, sorcerer
+alien: UFO, space, green, extraterrestrial, galaxy, spaceship, Roswell, abduction, planet, saucer
+vampire: fangs, blood, coffin, bat, count, garlic, cape, night, stake, Dracula
+zombie: brain, undead, apocalypse, biting, walk, infection, graveyard, horror, outbreak, corpse
+castle: moat, drawbridge, king, knight, tower, stone, throne, queen, fortress, medieval
+monster: beast, scary, claws, teeth, dark, shadow, roar, creature, under bed, nightmare
+dinosaur: T-Rex, fossils, extinct, Jurassic, bones, eggs, reptile, predator, museum, giant
+
+# --- WEATHER & SEASONS ---
+summer: sun, heat, beach, vacation, ice cream, swimming, hot, ocean, shorts, July
+winter: snow, cold, ice, fireplace, coat, Christmas, mittens, freezing, blizzard, heater
+storm: thunder, lightning, rain, wind, clouds, dark, gale, tornado, tempest, shelter
+snow: white, cold, snowman, flakes, winter, ice, shovel, skiing, powder, avalanche
+sunshine: bright, warm, yellow, sky, summer, rays, light, sunglasses, day, heat
+rain: water, umbrella, puddles, clouds, wet, raindrops, storm, boots, drizzle, sky
+hurricane: wind, storm, eye, destruction, ocean, flood, warning, tropical, rain, evacuation
+autumn: leaves, fall, pumpkins, orange, harvest, breeze, sweater, Halloween, brown, chill
+rainbow: colors, sky, rain, pot of gold, sun, arch, violet, red, leprechaun, beauty
+blizzard: snow, wind, ice, cold, freezing, storm, whiteout, snowdrift, winter, hazard
+
+# --- SPORTS & ACTIVITIES ---
+soccer: ball, goal, grass, cleats, field, referee, pitch, penalty, kick, FIFA
+basketball: hoop, net, court, bounce, dunk, jersey, dribble, NBA, referee, points
+swimming: pool, water, goggles, swimsuit, laps, diving, stroke, chlorine, splash, beach
+bowling: pins, ball, lane, strike, shoes, alley, spare, gutter, score, frame
+skiing: snow, mountain, poles, slopes, goggles, resort, lift, jacket, carving, winter
+surfing: board, waves, ocean, wet suit, beach, tide, swell, wax, barrel, wipeout
+boxing: gloves, ring, knockout, punch, referee, mouthguard, ropes, round, belt, jab
+skateboarding: deck, wheels, ramp, kickflip, park, helmet, grip tape, trucks, pavement, grind
+golf: club, ball, green, tee, caddie, hole, course, drive, fairway, par
+tennis: racket, ball, net, court, serve, Wimbledon, match, ace, love, deuce
+
+# --- EVERYDAY OBJECTS ---
+camera: lens, photo, flash, picture, shutter, zoom, memory card, tripod, photographer, snapshot
+phone: screen, call, charger, app, text, battery, ringtone, smartphone, camera, case
+backpack: straps, zipper, books, school, pockets, travel, bag, shoulders, heavy, hiking
+telescope: stars, space, lens, planets, astronomy, moon, night sky, tripod, galaxy, view
+compass: north, needle, direction, map, South, East, West, navigation, hike, magnetic
+flashlight: beam, dark, batteries, bulb, night, light, torch, switch, camping, glow
+clock: hands, time, alarm, tick, face, hour, minute, seconds, watch, wall
+suitcase: wheels, luggage, handle, packing, clothes, travel, vacation, airport, zipper, trunk
+mirror: reflection, glass, frame, bathroom, vanity, wall, looking, image, silver, double
+umbrella: rain, shelter, handle, wet, storm, canopy, waterproof, fold, raindrops, wind
+
+# --- CONCEPTS & ATMOSPHERE ---
+mystery: secret, detective, puzzle, clue, unknown, crime, suspense, shadow, key, enigma
+nightmare: dream, fear, monster, sleep, dark, terror, scream, wake up, horror, sweat
+freedom: bird, wings, choice, liberty, chains, fly, independence, open, peace, wild
+luxury: gold, money, mansion, diamonds, expensive, yacht, champagne, silk, limousine, wealth
+danger: warning, hazard, red, caution, risk, emergency, poison, trap, fear, safety
+childhood: toys, games, play, memories, park, innocence, school, youth, friends, kids
+celebration: party, confetti, cake, balloons, champagne, music, cheer, toast, festival, fun
+romance: love, hearts, roses, candles, kiss, date, relationship, dinner, passion, couple
+chaos: disorder, noise, panic, wild, confusion, riot, madness, messy, anarchy, disruption
+peace: quiet, calm, dove, meditation, serenity, silence, harmony, tranquility, nature, rest

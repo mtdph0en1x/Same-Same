@@ -23,6 +23,7 @@ import { useTranslation } from 'react-i18next';
 import Button from '../components/Button';
 import FramedAvatar from '../components/FramedAvatar';
 import { usePostHog } from 'posthog-react-native';
+import HowToPlayModal from '../components/HowToPlayModal';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -102,7 +103,7 @@ function langModal(visible, setVisible, i18n, t) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Main HomeScreen
 // ─────────────────────────────────────────────────────────────────────────────
-export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setIsHost, setLobbyIntent, setIsGuest, guestName }) {
+export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setIsHost, setLobbyIntent, setIsGuest, guestName, guestAvatar }) {
   const posthog = usePostHog();
   const { t, i18n } = useTranslation();
   const { user } = useContext(AuthContext);
@@ -111,8 +112,8 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
   const [profileData, setProfileData] = useState(null);
   const [joinModalVisible, setJoinModalVisible] = useState(false);
   const [langModalVisible, setLangModalVisible] = useState(false);
-  const [showOptions, setShowOptions] = useState(false);
   const [activeTab, setActiveTab] = useState('play');
+  const [rulesModalVisible, setRulesModalVisible] = useState(false);
 
   const { width } = useWindowDimensions();
   const isDesktop = width > 800;
@@ -165,7 +166,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
     
     posthog.capture('Clicked Quick Play', { has_account: !!user });
     
-    const playerData = { name: displayName, avatar: profileData?.avatar, level: profileData?.level || 1, frame: profileData?.active_frame || 'none', lang: (i18n.language || 'en').substring(0, 2) };
+    const playerData = { name: displayName, avatar: profileData?.avatar || guestAvatar || 'alien', level: profileData?.level || 1, frame: profileData?.active_frame || 'none', lang: (i18n.language || 'en').substring(0, 2) };
     setPlayerData(playerData);
     setIsHost(false);
     setLobbyIntent('quick_play');
@@ -178,7 +179,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
     
     posthog.capture('Clicked Host Game', { has_account: !!user });
     
-    setPlayerData({ name: displayName, avatar: profileData?.avatar || 'alien', frame: profileData?.active_frame || 'none', lang: (i18n.language || 'en').substring(0, 2) });
+    setPlayerData({ name: displayName, avatar: profileData?.avatar || guestAvatar || 'alien', frame: profileData?.active_frame || 'none', lang: (i18n.language || 'en').substring(0, 2) });
     setIsHost(true);
     setLobbyIntent('host_game');
     setScreen('Lobby');
@@ -192,7 +193,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
     
     posthog.capture('Clicked Join Game', { has_account: !!user, room_code: code.toUpperCase() });
     
-    setPlayerData({ name: displayName, avatar: profileData?.avatar || 'alien', frame: profileData?.active_frame || 'none', lang: (i18n.language || 'en').substring(0, 2) });
+    setPlayerData({ name: displayName, avatar: profileData?.avatar || guestAvatar || 'alien', frame: profileData?.active_frame || 'none', lang: (i18n.language || 'en').substring(0, 2) });
     setRoomCode(code.toUpperCase());
     setIsHost(false);
     setLobbyIntent('join_couch');
@@ -281,7 +282,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
                     <View style={{ alignItems: 'center', width: !isDesktop ? 110 : '100%' }}>
                       <View style={{ marginBottom: !isDesktop ? 4 : 10 }}>
                         <FramedAvatar 
-                          url={user ? profileData?.avatar : undefined} 
+                          url={user ? profileData?.avatar : guestAvatar} 
                           fallbackName={getDisplayName()} 
                           frame={profileData?.active_frame || 'none'} 
                           size={80 * tScale} 
@@ -422,6 +423,13 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
                 type="tertiary"
               />
 
+              <Button
+                title={t('home.howToPlay', 'How to Play')}
+                subtext={t('home.howToPlaySub', 'Learn the rules and modes')}
+                onPress={() => setRulesModalVisible(true)}
+                type="tertiary"
+              />
+
               <View style={[s.dividerRow, { marginTop: 24, marginBottom: 10 }]}>
                 <View style={s.divider} />
                 <AppText style={s.dividerText}>{t('home.orJoinViaCode')}</AppText>
@@ -485,6 +493,7 @@ export default function HomeScreen({ setScreen, setRoomCode, setPlayerData, setI
       </ScrollView>
       {joinModal(joinModalVisible, setJoinModalVisible, code, setCode, handleJoinCouch, t)}
       {langModal(langModalVisible, setLangModalVisible, i18n, t)}
+      <HowToPlayModal visible={rulesModalVisible} setVisible={setRulesModalVisible} t={t} />
     </View>
   );
 }

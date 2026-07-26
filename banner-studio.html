@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banner Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&family=Nunito:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #0f172a; /* Dark slate */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            color: white;
+            font-family: sans-serif;
+        }
+        .instructions {
+            margin-bottom: 20px;
+            text-align: center;
+            opacity: 0.7;
+        }
+        /* Exactly 1200x630 for Open Graph standards */
+        .banner-container {
+            width: 1200px;
+            height: 630px;
+            background-color: #172033; /* Slightly lighter dark background matching the screenshot */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 0 4px #4ade80, 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+        .logo-text {
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 700;
+            font-size: 160px;
+            color: #FACC15;
+            text-shadow: 8px 8px 0px #000;
+            transform: rotate(-2deg);
+            margin: 0;
+            line-height: 1;
+        }
+        .tagline {
+            font-family: 'Nunito', sans-serif;
+            font-weight: 600;
+            font-size: 52px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 10px;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="instructions">
+        <h2>🎨 Banner Studio</h2>
+        <p>1. Ensure your browser is zoomed to 100% (so the fonts render crisply).<br>2. Take a screenshot of exactly the box below (inside the green outline).<br>3. Save it over <code>frontend/public/banner.jpg</code></p>
+    </div>
+
+    <!-- The actual 1200x630 banner -->
+    <div class="banner-container">
+        <h1 class="logo-text">Same Same?</h1>
+        <div class="tagline">The Associations Party Game</div>
+    </div>
+</body>
+</html>

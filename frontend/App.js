@@ -57,6 +57,7 @@ function AppContent() {
   const { user, loading } = useContext(AuthContext);
   const [isGuest, setIsGuest] = useState(false);
   const [guestName, setGuestName] = useState('');
+  const [guestAvatar, setGuestAvatar] = useState('👽');
   const [currentScreen, setCurrentScreen] = useState('Landing');
   const [roomCode, setRoomCode] = useState(null);
   const [playerData, setPlayerData] = useState({});
@@ -253,12 +254,11 @@ function AppContent() {
 
   if (!fontsLoaded) return null;
 
-  // ── Persistent chrome: Page Header ────────────────────────────────────────
   const PageHeader = (
     <View style={chrome.pageHeader}>
       <View style={chrome.phLeft}>
         <Text style={chrome.phLogo}>Same Same?</Text>
-        <Text style={chrome.phTagline}>The Bluffing Party Game</Text>
+        <Text style={chrome.phTagline}>The Associations Party Game</Text>
       </View>
 
       <Text style={chrome.phVersion}>v1.0</Text>
@@ -421,10 +421,18 @@ function AppContent() {
                   setLobbyIntent={setLobbyIntent}
                   setIsGuest={setIsGuest}
                   guestName={guestName}
+                  guestAvatar={guestAvatar}
                 />
               )}
               {currentScreen === 'Landing' && (
-                <LandingScreen setIsGuest={setIsGuest} guestName={guestName} setGuestName={setGuestName} transmissions={transmissions} />
+                <LandingScreen 
+                  setIsGuest={setIsGuest} 
+                  guestName={guestName} 
+                  setGuestName={setGuestName} 
+                  guestAvatar={guestAvatar}
+                  setGuestAvatar={setGuestAvatar}
+                  transmissions={transmissions} 
+                />
               )}
               {currentScreen === 'Settings' && (
                 <SettingsScreen
@@ -535,11 +543,10 @@ const styles = StyleSheet.create({
   },
   appWindowPattern: {
     ...StyleSheet.absoluteFillObject,
-    opacity: 0.2,
+    opacity: 1,
     zIndex: 0,
     ...(require('react-native').Platform.OS === 'web' && {
-      backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)',
-      backgroundSize: '24px 24px',
+      backgroundImage: 'radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.06) 100%)',
     }),
   },
 });

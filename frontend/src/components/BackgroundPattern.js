@@ -16,10 +16,6 @@ const styles = StyleSheet.create({
   },
   pattern: {
     flex: 1,
-    opacity: 0.1, // Subtle so it doesn't distract from the vibrant cards
-    ...(Platform.OS === 'web' && {
-      backgroundImage: 'radial-gradient(circle, #FFFFFF 2px, transparent 2px)',
-      backgroundSize: '32px 32px',
-    }),
+    opacity: 0.1,
   }
 });
