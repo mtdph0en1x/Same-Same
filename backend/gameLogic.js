@@ -69,6 +69,42 @@ function getRandomCategory(packId = 'classic', lang = 'en') {
     return pool[Math.floor(Math.random() * pool.length)];
 }
 
+function getCategoryFromBag(bagState, packId = 'classic', lang = 'en') {
+    // If the pack or language has changed, or the bag is empty, we must refill it.
+    if (
+        !bagState.available || 
+        bagState.available.length === 0 || 
+        bagState.currentPackId !== packId || 
+        bagState.currentLang !== lang
+    ) {
+        console.log(`[DEBUG-TOPIC] Refilling topic bag for pack="${packId}", lang="${lang}"`);
+        
+        let pool;
+        const langPacks = PACKS[lang] || PACKS['en'] || {};
+        
+        if (packId === 'all') {
+            pool = Object.values(langPacks).flat();
+        } else if (langPacks[packId]) {
+            pool = langPacks[packId];
+        } else {
+            pool = langPacks['classic'] || Object.values(langPacks).flat();
+        }
+        
+        if (!pool || pool.length === 0) {
+            bagState.available = ["Oops! No topics found."];
+        } else {
+            // Shuffle the pool into the bag
+            bagState.available = [...pool].sort(() => Math.random() - 0.5);
+        }
+        
+        bagState.currentPackId = packId;
+        bagState.currentLang = lang;
+    }
+    
+    // Pop the last item off the shuffled available array
+    return bagState.available.pop();
+}
+
 function getPackNames(lang = 'en') {
     return Object.keys(PACKS[lang] || PACKS['en'] || {});
 }
@@ -226,6 +262,7 @@ function calculateScores(playerWords, roundType, modifiers = [], teams = null) {
 module.exports = {
     loadTopics,
     getRandomCategory,
+    getCategoryFromBag,
     getPackNames,
     calculateScores
 };

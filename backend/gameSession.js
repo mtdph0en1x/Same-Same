@@ -1,4 +1,4 @@
-const { getRandomCategory, calculateScores } = require('./gameLogic');
+const { getCategoryFromBag, calculateScores } = require('./gameLogic');
 const { supabase } = require('./supabase');
 const VALID_ROUND_TYPES = ['Same Same', 'But Different', 'Rush'];
 
@@ -84,10 +84,10 @@ class GameSession {
         if (roundType === 'Blitz') {
             category = [];
             for (let i = 0; i < this.config.wordsPerRound; i++) {
-                category.push(getRandomCategory(this.config.categoryPack, this.config.lang));
+                category.push(getCategoryFromBag(this.config.topicBag, this.config.categoryPack, this.config.lang));
             }
         } else {
-            category = getRandomCategory(this.config.categoryPack, this.config.lang);
+            category = getCategoryFromBag(this.config.topicBag, this.config.categoryPack, this.config.lang);
         }
         this.currentCategory = category;
 

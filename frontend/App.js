@@ -319,7 +319,7 @@ function AppContent() {
           <View key={p.rank} style={chrome.activityItem}>
             <Text style={chrome.activityRank}>#{p.rank}</Text>
             {p.avatarUrl || p.frame ? (
-              <FramedAvatar url={p.avatarUrl} frame={p.frame} fallbackName={p.name} size={24} />
+              <FramedAvatar url={p.avatarUrl} frame="none" fallbackName={p.name} size={24} />
             ) : (
               <Text style={chrome.activityAvatar}>{p.avatar}</Text>
             )}
@@ -447,6 +447,7 @@ function AppContent() {
           <View style={[
             styles.appWindow, 
             !isDesktop && { width: '100%', alignSelf: 'center', marginBottom: 10 },
+            isDesktop && currentScreen === 'Landing' && { maxWidth: 1000, maxHeight: 750 },
             { flexDirection: isDesktop ? 'row' : 'column' },
             ['Settings', 'GlobalLeaderboard', 'Landing'].includes(currentScreen) && { overflow: 'visible' },
           ]}>

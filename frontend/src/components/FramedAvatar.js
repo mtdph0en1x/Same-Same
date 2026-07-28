@@ -4,7 +4,7 @@ import { View, Image, Text, Animated, Easing } from 'react-native';
 import { theme } from '../styles/theme';
 
 export default function FramedAvatar({ url, fallbackName, frame: originalFrame, size = 56, style }) {
-    const frame = originalFrame && originalFrame !== 'none' ? originalFrame : 'default';
+    const frame = originalFrame || 'none';
     const borderRadius = size / 2;
     const animVal = useRef(new Animated.Value(0)).current;
 
@@ -66,14 +66,13 @@ export default function FramedAvatar({ url, fallbackName, frame: originalFrame, 
     
     const frameStyle = getFrameStyle(frame);
     
-    // To prevent the image from overlapping the thick borders, we apply border radius to it.
-    // We assume 4px as standard custom frame width and 3px for default.
-    const innerRadius = Math.max(0, borderRadius - (frame === 'none' ? 0 : 3));
+    // Both the inner avatar and the frame must be perfect circles to avoid jagged edges.
+    const innerRadius = size / 2;
 
     return (
         <View style={[{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }, style]}>
             {/* Base Avatar Image */}
-            <View style={{ width: size, height: size, borderRadius: innerRadius, overflow: 'hidden' }}>
+            <View style={{ width: size, height: size, borderRadius: innerRadius, overflow: 'hidden', borderWidth: frame === 'none' ? 2 : 0, borderColor: '#000' }}>
                 {url && url.startsWith('http') ? (
                     <Image source={{ uri: url }} style={{ width: '100%', height: '100%' }} />
                 ) : url && !url.startsWith('http') ? (

@@ -280,7 +280,7 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName, gue
         <View style={[s.layout, isDesktop && s.layoutDesktop, { flex: 1 }]}>
           
           {/* COLUMN 1: TABBED ID */}
-          <View style={[s.col, s.colMain, isDesktop ? { flex: 3, borderRightWidth: 4, borderColor: '#000' } : { flex: 1 }]}>
+          <View style={[s.col, s.colMain, isDesktop ? { flex: 4, borderRightWidth: 4, borderColor: '#000' } : { flex: 1 }]}>
             
             {/* TABS — pressing them also animates the rail */}
             <View style={s.tabBar}>
@@ -415,7 +415,7 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName, gue
 
           {/* COLUMN 2: HOW TO PLAY (Desktop) */}
           {isDesktop && (
-            <View style={[s.col, s.colNews, { backgroundColor: 'transparent' }, { flex: 7 }]}>
+            <View style={[s.col, s.colNews, { backgroundColor: 'transparent' }, { flex: 5 }]}>
               <View style={{ position: 'absolute', right: 32, top: 24, zIndex: 10 }}>
                 <NeoButton 
                   style={{ backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 2, borderColor: '#000' }}
@@ -451,6 +451,9 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'stretch',
     justifyContent: 'center',
+    maxWidth: 1200,
+    width: '100%',
+    alignSelf: 'center',
   },
   col: {
     backgroundColor: 'transparent',

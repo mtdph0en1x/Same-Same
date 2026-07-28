@@ -164,6 +164,7 @@ function createRoom(io, socket, playerData) {
         isPublic:    false,
         isHostless:  false,
         votes:       {},
+        topicBag:    { available: [], currentPackId: null, currentLang: null },
     };
 
     socket.join(roomCode);
@@ -251,6 +252,7 @@ function findOrCreatePublicRoom(io, socket, playerData) {
             isPublic: true,
             isHostless: true,
             votes: {},
+            topicBag: { available: [], currentPackId: null, currentLang: null },
         };
 
         socket.join(roomCode);
@@ -492,6 +494,7 @@ function startPublicCountdown(io, roomCode) {
                 ...room.config,
                 teams: room.config.teamMode ? { ...room.teams } : null,
                 isPublic: room.isPublic || false,
+                topicBag: room.topicBag, // Pass the persistent topic bag
             };
             console.log(`[DEBUG-TOPIC] startGame -> roomCode: ${roomCode}, room.config.lang: ${room.config.lang}, sessionConfig.lang: ${sessionConfig.lang}, room.config.categoryPack: ${room.config.categoryPack}`);
             room.gameSession = new GameSession(io, roomCode, gamePlayers, sessionConfig);
