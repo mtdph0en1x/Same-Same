@@ -4,8 +4,7 @@ import { View, Image, Text, Animated, Easing } from 'react-native';
 import { theme } from '../styles/theme';
 
 export default function FramedAvatar({ url, fallbackName, frame: originalFrame, size = 56, style }) {
-    // TEMPORARY: Disable all frames client-side as requested
-    const frame = 'none';
+    const frame = originalFrame && originalFrame !== 'none' ? originalFrame : 'default';
     const borderRadius = size / 2;
     const animVal = useRef(new Animated.Value(0)).current;
 
@@ -78,11 +77,11 @@ export default function FramedAvatar({ url, fallbackName, frame: originalFrame, 
                 {url && url.startsWith('http') ? (
                     <Image source={{ uri: url }} style={{ width: '100%', height: '100%' }} />
                 ) : url && !url.startsWith('http') ? (
-                    <View style={{ width: '100%', height: '100%', backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center' }}>
+                    <View style={{ width: '100%', height: '100%', backgroundColor: '#FFF', justifyContent: 'center', alignItems: 'center' }}>
                         <AppText style={{ fontSize: size * 0.6 }}>{url}</AppText>
                     </View>
                 ) : (
-                    <View style={{ width: '100%', height: '100%', backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center' }}>
+                    <View style={{ width: '100%', height: '100%', backgroundColor: '#FFF', justifyContent: 'center', alignItems: 'center' }}>
                         <AppText style={{ fontFamily: theme.fonts.headingBold, color: '#000', fontSize: size * 0.4 }}>
                             {fallbackName ? fallbackName.charAt(0).toUpperCase() : '?'}
                         </AppText>

@@ -61,7 +61,7 @@ export default function HowToPlayModal({ visible, setVisible, t, inline }) {
   };
 
   const content = (
-    <View style={[s.modalContent, inline ? { minHeight: 400, flex: 1, padding: 20 } : { maxWidth: isDesktop ? 600 : '100%' }]}>
+    <View style={[s.modalContent, inline ? { height: 600, padding: 20 } : { maxWidth: isDesktop ? 600 : '100%' }]}>
       {!inline && (
         <NeoButton style={s.closeBtn} onPress={() => setVisible(false)}>
           <AppText style={s.closeBtnText}>✕</AppText>

@@ -153,14 +153,19 @@ function AppContent() {
   };
 
   useEffect(() => {
-    // Fetch global top 4 players by XP
-    supabase.from('profiles').select('username, active_frame, avatar, xp').order('xp', { ascending: false }).limit(4)
+    // Fetch today's top 4 players by daily_xp
+    const todayStr = new Date().toISOString().split('T')[0];
+    supabase.from('profiles')
+      .select('username, active_frame, avatar, daily_xp')
+      .eq('last_active_date', todayStr)
+      .order('daily_xp', { ascending: false })
+      .limit(4)
       .then(({ data }) => {
         if (data) {
           setTopPlayers(data.map((p, i) => ({
             rank: i + 1,
             name: p.username || 'Unknown',
-            pts: Math.floor(p.xp || 0).toLocaleString(),
+            pts: Math.floor(p.daily_xp || 0).toLocaleString(),
             avatarUrl: p.avatar,
             frame: p.active_frame || 'none'
           })));
@@ -308,7 +313,7 @@ function AppContent() {
   // ── Persistent chrome: Activity Bar ──────────────────────────────────────
   const ActivityBar = isDesktop ? (
     <View style={chrome.activityBar}>
-      <Text style={chrome.activityLabel}>🏆 TOP PLAYERS (XP)</Text>
+      <Text style={chrome.activityLabel}>🏆 TODAY'S TOP PLAYERS</Text>
       <View style={chrome.activityItems}>
         {(topPlayers.length > 0 ? topPlayers : TOP_PLAYERS).map(p => (
           <View key={p.rank} style={chrome.activityItem}>

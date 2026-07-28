@@ -481,7 +481,7 @@ class GameSession {
                 // Fetch current stats to increment (Race conditions possible but acceptable for indie game without RPC)
                 const { data, error } = await supabase
                     .from('profiles')
-                    .select('games_played, wins, xp, level, unlocked_frames')
+                    .select('games_played, wins, xp, level, unlocked_frames, daily_xp, last_active_date')
                     .eq('id', p.userId)
                     .single();
 
@@ -497,6 +497,16 @@ class GameSession {
 
                 let currentXp = (data.xp || 0) + earnedXp;
                 let currentLevel = data.level || 1;
+
+                // Daily XP Tracking
+                let todayStr = new Date().toISOString().split('T')[0];
+                let currentDailyXp = data.daily_xp || 0;
+                let lastActive = data.last_active_date || todayStr;
+                
+                if (lastActive !== todayStr) {
+                    currentDailyXp = 0;
+                }
+                currentDailyXp += earnedXp;
 
                 // Level up scaling: 500 base, increases 10% each level
                 let nextLevelXp = Math.floor(500 * Math.pow(1.10, currentLevel - 1));
@@ -521,7 +531,9 @@ class GameSession {
                         wins: (data.wins || 0) + (isWinner ? 1 : 0),
                         xp: currentXp,
                         level: currentLevel,
-                        unlocked_frames: Array.from(unlocked)
+                        unlocked_frames: Array.from(unlocked),
+                        daily_xp: currentDailyXp,
+                        last_active_date: todayStr
                     })
                     .eq('id', p.userId);
 
