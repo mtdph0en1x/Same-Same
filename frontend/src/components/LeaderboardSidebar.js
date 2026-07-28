@@ -1,10 +1,11 @@
 import React from 'react';
 import AppText from './AppText';
-import { StyleSheet, Text, View, Image, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, Image, ScrollView, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { theme } from '../styles/theme';
+import { Flag } from 'lucide-react-native';
 
-export default function LeaderboardSidebar({ players, roundResults, currentScreen, isDesktop = true }) {
+export default function LeaderboardSidebar({ players, roundResults, currentScreen, isDesktop = true, onReportPlayer }) {
   const { t } = useTranslation();
   // players is an array of player objects: { id, name, avatar, score, level }
   
@@ -46,6 +47,11 @@ export default function LeaderboardSidebar({ players, roundResults, currentScree
               <AppText style={styles.name} numberOfLines={1}>{p.name}</AppText>
               <AppText style={styles.score}>{t('leaderboardSidebar.pts', { count: getPlayerScore(p.id) })}</AppText>
             </View>
+            {onReportPlayer && (
+              <TouchableOpacity onPress={() => onReportPlayer(p)} style={styles.reportBtn}>
+                <Flag color="#888" size={16} />
+              </TouchableOpacity>
+            )}
           </View>
         ))}
         {players.length === 0 && (
@@ -140,6 +146,9 @@ const styles = StyleSheet.create({
     fontFamily: theme.fonts.body,
     fontSize: 12,
     color: theme.colors.muted,
+  },
+  reportBtn: {
+    padding: 4,
   },
   emptyText: {
     fontFamily: theme.fonts.body,

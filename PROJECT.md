@@ -243,12 +243,12 @@ Before a commercial launch, the following features are prioritized to transition
 
 ### Layer 4 — Lightweight Cosmetics (The Economy) 🚧 In Progress
 - **Cosmetics:** ✅ Custom user-uploaded avatars via Supabase Storage. Added concept for unlockable **Profile Picture (PFP) Frames**.
-- **Leaderboards:** Global and weekly leaderboards pulled directly from Supabase. (Pending)
+- **Leaderboards:** ✅ Global and weekly leaderboards pulled directly from Supabase.
 - **Monetization (Freemium Model):** Guest/Free players get the "Classic" pack. VIP/Premium Hosts can buy "Expansion Passes" or individual packs. If the Host owns the pack, everyone in the lobby gets to play it. (Pending)
 
 ### Layer 5 — “Juice” & Polish (The Player Experience) 🚧 In Progress
 - **Micro-animations:** ✅ Native modal bottom-sheets, bouncy animated `PlayerCard`s, squishy tactile buttons.
-- **Sound Design & Haptics:** ✅ Phone vibrations (haptics) on button press and success actions. (Music/SFX pending).
+- **Sound Design & Haptics:** ✅ Phone vibrations (haptics) on button press and success actions. Sound effects (SFX) implemented via `SoundManager` (ticking, rejection, fanfare, etc.). Music pending.
 - **Frictionless Onboarding:** ✅ Dedicated Landing Page with Google OAuth for seamless web/mobile login.
 - **Physical ID Aesthetic:** ✅ Embedded login forms directly into scalable ID card graphics for an immersive "Visitor Pass" and "Same Same ID" feel.
 - **Skeuomorphic Elements:** ✅ "Messy Desk" background with coffee stains, polaroids, tape, sticky notes, and scattered, randomly-rotated mode cards.
@@ -265,6 +265,7 @@ Before a commercial launch, the following features are prioritized to transition
 - **Backend Scaling:** Deployed Node.js/Socket.io backend to Render.
 - **Frontend Hosting:** Deployed React Native Web frontend to Vercel.
 - **Database & Auth:** Supabase in production.
+- **Legal:** ✅ Privacy Policy page is live.
 
 ---
 

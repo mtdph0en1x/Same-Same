@@ -20,6 +20,7 @@ import LeaderboardSidebar from './src/components/LeaderboardSidebar';
 import BackgroundPattern from './src/components/BackgroundPattern';
 import MessyDeskBackground from './src/components/MessyDeskBackground';
 import FramedAvatar from './src/components/FramedAvatar';
+import ReportModal from './src/components/ReportModal';
 import { AuthProvider, AuthContext } from './src/context/AuthContext';
 import { socket } from './src/socket';
 import { theme } from './src/styles/theme';
@@ -66,6 +67,9 @@ function AppContent() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [creditsVisible, setCreditsVisible] = useState(false);
   const [contactVisible, setContactVisible] = useState(false);
+  const [reportVisible, setReportVisible] = useState(false);
+  const [reportType, setReportType] = useState('bug');
+  const [reportTarget, setReportTarget] = useState(null);
 
   const [gameData, setGameData] = useState(null);
   const [players, setPlayers] = useState([]);
@@ -330,10 +334,15 @@ function AppContent() {
       <Text style={chrome.footerCopy}>© 2026 Same Same</Text>
       {isDesktop && (
         <View style={chrome.footerLinks}>
-          {['Privacy', 'Contact', 'Credits'].map(link => (
+          {['Privacy', 'Contact', 'Credits', 'Report Issue'].map(link => (
             <TouchableOpacity key={link} onPress={() => {
               if (link === 'Credits') setCreditsVisible(true);
               else if (link === 'Contact') setContactVisible(true);
+              else if (link === 'Report Issue') {
+                setReportType('bug');
+                setReportTarget(null);
+                setReportVisible(true);
+              }
               else if (link === 'Privacy') Linking.openURL('https://www.same-same.fun/privacy');
             }}>
               <Text style={chrome.footerLink}>{link}</Text>
@@ -447,6 +456,11 @@ function AppContent() {
                   roundResults={roundResults} 
                   currentScreen={currentScreen} 
                   isDesktop={isDesktop}
+                  onReportPlayer={(p) => {
+                    setReportTarget(p);
+                    setReportType('player');
+                    setReportVisible(true);
+                  }}
                 />
               )
             )}
@@ -478,6 +492,11 @@ function AppContent() {
                 <SettingsScreen
                   setScreen={setCurrentScreen}
                   setIsGuest={setIsGuest}
+                  onReportIssue={() => {
+                    setReportType('bug');
+                    setReportTarget(null);
+                    setReportVisible(true);
+                  }}
                 />
               )}
               {currentScreen === 'GlobalLeaderboard' && (
@@ -552,6 +571,14 @@ function AppContent() {
         {ActivityBar}
         {isDesktop && PageFooter}
         </View>
+
+        <ReportModal 
+          visible={reportVisible} 
+          onClose={() => setReportVisible(false)} 
+          initialType={reportType}
+          reportedPlayer={reportTarget}
+          reporterId={user?.id || null}
+        />
       </View>
   );
 }

@@ -19,7 +19,7 @@ const UNLOCK_THRESHOLDS = [
   { level: 50, frame: 'glitch', labelKey: 'glitch' }
 ];
 
-export default function SettingsScreen({ setScreen, setIsGuest }) {
+export default function SettingsScreen({ setScreen, setIsGuest, onReportIssue }) {
   const { width } = useWindowDimensions();
   const isSmall = width < 400;
   const isDesktop = width > 800;
@@ -231,6 +231,18 @@ export default function SettingsScreen({ setScreen, setIsGuest }) {
       >
         <AppText style={s.aboutRowIcon}>🎵</AppText>
         <AppText style={s.aboutRowLabel}>{t('settings.audioCredits', 'Audio Credits')}</AppText>
+        <AppText style={s.aboutRowChevron}>›</AppText>
+      </TouchableOpacity>
+
+      <View style={s.aboutDivider} />
+
+      <TouchableOpacity
+        style={s.aboutRow}
+        onPress={() => onReportIssue && onReportIssue()}
+        activeOpacity={0.7}
+      >
+        <AppText style={s.aboutRowIcon}>🚩</AppText>
+        <AppText style={s.aboutRowLabel}>{t('settings.reportIssue', 'Report Issue')}</AppText>
         <AppText style={s.aboutRowChevron}>›</AppText>
       </TouchableOpacity>
 
