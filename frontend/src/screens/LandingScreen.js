@@ -99,21 +99,6 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName, gue
   const [rulesModalVisible, setRulesModalVisible] = useState(false);
   const [emojiModalVisible, setEmojiModalVisible] = useState(false);
 
-  useEffect(() => {
-    async function checkFirstVisit() {
-      try {
-        const hasSeen = await AsyncStorage.getItem('hasSeenRules');
-        if (!hasSeen) {
-          setRulesModalVisible(true);
-          await AsyncStorage.setItem('hasSeenRules', 'true');
-        }
-      } catch (err) {
-        // Ignore storage errors
-      }
-    }
-    checkFirstVisit();
-  }, []);
-
   const { width } = useWindowDimensions();
   const isDesktop = width > 800;
 
@@ -263,7 +248,42 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName, gue
         }
       }
     } catch (error) {
-      Alert.alert(t('landing.googleLoginFailed'), error.message);
+      Alert.alert(t('landing.googleLoginFailed', 'Google Login Failed'), error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDiscordLogin() {
+    setLoading(true);
+    try {
+      const redirectUrl = Platform.OS === 'web' ? window.location.origin + '/' : Linking.createURL('/');
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'discord',
+        options: { redirectTo: redirectUrl, skipBrowserRedirect: Platform.OS !== 'web' }
+      });
+      
+      if (error) throw error;
+      
+      if (Platform.OS !== 'web' && data?.url) {
+        const res = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+        if (res.type === 'success' && res.url) {
+          const parsed = Linking.parse(res.url);
+          if (parsed.queryParams && parsed.queryParams.code) {
+            await supabase.auth.exchangeCodeForSession(parsed.queryParams.code);
+          } else {
+            const hash = res.url.split('#')[1];
+            if (hash) {
+              const hashParams = new URLSearchParams(hash);
+              const access_token = hashParams.get('access_token');
+              const refresh_token = hashParams.get('refresh_token');
+              if (access_token && refresh_token) await supabase.auth.setSession({ access_token, refresh_token });
+            }
+          }
+        }
+      }
+    } catch (error) {
+      Alert.alert(t('landing.discordLoginFailed', 'Discord Login Failed'), error.message);
     } finally {
       setLoading(false);
     }
@@ -387,7 +407,18 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName, gue
                       >
                         {loading
                           ? <ActivityIndicator color="#000" />
-                          : <AppText style={{ fontFamily: theme.fonts.bodyBold, fontSize: 13, color: '#000' }}>{t('landing.continueWithGoogle')}</AppText>
+                          : <AppText style={{ fontFamily: theme.fonts.bodyBold, fontSize: 13, color: '#000' }}>{t('landing.continueWithGoogle', 'CONTINUE WITH GOOGLE')}</AppText>
+                        }
+                      </NeoButton>
+                      
+                      <NeoButton
+                        style={[s.input, { width: '85%', alignSelf: 'center', alignItems: 'center', justifyContent: 'center', backgroundColor: '#5865F2', marginTop: 15 }, loading && { opacity: 0.7 }]}
+                        onPress={handleDiscordLogin}
+                        disabled={loading}
+                      >
+                        {loading
+                          ? <ActivityIndicator color="#fff" />
+                          : <AppText style={{ fontFamily: theme.fonts.bodyBold, fontSize: 13, color: '#fff' }}>{t('landing.continueWithDiscord', 'CONTINUE WITH DISCORD')}</AppText>
                         }
                       </NeoButton>
                     </View>
