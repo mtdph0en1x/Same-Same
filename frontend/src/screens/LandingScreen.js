@@ -9,6 +9,7 @@ import { theme } from '../styles/theme';
 import { useTranslation } from 'react-i18next';
 import HowToPlayModal from '../components/HowToPlayModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { FontAwesome5 } from '@expo/vector-icons';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -399,26 +400,36 @@ export default function LandingScreen({ setIsGuest, guestName, setGuestName, gue
                       resizeMode="cover"
                     />
                     <View style={[s.idCardContent, { flex: 1 }]}>
-                      <View style={s.idCardTopSection} />
+                      <View style={{ height: 30 }} />
                       <NeoButton
-                        style={[s.input, { width: '85%', alignSelf: 'center', alignItems: 'center', justifyContent: 'center' }, loading && { opacity: 0.7 }]}
+                        style={[s.input, { width: '85%', alignSelf: 'center', alignItems: 'center', justifyContent: 'center', flexDirection: 'row' }, loading && { opacity: 0.7 }]}
                         onPress={handleGoogleLogin}
                         disabled={loading}
                       >
                         {loading
                           ? <ActivityIndicator color="#000" />
-                          : <AppText style={{ fontFamily: theme.fonts.bodyBold, fontSize: 13, color: '#000' }}>{t('landing.continueWithGoogle', 'CONTINUE WITH GOOGLE')}</AppText>
+                          : (
+                              <>
+                                <FontAwesome5 name="google" size={16} color="#000" style={{ marginRight: 8 }} />
+                                <AppText style={{ fontFamily: theme.fonts.bodyBold, fontSize: 13, color: '#000' }}>{t('landing.continueWithGoogle', 'CONTINUE WITH GOOGLE')}</AppText>
+                              </>
+                            )
                         }
                       </NeoButton>
                       
                       <NeoButton
-                        style={[s.input, { width: '85%', alignSelf: 'center', alignItems: 'center', justifyContent: 'center', backgroundColor: '#5865F2', marginTop: 15 }, loading && { opacity: 0.7 }]}
+                        style={[s.input, { width: '85%', alignSelf: 'center', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', backgroundColor: '#5865F2', marginTop: 15 }, loading && { opacity: 0.7 }]}
                         onPress={handleDiscordLogin}
                         disabled={loading}
                       >
                         {loading
                           ? <ActivityIndicator color="#fff" />
-                          : <AppText style={{ fontFamily: theme.fonts.bodyBold, fontSize: 13, color: '#fff' }}>{t('landing.continueWithDiscord', 'CONTINUE WITH DISCORD')}</AppText>
+                          : (
+                              <>
+                                <FontAwesome5 name="discord" size={18} color="#fff" style={{ marginRight: 8 }} />
+                                <AppText style={{ fontFamily: theme.fonts.bodyBold, fontSize: 13, color: '#fff' }}>{t('landing.continueWithDiscord', 'CONTINUE WITH DISCORD')}</AppText>
+                              </>
+                            )
                         }
                       </NeoButton>
                     </View>

@@ -178,7 +178,7 @@ function PlayerCard({ player, isHost, isSelf, onKick, isHostless }) {
 }
 
 // Countdown overlay
-function CountdownOverlay({ count }) {
+function CountdownOverlay({ count, modifiers = [] }) {
   const { t } = useTranslation();
   const scaleAnim   = useRef(new Animated.Value(0.4)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -198,6 +198,25 @@ function CountdownOverlay({ count }) {
         {count}
       </Animated.Text>
       <AppText style={styles.countdownLabel}>{t('lobby.getReady', 'Get ready!')}</AppText>
+      {modifiers.length > 0 && (
+        <Animated.View style={{ opacity: opacityAnim, marginTop: 20, gap: 10 }}>
+          {modifiers.includes('Rush') && (
+            <AppText style={{ fontFamily: 'Fredoka_700Bold', fontSize: 20, color: '#FCD34D', textAlign: 'center' }}>
+              {t('lobby.rushActive')}
+            </AppText>
+          )}
+          {modifiers.includes('Hardcore') && (
+            <AppText style={{ fontFamily: 'Fredoka_700Bold', fontSize: 20, color: '#F87171', textAlign: 'center' }}>
+              {t('lobby.hardcoreActive')}
+            </AppText>
+          )}
+          {modifiers.includes('Zen') && (
+            <AppText style={{ fontFamily: 'Fredoka_700Bold', fontSize: 20, color: '#34D399', textAlign: 'center' }}>
+              {t('lobby.zenActive')}
+            </AppText>
+          )}
+        </Animated.View>
+      )}
     </View>
   );
 }
@@ -348,7 +367,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
     });
 
     socket.on('host_changed', (data) => {
-      if (socket.id === data.newHostId) {
+      if (socket.id === data.newHostId || playerData?.sessionId === data.newHostId) {
         setIsHost(true);
         setHostBanner(true);
         clearTimeout(hostBannerTimer.current);
@@ -447,7 +466,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
   return (
     <SafeAreaView style={styles.safeArea}>
       {/* Full-screen countdown for private or hosted public rooms */}
-      {countdown !== null && (!isPublic || !isHostless) && <CountdownOverlay count={countdown} />}
+      {countdown !== null && (!isPublic || !isHostless) && <CountdownOverlay count={countdown} modifiers={config.modifiers || []} />}
 
       <ScrollView 
         contentContainerStyle={[styles.container, !isDesktop && { padding: 16 }, isDesktop && styles.containerDesktop]} 
@@ -535,7 +554,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
                           <DraggablePlayerCard
                             key={p.id}
                             player={p}
-                            isSelf={p.id === socket.id}
+                            isSelf={p.id === socket.id || p.id === playerData?.sessionId}
                             myTeam={team}
                             onDropToTeam={handleDropToTeam}
                             isHost={isHost}
@@ -558,7 +577,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
                     key={p.id}
                     player={p}
                     isHost={isHost}
-                    isSelf={p.id === socket.id}
+                    isSelf={p.id === socket.id || p.id === playerData?.sessionId}
                     onKick={handleKick}
                     isHostless={isHostless}
                   />
@@ -670,19 +689,37 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
 
             <AppText style={styles.settingLabel}>{t('lobby.gameModifiers', 'Game modifiers')}</AppText>
             {isHost ? (
-              <View style={styles.chipRow}>
-                {['Rush', 'Hardcore', 'Zen'].map(mod => (
-                  <RoundTypeToggle
-                    key={mod}
-                    value={mod}
-                    type={t(`lobby.${mod.toLowerCase()}`, mod)}
-                    active={(config.modifiers || []).includes(mod)}
-                    onChange={toggleModifier}
-                  />
-                ))}
+              <View>
+                <View style={styles.chipRow}>
+                  {['Rush', 'Hardcore', 'Zen'].map(mod => (
+                    <RoundTypeToggle
+                      key={mod}
+                      value={mod}
+                      type={t(`lobby.${mod.toLowerCase()}`, mod)}
+                      active={(config.modifiers || []).includes(mod)}
+                      onChange={toggleModifier}
+                    />
+                  ))}
+                </View>
+                <View style={{ marginTop: (config.modifiers || []).length > 0 ? 10 : 0, gap: 4 }}>
+                  {(config.modifiers || []).map(mod => (
+                    <AppText key={mod} style={{ fontFamily: 'Nunito_600SemiBold', fontSize: 13, color: mod === 'Hardcore' ? '#991B1B' : mod === 'Zen' ? '#065F46' : '#9A3412' }}>
+                      {t(`lobby.${mod.toLowerCase()}Description`)}
+                    </AppText>
+                  ))}
+                </View>
               </View>
             ) : (
-              <AppText style={styles.readOnlyValue}>{(config.modifiers || []).length > 0 ? config.modifiers.map(mod => t(`lobby.${mod.toLowerCase()}`, mod)).join(', ') : t('lobby.modifiersNone', 'None')}</AppText>
+              <View>
+                <AppText style={styles.readOnlyValue}>{(config.modifiers || []).length > 0 ? config.modifiers.map(mod => t(`lobby.${mod.toLowerCase()}`, mod)).join(', ') : t('lobby.modifiersNone', 'None')}</AppText>
+                <View style={{ marginTop: (config.modifiers || []).length > 0 ? 6 : 0, gap: 4 }}>
+                  {(config.modifiers || []).map(mod => (
+                    <AppText key={mod} style={{ fontFamily: 'Nunito_600SemiBold', fontSize: 13, color: mod === 'Hardcore' ? '#991B1B' : mod === 'Zen' ? '#065F46' : '#9A3412' }}>
+                      {t(`lobby.${mod.toLowerCase()}Description`)}
+                    </AppText>
+                  ))}
+                </View>
+              </View>
             )}
 
             <AppText style={styles.settingLabel}>{t('lobby.categoryPack', 'Category pack')}</AppText>

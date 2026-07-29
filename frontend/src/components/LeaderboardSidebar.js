@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { theme } from '../styles/theme';
 import { Flag } from 'lucide-react-native';
 
-export default function LeaderboardSidebar({ players, roundResults, currentScreen, isDesktop = true, onReportPlayer }) {
+export default function LeaderboardSidebar({ players, roundResults, currentScreen, isDesktop = true, onReportPlayer, currentPlayerId }) {
   const { t } = useTranslation();
   // players is an array of player objects: { id, name, avatar, score, level }
   
@@ -47,7 +47,7 @@ export default function LeaderboardSidebar({ players, roundResults, currentScree
               <AppText style={styles.name} numberOfLines={1}>{p.name}</AppText>
               <AppText style={styles.score}>{t('leaderboardSidebar.pts', { count: getPlayerScore(p.id) })}</AppText>
             </View>
-            {onReportPlayer && (
+            {onReportPlayer && p.id !== currentPlayerId && (
               <TouchableOpacity onPress={() => onReportPlayer(p)} style={styles.reportBtn}>
                 <Flag color="#888" size={16} />
               </TouchableOpacity>

@@ -1,0 +1,1 @@
+const fs=require('fs'); const path='./frontend/src/i18n'; fs.readdirSync(path).forEach(f => { if(f.endsWith('.js')){ let c = fs.readFileSync(path+'/'+f, 'utf8'); c = c.replace(/continueWithGoogle:\s*'??\s*/g, 'continueWithGoogle: '); fs.writeFileSync(path+'/'+f, c); } })

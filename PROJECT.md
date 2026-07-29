@@ -439,3 +439,7 @@ We are actively migrating the frontend UI to use `react-i18next`.
 - **Offline Player Ghosting:** Overhauled the disconnection logic to handle aggressive browser background-tab suspension (especially on iOS/PC). Instead of permanently kicking players after 30 seconds of inactivity during an active game, the server now waits 2 minutes and then marks them as "Offline" (Ghosts). The game skips waiting for their input, but their scores are preserved and they remain visible on the Leaderboard. If they wake their device, they seamlessly reconnect and drop right back into the active game.
 - **Moderation:** Integrated `leo-profanity` in the backend (`roomManager.js`) to automatically sanitize offensive usernames across multiple languages.
 - **Mock Testing:** Fixed broken jest mocks in `__mocks__/natural.js` by adding the missing `LevenshteinDistance` function.
+- **Auth Expansion:** Integrated Discord OAuth alongside Google on the Landing screen, fully localized.
+- **UI Tweaks for Launch:** Temporarily hid the "Today's Top Players" footer to prevent the game feeling dead on soft launch. Shifted auth buttons up the ID card to improve layout. Swapped native text emojis for clean FontAwesome vector icons on Auth buttons.
+- **Guest Experience:** Guests can now pick from 24 custom emojis via a grid modal instead of being assigned a random one.
+- **Rules UX:** Disabled the aggressive auto-popup of rules for mobile users to reduce friction. Added a dedicated slide explicitly explaining the AI's role.

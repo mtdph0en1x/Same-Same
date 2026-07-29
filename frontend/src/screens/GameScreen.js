@@ -32,7 +32,48 @@ function WordChip({ word }) {
   );
 }
 
-export default function GameScreen({ roomCode, gameData, players, teams }) {
+// Pre-round overlay
+function PreRoundOverlay({ count, gameData }) {
+  const { t } = useTranslation();
+  const scaleAnim   = useRef(new Animated.Value(0.4)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    scaleAnim.setValue(0.4);
+    opacityAnim.setValue(0);
+    Animated.parallel([
+      Animated.spring(scaleAnim,   { toValue: 1, useNativeDriver: true, tension: 120, friction: 6 }),
+      Animated.timing(opacityAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
+    ]).start();
+  }, [count]);
+
+  const roundName = gameData.roundType === 'But Different' ? t('lobby.butdifferent', 'BUT DIFFERENT') : gameData.roundType === 'Blitz' ? t('lobby.blitz', 'BLITZ') : t('lobby.samesame', 'SAME SAME');
+  const roundGoal = gameData.roundType === 'But Different' ? t('game.goalButDifferent') : gameData.roundType === 'Blitz' ? t('game.goalBlitz') : t('game.goalSameSame');
+
+  return (
+    <View style={styles.countdownOverlay}>
+      <AppText style={{ fontFamily: 'Fredoka_700Bold', fontSize: 24, color: '#FFF', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>
+        {t('game.roundHeader', { current: gameData.roundNumber, total: gameData.totalRounds, type: '' }).split(' · ')[0]}
+      </AppText>
+      
+      <View style={{ backgroundColor: '#FCD34D', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginBottom: 16 }}>
+        <AppText style={{ fontFamily: 'Fredoka_700Bold', fontSize: 20, color: '#991B1B', letterSpacing: 1, textTransform: 'uppercase' }}>
+          {roundName}
+        </AppText>
+      </View>
+      
+      <AppText style={{ fontFamily: 'Nunito_600SemiBold', fontSize: 18, color: '#E5E7EB', marginBottom: 40, textAlign: 'center', paddingHorizontal: 20 }}>
+        {roundGoal}
+      </AppText>
+
+      <Animated.Text style={[styles.countdownNumber, { transform: [{ scale: scaleAnim }], opacity: opacityAnim }]}>
+        {count}
+      </Animated.Text>
+    </View>
+  );
+}
+
+export default function GameScreen({ roomCode, gameData, players, teams, isPreRound }) {
   const posthog = usePostHog();
   const { t } = useTranslation();
   const [currentWord, setCurrentWord]       = useState('');
@@ -44,9 +85,23 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
   const wordsPerRound = gameData.wordsPerRound || 5;
   const myTeam = teams ? teams[socket.id] : null;
   const teamLabels = { A: t('lobby.teamA', '🔴 Team A'), B: t('lobby.teamB', '🔵 Team B') };
-  const inputRef = useRef(null);
+  const [isWarning, setIsWarning]           = useState(false);
+  const [preRoundCount, setPreRoundCount]   = useState(3);
+
   const { width } = useWindowDimensions();
-  const isDesktop = width > 800;
+  const isDesktop = width >= 768;
+
+  useEffect(() => {
+    if (isPreRound) {
+      setPreRoundCount(3);
+      const interval = setInterval(() => {
+        setPreRoundCount(c => (c > 1 ? c - 1 : 1));
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [isPreRound]);
+
+  const inputRef = useRef(null);
 
   useEffect(() => {
     setTimeLeft(gameData.timeLimit !== undefined ? gameData.timeLimit : 60);
@@ -99,7 +154,6 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
     }
   };
 
-  const isWarning = timeLeft <= 10;
   const progress = submittedWords.length;
   
   const isBlitz = Array.isArray(gameData.category);
@@ -109,6 +163,7 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {isPreRound && <PreRoundOverlay count={preRoundCount} gameData={gameData} />}
       <ScrollView contentContainerStyle={[styles.container, !isDesktop && styles.containerMobile, isDesktop && styles.containerDesktop]} keyboardShouldPersistTaps="handled">
 
         <View style={isDesktop ? styles.desktopRow : styles.mobileRow}>
@@ -174,6 +229,9 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
         <View style={[styles.categoryCard, !isDesktop && styles.categoryCardMobile]}>
           {isBlitz && <AppText style={[styles.blitzHeader, !isDesktop && styles.blitzHeaderMobile]}>{t('game.blitzTopic', { num: progress + 1 })}</AppText>}
           <AppText style={[styles.categoryTitle, !isDesktop && styles.categoryTitleMobile]}>{currentCategory}</AppText>
+          <AppText style={{ fontFamily: 'Nunito_600SemiBold', fontSize: 15, color: '#444', marginTop: 12 }}>
+            {gameData.roundType === 'But Different' ? t('game.goalButDifferent') : gameData.roundType === 'Blitz' ? t('game.goalBlitz') : t('game.goalSameSame')}
+          </AppText>
         </View>
 
         {/* Submitted words */}
@@ -191,7 +249,11 @@ export default function GameScreen({ roomCode, gameData, players, teams }) {
             <TextInput
               ref={inputRef}
               style={[styles.input, !isDesktop && styles.inputMobile]}
-              placeholder={t('game.nameSomething', { left: wordsPerRound - progress })}
+              placeholder={
+                gameData.roundType === 'But Different' ? t('game.placeholderButDifferent', { left: wordsPerRound - progress }) :
+                gameData.roundType === 'Blitz' ? t('game.placeholderBlitz', { left: wordsPerRound - progress }) :
+                t('game.placeholderSameSame', { left: wordsPerRound - progress })
+              }
               placeholderTextColor={theme.colors.muted}
               value={currentWord}
               onChangeText={setCurrentWord}
@@ -233,6 +295,21 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     alignItems: 'stretch',
     paddingBottom: 40,
+  },
+  countdownOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(17, 24, 39, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+  },
+  countdownNumber: {
+    fontFamily: theme.fonts.headingBold,
+    fontSize: 120,
+    color: '#FFF',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 10,
   },
   containerMobile: {
     padding: theme.spacing.md,

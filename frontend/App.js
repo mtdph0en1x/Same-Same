@@ -63,6 +63,7 @@ function AppContent() {
   const [roomCode, setRoomCode] = useState(null);
   const [playerData, setPlayerData] = useState({});
   const [isHost, setIsHost] = useState(false);
+  const [isPreRound, setIsPreRound] = useState(false);
   const [lobbyIntent, setLobbyIntent] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [creditsVisible, setCreditsVisible] = useState(false);
@@ -188,8 +189,6 @@ function AppContent() {
     SoundManager.init();
   }, []);
 
-  // Music playback effect removed as per user request
-
   useEffect(() => {
     socket.on('game_started', (data) => {
       setPlayers(data.players || []);
@@ -198,8 +197,14 @@ function AppContent() {
     socket.on('room_update', (data) => {
       setPlayers(data.players || []);
     });
+    socket.on('round_pre_start', (data) => {
+      setGameData(data);
+      setIsPreRound(true);
+      setCurrentScreen('Game');
+    });
     socket.on('round_started', (data) => {
       setGameData(data);
+      setIsPreRound(false);
       setCurrentScreen('Game');
     });
     socket.on('round_ended', (data) => {
@@ -252,6 +257,7 @@ function AppContent() {
     return () => {
       socket.off('game_started');
       socket.off('room_update');
+      socket.off('round_pre_start');
       socket.off('round_started');
       socket.off('round_ended');
       socket.off('game_over');
@@ -311,7 +317,7 @@ function AppContent() {
   );
 
   // ── Persistent chrome: Activity Bar ──────────────────────────────────────
-  const ActivityBar = isDesktop ? (
+  const ActivityBar = false && isDesktop ? (
     <View style={chrome.activityBar}>
       <Text style={chrome.activityLabel}>🏆 TODAY'S TOP PLAYERS</Text>
       <View style={chrome.activityItems}>
@@ -467,6 +473,7 @@ function AppContent() {
                     setReportType('player');
                     setReportVisible(true);
                   }}
+                  currentPlayerId={playerData?.sessionId || socket.id}
                 />
               )
             )}
@@ -536,6 +543,7 @@ function AppContent() {
                   gameData={gameData}
                   players={players}
                   teams={teams}
+                  isPreRound={isPreRound}
                 />
               )}
               {currentScreen === 'Results' && (

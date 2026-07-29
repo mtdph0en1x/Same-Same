@@ -24,6 +24,7 @@ class GameSession {
             categoryPack:  config.categoryPack || 'classic',
             modifiers:     config.modifiers || [],
             lang:          config.lang || 'en',
+            topicBag:      config.topicBag || { available: [], currentPackId: null, currentLang: null },
         };
 
         // teams: { [playerId]: 'A' | 'B' } or null for solo mode
@@ -91,7 +92,7 @@ class GameSession {
         }
         this.currentCategory = category;
 
-        this.io.to(this.roomId).emit('round_started', {
+        this.io.to(this.roomId).emit('round_pre_start', {
             roundNumber:   this.currentRound,
             totalRounds:   this.config.maxRounds,
             roundType:     roundType,
@@ -100,11 +101,24 @@ class GameSession {
             wordsPerRound: this.config.wordsPerRound,
         });
 
-        if (this.config.timeLimit > 0) {
-            this.timer = setTimeout(() => {
-            this.endRound(roundType);
-        }, this.config.timeLimit * 1000);
-        }
+        setTimeout(() => {
+            if (this.isGameOver) return; // In case game was cancelled
+
+            this.io.to(this.roomId).emit('round_started', {
+                roundNumber:   this.currentRound,
+                totalRounds:   this.config.maxRounds,
+                roundType:     roundType,
+                category:      category,
+                timeLimit:     this.config.timeLimit,
+                wordsPerRound: this.config.wordsPerRound,
+            });
+
+            if (this.config.timeLimit > 0) {
+                this.timer = setTimeout(() => {
+                    this.endRound(roundType);
+                }, this.config.timeLimit * 1000);
+            }
+        }, 3000);
     }
 
     submitWord(playerId, word) {
