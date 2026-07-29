@@ -163,7 +163,9 @@ function AppContent() {
         const savedRoom = await AsyncStorage.getItem('activeRoomCode');
         socket.connect();
         if (savedRoom) {
-          socket.emit('rejoin_room', { roomCode: savedRoom, sessionId: sid });
+          setRoomCode(savedRoom);
+          setLobbyIntent('rejoin');
+          setCurrentScreen('Lobby');
         }
       } catch (e) {
         console.error('Session init error:', e);
