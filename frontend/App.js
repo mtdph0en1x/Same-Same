@@ -57,6 +57,7 @@ export default function App() {
 
 function AppContent() {
   const { user, loading } = useContext(AuthContext);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
   const [guestName, setGuestName] = useState('');
   const [guestAvatar, setGuestAvatar] = useState('👽');
@@ -166,22 +167,26 @@ function AppContent() {
         }
       } catch (e) {
         console.error('Session init error:', e);
+      } finally {
+        setIsInitialized(true);
       }
     };
     initSession();
   }, []);
 
   useEffect(() => {
-    AsyncStorage.setItem('isGuest', isGuest ? 'true' : 'false').catch(e => console.error('Save isGuest error:', e));
-  }, [isGuest]);
+    if (isInitialized) {
+      AsyncStorage.setItem('isGuest', isGuest ? 'true' : 'false').catch(e => console.error('Save isGuest error:', e));
+    }
+  }, [isGuest, isInitialized]);
 
   useEffect(() => {
-    if (guestName) AsyncStorage.setItem('guestName', guestName).catch(e => console.error('Save guestName error:', e));
-  }, [guestName]);
+    if (isInitialized && guestName) AsyncStorage.setItem('guestName', guestName).catch(e => console.error('Save guestName error:', e));
+  }, [guestName, isInitialized]);
 
   useEffect(() => {
-    if (guestAvatar) AsyncStorage.setItem('guestAvatar', guestAvatar).catch(e => console.error('Save guestAvatar error:', e));
-  }, [guestAvatar]);
+    if (isInitialized && guestAvatar) AsyncStorage.setItem('guestAvatar', guestAvatar).catch(e => console.error('Save guestAvatar error:', e));
+  }, [guestAvatar, isInitialized]);
 
   const handleSetRoomCode = async (code) => {
     setRoomCode(code);
