@@ -98,7 +98,7 @@ export default function GameOverScreen({ gameResults, roomCode, isHost, players 
 
     // Wait 1 second for podiums to rise
     const startDelay = setTimeout(() => {
-      SoundManager.startLoop('tally');
+      // SoundManager.startLoop('tally');
       
       const duration = 1500;
       const fps = 30;
@@ -112,7 +112,7 @@ export default function GameOverScreen({ gameResults, roomCode, isHost, players 
         if (progress >= 1) {
           clearInterval(interval);
           setDisplayScores(scores);
-          SoundManager.stopLoop('tally');
+          // SoundManager.stopLoop('tally');
           SoundManager.playSfx('fanfare');
         } else {
           const ease = 1 - (1 - progress) * (1 - progress); // easeOutQuad
@@ -128,7 +128,7 @@ export default function GameOverScreen({ gameResults, roomCode, isHost, players 
 
     return () => {
       clearTimeout(startDelay);
-      SoundManager.stopLoop('tally');
+      // SoundManager.stopLoop('tally');
     };
   }, [scores]);
 

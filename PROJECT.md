@@ -244,7 +244,7 @@ Before a commercial launch, the following features are prioritized to transition
 ### Layer 4 — Lightweight Cosmetics (The Economy) 🚧 In Progress
 - **Cosmetics:** ✅ Custom user-uploaded avatars via Supabase Storage. Added concept for unlockable **Profile Picture (PFP) Frames**.
 - **Leaderboards:** ✅ Global and weekly leaderboards pulled directly from Supabase.
-- **Monetization (Freemium Model):** Guest/Free players get the "Classic" pack. VIP/Premium Hosts can buy "Expansion Passes" or individual packs. If the Host owns the pack, everyone in the lobby gets to play it. (Pending)
+- **Monetization (Ad-Supported + IAP):** Free tier includes all topics and core gameplay, supported by ads (e.g., banner ads in lobbies, interstitial ads on game over). Players can pay a one-time In-App Purchase (~$3-5) to permanently remove ads. (Pending)
 
 ### Layer 5 — “Juice” & Polish (The Player Experience) 🚧 In Progress
 - **Micro-animations:** ✅ Native modal bottom-sheets, bouncy animated `PlayerCard`s, squishy tactile buttons.

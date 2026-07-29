@@ -12,6 +12,7 @@ import FramedAvatar from '../components/FramedAvatar';
 import { usePostHog } from 'posthog-react-native';
 import SoundManager from '../utils/SoundManager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Clipboard from 'expo-clipboard';
 
 const MIN_PLAYERS      = 2;
 const MIN_TEAM_PLAYERS = 4;
@@ -246,6 +247,7 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
   const [isHostless, setIsHostless] = useState(false);
   const [votes, setVotes]           = useState({}); // { [packId]: count }
   const [errorMsg, setErrorMsg]     = useState(null);
+  const [linkCopied, setLinkCopied] = useState(false);
   const hostBannerTimer             = useRef(null);
   const { width } = useWindowDimensions();
   const isDesktop = width > 800;
@@ -292,6 +294,12 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
     socket.emit('submit_vote', { roomCode, packId });
   };
 
+  const handleCopyLink = async () => {
+    const url = `https://www.same-same.fun/?room=${roomCode}`;
+    await Clipboard.setStringAsync(url);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
 
   useEffect(() => {
     socket.connect();
@@ -489,9 +497,17 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
           {!isDesktop && (
             <View style={{ alignItems: 'center' }}>
               {roomCode ? (
-                <View style={styles.codeContainer}>
+                <View style={[styles.codeContainer, { alignItems: 'center' }]}>
                   <AppText style={styles.codeLabel}>{t('lobby.roomCode', 'ROOM CODE')}</AppText>
                   <AppText style={[styles.roomCode, { fontSize: 48, letterSpacing: 4 }]}>{roomCode}</AppText>
+                  <TouchableOpacity 
+                    style={{ marginTop: 8, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: linkCopied ? '#10B981' : '#fff', borderWidth: 2, borderColor: '#000', borderRadius: 8, flexDirection: 'row', alignItems: 'center' }} 
+                    onPress={handleCopyLink}
+                  >
+                    <AppText style={{ fontFamily: theme.fonts.headingBold, fontSize: 14, color: linkCopied ? '#fff' : '#000' }}>
+                      {linkCopied ? '✅ Copied!' : '🔗 Copy Invite Link'}
+                    </AppText>
+                  </TouchableOpacity>
                 </View>
               ) : (
                 <AppText style={[styles.title, { fontSize: 28, marginBottom: 12 }]}>{isHost ? t('lobby.creatingRoom', 'Creating Room...') : t('lobby.matchmakingTitle', 'Matchmaking')}</AppText>
@@ -517,7 +533,17 @@ export default function LobbyScreen({ roomCode, setRoomCode, isHost, setIsHost, 
             {roomCode ? (
               <View style={[styles.codeContainer, { alignItems: 'flex-start' }]}>
                 <AppText style={styles.codeLabel}>{t('lobby.roomCode', 'ROOM CODE')}</AppText>
-                <AppText style={styles.roomCode}>{roomCode}</AppText>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <AppText style={styles.roomCode}>{roomCode}</AppText>
+                  <TouchableOpacity 
+                    style={{ paddingVertical: 8, paddingHorizontal: 16, backgroundColor: linkCopied ? '#10B981' : '#fff', borderWidth: 2, borderColor: '#000', borderRadius: 8, flexDirection: 'row', alignItems: 'center' }} 
+                    onPress={handleCopyLink}
+                  >
+                    <AppText style={{ fontFamily: theme.fonts.headingBold, fontSize: 16, color: linkCopied ? '#fff' : '#000' }}>
+                      {linkCopied ? '✅ Copied!' : '🔗 Copy Invite Link'}
+                    </AppText>
+                  </TouchableOpacity>
+                </View>
               </View>
             ) : (
               <AppText style={styles.title}>{isHost ? t('lobby.creatingRoom', 'Creating Room...') : t('lobby.matchmakingTitle', 'Matchmaking')}</AppText>

@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View, Text, TouchableOpacity, useWindowDimensions, ScrollView, Modal, Linking, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SplashScreen from 'expo-splash-screen';
+import * as ExpoLinking from 'expo-linking';
 import { useFonts, Fredoka_400Regular, Fredoka_500Medium, Fredoka_600SemiBold, Fredoka_700Bold } from '@expo-google-fonts/fredoka';
 import { Nunito_300Light, Nunito_400Regular, Nunito_500Medium, Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold, Nunito_900Black } from '@expo-google-fonts/nunito';
 import HomeScreen from './src/screens/HomeScreen';
@@ -83,6 +84,52 @@ function AppContent() {
 
   const [newsItems, setNewsItems] = useState([]);
   const [transmissions, setTransmissions] = useState([]);
+
+  const [pendingDeepLinkRoom, setPendingDeepLinkRoom] = useState(null);
+  const initialUrl = ExpoLinking.useURL();
+
+  useEffect(() => {
+    if (initialUrl) {
+      const parsed = ExpoLinking.parse(initialUrl);
+      if (parsed.queryParams && parsed.queryParams.room) {
+        setPendingDeepLinkRoom(parsed.queryParams.room.toUpperCase());
+      } else {
+        const hash = initialUrl.split('#')[1];
+        if (hash) {
+          const hashParams = new URLSearchParams(hash);
+          const room = hashParams.get('room');
+          if (room) setPendingDeepLinkRoom(room.toUpperCase());
+        } else {
+           const search = initialUrl.split('?')[1];
+           if (search) {
+             const searchParams = new URLSearchParams('?' + search);
+             const room = searchParams.get('room');
+             if (room) setPendingDeepLinkRoom(room.toUpperCase());
+           }
+        }
+      }
+    }
+  }, [initialUrl]);
+
+  useEffect(() => {
+    if (pendingDeepLinkRoom && (user || isGuest) && currentScreen === 'Home') {
+      const joinRoom = async () => {
+        setLobbyIntent('join');
+        await handleSetRoomCode(pendingDeepLinkRoom);
+        
+        let name = guestName || (user && user.user_metadata?.name) || (user && user.email ? user.email.split('@')[0] : 'Player');
+        handleSetPlayerData({
+          name,
+          avatar: guestAvatar || '👽',
+          level: 1,
+        });
+        
+        setPendingDeepLinkRoom(null);
+        setCurrentScreen('Lobby');
+      };
+      joinRoom();
+    }
+  }, [pendingDeepLinkRoom, user, isGuest, currentScreen, guestName, guestAvatar]);
 
   useEffect(() => {
     const handleAnnouncements = (data) => {
